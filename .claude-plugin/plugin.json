@@ -9,6 +9,5 @@
   "homepage": "https://github.com/mthalman/superpowers",
   "repository": "https://github.com/mthalman/superpowers",
   "license": "MIT",
-  "keywords": ["skills", "tdd", "debugging", "collaboration", "best-practices", "workflows"],
-  "category": "productivity"
+  "keywords": ["skills", "tdd", "debugging", "collaboration", "best-practices", "workflows"]
 }
