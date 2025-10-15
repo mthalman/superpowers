@@ -45,7 +45,7 @@ cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "<EXTREMELY_IMPORTANT>\Hi. You have superpowers.\n\n${init_message}**The content below is from skills/using-skills/SKILL.md - your introduction to using skills:**\n\n${using_skills_escaped}\n\n**Tool paths (use these when you need to search for or run skills):**\n- find-skills: ${SUPERPOWERS_SKILLS_ROOT}/skills/using-skills/find-skills\n- skill-run: ${SUPERPOWERS_SKILLS_ROOT}/skills/using-skills/skill-run\n\n**Skills live in:** ${SUPERPOWERS_SKILLS_ROOT}/skills/ (you work on your own branch and can edit any skill)\n\n**Available skills (output of find-skills):**\n\n${find_skills_escaped}${status_message}\n</EXTREMELY_IMPORTANT>"
+    "additionalContext": "<EXTREMELY_IMPORTANT>\nHello. You have superpowers.\n\n${init_message}**The content below is from skills/using-skills/SKILL.md - your introduction to using skills:**\n\n${using_skills_escaped}\n\n**Tool paths (use these when you need to search for or run skills):**\n- find-skills: ${SUPERPOWERS_SKILLS_ROOT}/skills/using-skills/find-skills\n- skill-run: ${SUPERPOWERS_SKILLS_ROOT}/skills/using-skills/skill-run\n\n**Skills live in:** ${SUPERPOWERS_SKILLS_ROOT}/skills/ (you work on your own branch and can edit any skill)\n\n**Available skills (output of find-skills):**\n\n${find_skills_escaped}${status_message}\n</EXTREMELY_IMPORTANT>"
   }
 }
 EOF
