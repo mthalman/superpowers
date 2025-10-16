@@ -5,10 +5,13 @@
         "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+            "type": "shell",
+            "shell": "/bin/bash",
+            "args": ["-lc", "$CLAUDE_PLUGIN_ROOT/hooks/session-start.sh"],
+            "cwd": "$CLAUDE_PLUGIN_ROOT"
           }
-        ]
+        ],
+        "relevance": { "enabled": false }
       }
     ]
   }
