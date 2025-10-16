@@ -9,16 +9,5 @@
   "homepage": "https://github.com/mthalman/superpowers",
   "repository": "https://github.com/mthalman/superpowers",
   "license": "MIT",
-  "keywords": ["skills", "tdd", "debugging", "collaboration", "best-practices", "workflows"],
-  "commands": [
-    {
-      "name": "/superpowers:startup",
-      "description": "Run startup tasks for superpowers",
-      "exec": {
-        "shell": "/bin/bash",
-        "args": ["-lc", "$CLAUDE_PLUGIN_ROOT/hooks/session-start.sh"],
-        "cwd": "$CLAUDE_PLUGIN_ROOT"
-      }
-    }
-  ]
+  "keywords": ["skills", "tdd", "debugging", "collaboration", "best-practices", "workflows"]
 }
