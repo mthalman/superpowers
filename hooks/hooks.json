@@ -4,12 +4,7 @@
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
-          {
-            "type": "shell",
-            "shell": "/bin/bash",
-            "args": ["-lc", "$CLAUDE_PLUGIN_ROOT/hooks/session-start.sh"],
-            "cwd": "$CLAUDE_PLUGIN_ROOT"
-          }
+          { "type": "command", "command": "/superpowers:startup" }
         ],
         "relevance": { "enabled": false }
       }
