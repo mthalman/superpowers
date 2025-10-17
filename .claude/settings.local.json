@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:skill-creator)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
