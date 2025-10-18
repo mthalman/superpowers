@@ -1,5 +1,5 @@
 ---
-name: Requesting-Code-Review
+name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements - dispatches code-reviewer subagent to review implementation against plan or requirements before proceeding
 ---
 
@@ -102,4 +102,4 @@ You: [Fix progress indicators]
 - Show code/tests that prove it works
 - Request clarification
 
-See template at: skills/collaboration/requesting-code-review/code-reviewer.md
+See template at: requesting-code-review/code-reviewer.md

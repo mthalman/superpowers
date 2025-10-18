@@ -1,5 +1,96 @@
 # Superpowers Release Notes
 
+## v3.2.0 (2025-10-18)
+
+### New Features
+
+**Design documentation in brainstorming workflow**
+- Added Phase 4: Design Documentation to brainstorming skill
+- Design documents now written to `docs/plans/YYYY-MM-DD-<topic>-design.md` before implementation
+- Restores functionality from original brainstorming command that was lost during skill conversion
+- Documents written before worktree setup and implementation planning
+- Tested with subagent to verify compliance under time pressure
+
+### Breaking Changes
+
+**Skill reference namespace standardization**
+- All internal skill references now use `superpowers:` namespace prefix
+- Updated format: `superpowers:test-driven-development` (previously just `test-driven-development`)
+- Affects all REQUIRED SUB-SKILL, RECOMMENDED SUB-SKILL, and REQUIRED BACKGROUND references
+- Aligns with how skills are invoked using the Skill tool
+- Files updated: brainstorming, executing-plans, subagent-driven-development, systematic-debugging, testing-skills-with-subagents, writing-plans, writing-skills
+
+### Improvements
+
+**Design vs implementation plan naming**
+- Design documents use `-design.md` suffix to prevent filename collisions
+- Implementation plans continue using existing `YYYY-MM-DD-<feature-name>.md` format
+- Both stored in `docs/plans/` directory with clear naming distinction
+
+## v3.1.1 (2025-10-17)
+
+### Bug Fixes
+
+- **Fixed command syntax in README** (#44) - Updated all command references to use correct namespaced syntax (`/superpowers:brainstorm` instead of `/brainstorm`). Plugin-provided commands are automatically namespaced by Claude Code to avoid conflicts between plugins.
+
+## v3.1.0 (2025-10-17)
+
+### Breaking Changes
+
+**Skill names standardized to lowercase**
+- All skill frontmatter `name:` fields now use lowercase kebab-case matching directory names
+- Examples: `brainstorming`, `test-driven-development`, `using-git-worktrees`
+- All skill announcements and cross-references updated to lowercase format
+- This ensures consistent naming across directory names, frontmatter, and documentation
+
+### New Features
+
+**Enhanced brainstorming skill**
+- Added Quick Reference table showing phases, activities, and tool usage
+- Added copyable workflow checklist for tracking progress
+- Added decision flowchart for when to revisit earlier phases
+- Added comprehensive AskUserQuestion tool guidance with concrete examples
+- Added "Question Patterns" section explaining when to use structured vs open-ended questions
+- Restructured Key Principles as scannable table
+
+**Anthropic best practices integration**
+- Added `skills/writing-skills/anthropic-best-practices.md` - Official Anthropic skill authoring guide
+- Referenced in writing-skills SKILL.md for comprehensive guidance
+- Provides patterns for progressive disclosure, workflows, and evaluation
+
+### Improvements
+
+**Skill cross-reference clarity**
+- All skill references now use explicit requirement markers:
+  - `**REQUIRED BACKGROUND:**` - Prerequisites you must understand
+  - `**REQUIRED SUB-SKILL:**` - Skills that must be used in workflow
+  - `**Complementary skills:**` - Optional but helpful related skills
+- Removed old path format (`skills/collaboration/X` → just `X`)
+- Updated Integration sections with categorized relationships (Required vs Complementary)
+- Updated cross-reference documentation with best practices
+
+**Alignment with Anthropic best practices**
+- Fixed description grammar and voice (fully third-person)
+- Added Quick Reference tables for scanning
+- Added workflow checklists Claude can copy and track
+- Appropriate use of flowcharts for non-obvious decision points
+- Improved scannable table formats
+- All skills well under 500-line recommendation
+
+### Bug Fixes
+
+- **Re-added missing command redirects** - Restored `commands/brainstorm.md` and `commands/write-plan.md` that were accidentally removed in v3.0 migration
+- Fixed `defense-in-depth` name mismatch (was `Defense-in-Depth-Validation`)
+- Fixed `receiving-code-review` name mismatch (was `Code-Review-Reception`)
+- Fixed `commands/brainstorm.md` reference to correct skill name
+- Removed references to non-existent related skills
+
+### Documentation
+
+**writing-skills improvements**
+- Updated cross-referencing guidance with explicit requirement markers
+- Added reference to Anthropic's official best practices
+- Improved examples showing proper skill reference format
 
 ## v3.0.1 (2025-10-16)
 
