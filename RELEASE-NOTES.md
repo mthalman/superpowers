@@ -1,5 +1,58 @@
 # Superpowers Release Notes
 
+## v3.2.3 (2025-10-23)
+
+### Improvements
+
+**Updated using-superpowers skill to use Skill tool instead of Read tool**
+- Changed skill invocation instructions from Read tool to Skill tool
+- Updated description: "using Read tool" → "using Skill tool"
+- Updated step 3: "Use the Read tool" → "Use the Skill tool to read and run"
+- Updated rationalization list: "Read the current version" → "Run the current version"
+
+The Skill tool is the proper mechanism for invoking skills in Claude Code. This update corrects the bootstrap instructions to guide agents toward the correct tool.
+
+### Files Changed
+- Updated: `skills/using-superpowers/SKILL.md` - Changed tool references from Read to Skill
+
+## v3.2.2 (2025-10-21)
+
+### Improvements
+
+**Strengthened using-superpowers skill against agent rationalization**
+- Added EXTREMELY-IMPORTANT block with absolute language about mandatory skill checking
+  - "If even 1% chance a skill applies, you MUST read it"
+  - "You do not have a choice. You cannot rationalize your way out."
+- Added MANDATORY FIRST RESPONSE PROTOCOL checklist
+  - 5-step process agents must complete before any response
+  - Explicit "responding without this = failure" consequence
+- Added Common Rationalizations section with 8 specific evasion patterns
+  - "This is just a simple question" → WRONG
+  - "I can check files quickly" → WRONG
+  - "Let me gather information first" → WRONG
+  - Plus 5 more common patterns observed in agent behavior
+
+These changes address observed agent behavior where they rationalize around skill usage despite clear instructions. The forceful language and pre-emptive counter-arguments aim to make non-compliance harder.
+
+### Files Changed
+- Updated: `skills/using-superpowers/SKILL.md` - Added three layers of enforcement to prevent skill-skipping rationalization
+
+## v3.2.1 (2025-10-20)
+
+### New Features
+
+**Code reviewer agent now included in plugin**
+- Added `superpowers:code-reviewer` agent to plugin's `agents/` directory
+- Agent provides systematic code review against plans and coding standards
+- Previously required users to have personal agent configuration
+- All skill references updated to use namespaced `superpowers:code-reviewer`
+- Fixes #55
+
+### Files Changed
+- New: `agents/code-reviewer.md` - Agent definition with review checklist and output format
+- Updated: `skills/requesting-code-review/SKILL.md` - References to `superpowers:code-reviewer`
+- Updated: `skills/subagent-driven-development/SKILL.md` - References to `superpowers:code-reviewer`
+
 ## v3.2.0 (2025-10-18)
 
 ### New Features
