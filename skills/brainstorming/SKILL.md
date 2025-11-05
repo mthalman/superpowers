@@ -20,7 +20,7 @@ Transform rough ideas into fully-formed designs through structured questioning a
 | **1. Understanding** | Ask questions (one at a time) | AskUserQuestion for choices | Purpose, constraints, criteria |
 | **2. Exploration** | Propose 2-3 approaches | AskUserQuestion for approach selection | Architecture options with trade-offs |
 | **3. Design Presentation** | Present in 200-300 word sections | Open-ended questions | Complete design with validation |
-| **4. Design Documentation** | Write design document | writing-clearly-and-concisely skill | Design doc in docs/plans/ |
+| **4. Design Documentation** | Write design document, document architectural decisions | writing-clearly-and-concisely, adr-generator | Design doc in docs/plans/, ADRs if needed |
 | **5. Worktree Setup** | Set up isolated workspace | using-git-worktrees skill | Ready development environment |
 | **6. Planning Handoff** | Create implementation plan | writing-plans skill | Detailed task breakdown |
 
@@ -33,7 +33,7 @@ Brainstorming Progress:
 - [ ] Phase 1: Understanding (purpose, constraints, criteria gathered)
 - [ ] Phase 2: Exploration (2-3 approaches proposed and evaluated)
 - [ ] Phase 3: Design Presentation (design validated in sections)
-- [ ] Phase 4: Design Documentation (design written to docs/plans/)
+- [ ] Phase 4: Design Documentation (design written, ADRs created if needed)
 - [ ] Phase 5: Worktree Setup (if implementing)
 - [ ] Phase 6: Planning Handoff (if implementing)
 ```
@@ -75,11 +75,41 @@ Options:
 - Use open-ended questions here to allow freeform feedback
 
 ### Phase 4: Design Documentation
-After design is validated, write it to a permanent document:
+After design is validated, document it:
+
+**Step 1: Write design document**
 - **File location:** `docs/plans/YYYY-MM-DD-<topic>-design.md` (use actual date and descriptive topic)
 - **RECOMMENDED SUB-SKILL:** Use elements-of-style:writing-clearly-and-concisely (if available) for documentation quality
 - **Content:** Capture the design as discussed and validated in Phase 3, organized into the sections that emerged from the conversation
 - Commit the design document to git before proceeding
+
+**Step 2: Document architectural decisions (if applicable)**
+
+Check if any architectural decisions need ADR documentation:
+- Database choice (PostgreSQL vs MongoDB, SQL vs NoSQL)
+- System architecture (monolith vs microservices, event-driven vs request-response)
+- Framework/language selection
+- Third-party service integrations (Stripe, Auth0, cloud provider)
+- Authentication/authorization approach
+- API design patterns (REST vs GraphQL, versioning strategy)
+- Caching/state management strategy
+- Any decision that affects multiple components or is hard to change later
+
+**If architectural decisions were made:**
+1. Announce: "I'm using adr-generator to document this architectural decision."
+2. **OPTIONAL SUB-SKILL:** Use superpowers:adr-generator for each significant decision
+3. For each decision, capture from brainstorming context:
+   - Context and problem statement (from Phase 1)
+   - Decision drivers (constraints and requirements identified)
+   - Considered options (alternatives from Phase 2)
+   - Decision outcome (chosen approach from Phase 2)
+   - Pros and cons (trade-offs discussed during exploration)
+4. Commit ADRs to git
+
+**If unsure whether decisions need ADRs:**
+- Load `references/what-counts.md` from superpowers:adr-generator for decision tree
+- Quick test: Would a future developer wonder "why did they do it this way?"
+- If yes → Create ADR
 
 ### Phase 5: Worktree Setup (for implementation)
 When design is approved and implementation will follow:

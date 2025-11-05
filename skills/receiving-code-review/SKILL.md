@@ -85,6 +85,44 @@ IF conflicts with your human partner's prior decisions:
 
 **your human partner's rule:** "External feedback - be skeptical, but check carefully"
 
+## Undocumented Architectural Decisions
+
+```
+IF reviewer asks "Why did you use X instead of Y?":
+  AND this was an architectural decision:
+    - Affects multiple components
+    - Hard to change later
+    - Pattern-setting for future code
+  THEN decision should be documented
+
+Use superpowers:adr-generator to create ADR:
+  1. Announce: "I'm using adr-generator to document this architectural decision."
+  2. Create ADR explaining:
+     - Context that led to decision
+     - Alternatives considered (including reviewer's suggestion)
+     - Reasoning for chosen approach
+     - Trade-offs accepted
+  3. Reference ADR in response to reviewer
+```
+
+**Why document:** Makes implicit decisions explicit for future reviewers and developers. Prevents same questions repeatedly.
+
+**Examples of architectural decisions to document:**
+- Database/storage choice (PostgreSQL vs MongoDB, Redis vs in-memory)
+- Framework selection (React vs Vue, REST vs GraphQL)
+- Authentication approach (JWT vs sessions, OAuth provider)
+- System architecture patterns (event-driven vs request-response)
+- Third-party integrations (Stripe vs PayPal, AWS vs Azure)
+- API design decisions (versioning strategy, error handling patterns)
+
+**Example response:**
+```
+Reviewer: "Why JWT instead of server-side sessions?"
+✅ "That's an architectural decision that should be documented. Let me create an ADR..."
+[Creates ADR-0023 documenting JWT choice, alternatives, trade-offs]
+✅ "Documented in ADR-0023. JWT chosen for mobile client support and stateless scaling. Trade-off: can't revoke until expiry (mitigated with short-lived tokens + refresh pattern)."
+```
+
 ## YAGNI Check for "Professional" Features
 
 ```

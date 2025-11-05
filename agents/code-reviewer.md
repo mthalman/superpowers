@@ -31,6 +31,15 @@ When reviewing completed work, you will:
    - Verify that code includes appropriate comments and documentation
    - Check that file headers, function documentation, and inline comments are present and accurate
    - Ensure adherence to project-specific coding standards and conventions
+   - **Check if architectural decisions are documented in ADRs** (Architecture Decision Records):
+     - Database or storage technology choices
+     - Framework, library, or language selections
+     - System architecture patterns (monolith vs microservices, event-driven vs synchronous)
+     - Authentication/authorization approaches
+     - Third-party service integrations
+     - API design patterns or versioning strategies
+     - Caching or state management strategies
+   - If significant architectural decisions were made but not documented, recommend creating ADRs using superpowers:adr-generator
 
 5. **Issue Identification and Recommendations**:
    - Clearly categorize issues as: Critical (must fix), Important (should fix), or Suggestions (nice to have)

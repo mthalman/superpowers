@@ -105,6 +105,35 @@ Skip any step = lying, not verifying
 ❌ Trust agent report
 ```
 
+## Architectural Decision Documentation
+
+```
+BEFORE claiming work complete:
+  IF made architectural decisions during implementation:
+    CHECK: Are they documented in ADRs?
+    IF NO: Use superpowers:adr-generator before marking complete
+
+Architectural decisions include:
+  - Chose between technology alternatives (database, framework, library)
+  - Changed system structure or patterns
+  - Made pattern-setting choices (authentication, API design, error handling)
+  - Selected third-party integrations
+  - Decided on caching/state management approach
+```
+
+**Why verify:** Undocumented architectural decisions cause confusion for future developers. Document the "why" at decision time, not months later when context is lost.
+
+**Example check:**
+```
+Before completing feature implementation:
+
+✅ Check: Did I choose PostgreSQL over MongoDB?
+   → Yes → Create ADR-0015 documenting choice, alternatives, trade-offs
+   → Commit ADR before marking feature complete
+
+❌ "Feature complete, all tests pass" (without checking for architectural decisions)
+```
+
 ## Why This Matters
 
 From 24 failure memories:

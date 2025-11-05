@@ -38,6 +38,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 **Goal:** [One sentence describing what this builds]
 
 **Architecture:** [2-3 sentences about approach]
+[If architectural decisions were documented in ADRs, reference them here: "See ADR-0012 for API versioning rationale"]
 
 **Tech Stack:** [Key technologies/libraries]
 
