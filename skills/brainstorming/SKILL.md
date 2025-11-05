@@ -38,7 +38,9 @@ Start by understanding the current project context, then ask questions one at a 
 - Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
-- Use superpowers:adr-generator for each significant decision
+- **REQUIRED:** Use superpowers:adr-generator skill to evaluate whether architectural decisions need documentation
+  - The adr-generator skill will guide you through determining what's significant
+  - You MUST invoke this skill before proceeding to implementation
 
 **Implementation (if continuing):**
 - Ask: "Ready to set up for implementation?"
