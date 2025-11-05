@@ -23,7 +23,7 @@ $warningEscaped = $warningMessage -replace '\\', '\\' -replace '"', '\"' -replac
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**The content below is from skills/using-superpowers/SKILL.md - your introduction to using skills:**\n\n$usingSuperpowersEscaped\n\n$warningEscaped\n</EXTREMELY_IMPORTANT>"
+    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n$usingSuperpowersEscaped\n\n$warningEscaped\n</EXTREMELY_IMPORTANT>"
   }
 }
 "@
