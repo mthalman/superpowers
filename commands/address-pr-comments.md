@@ -9,14 +9,7 @@ You are helping the user address review comments on a GitHub Pull Request. Follo
 1. **Detect the PR:**
    - Execute: `git rev-parse --abbrev-ref HEAD` to get current branch
    - Execute: `gh pr view --json number,url,title` to find the associated PR
-   - If no PR found or branch not pushed, display error and exit:
-     ```
-     Error: Could not find PR for branch '<branch>'
-
-     Make sure:
-       - The branch is pushed to remote
-       - A PR exists for this branch
-     ```
+   - If no PR found or branch not pushed, display error and exit (see Error Handling section for format)
 
 2. **Check for progress file:**
    - Check if `.claude/pr-comments-progress.json` exists
@@ -32,33 +25,9 @@ You are helping the user address review comments on a GitHub Pull Request. Follo
 
    **Fetch process:**
 
-   a. Fetch all comments via REST:
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate
-   ```
+   a. Fetch all comments via REST (see GitHub CLI Reference for command)
 
-   b. Fetch resolution status via GraphQL:
-   ```bash
-   gh api graphql -F query=@- -F owner="{owner}" -F repo="{repo}" -F pr={pr_number} <<'EOF'
-query($owner: String!, $repo: String!, $pr: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
-        nodes {
-          id
-          isResolved
-          comments(first: 1) {
-            nodes {
-              databaseId
-            }
-          }
-        }
-      }
-    }
-  }
-}
-EOF
-   ```
+   b. Fetch resolution status via GraphQL (see GitHub CLI Reference for query)
 
    c. Filter comments:
    - Exclude if `position == null` (outdated)
@@ -80,35 +49,13 @@ EOF
    - Group comments by file location
 
 4. **Create or update progress file:**
-   ```json
-   {
-     "pr_number": 123,
-     "branch": "feature/add-auth",
-     "last_updated": "<timestamp>",
-     "comments": [
-       {
-         "id": "comment-id",
-         "file": "path/to/file.ts",
-         "line": 42,
-         "status": "pending|completed|skipped",
-         "commit_sha": "abc123f",
-         "action": "auto_fixed|fixed_by_user|deferred|marked_done|questioned|file_deleted",
-         "pending_replies": [
-           "Could you clarify the edge cases?",
-           "Fixed in abc123f"
-         ],
-         "last_post_timestamp": "2025-11-07T21:48:42Z"
-       }
-     ]
-   }
-   ```
-
-   **Note:** `last_post_timestamp` is the timestamp of the most recent post in the comment thread at the time the comments were fetched from GitHub. This enables detecting new activity in subsequent runs. `pending_replies` is an array of reply messages that will be posted when the user pushes.
+   - File location: `.claude/pr-comments-progress.json`
+   - Tracks PR number, branch, and comment processing state
+   - See Progress File Schema section for complete structure
 
 5. **Detect new activity on comments:**
    - When resuming, compare `last_post_timestamp` from progress file with latest post timestamp from GitHub
    - If current thread has newer timestamp: Re-prompt the comment (even if previously addressed)
-   - This enables iterative reviews where reviewers respond to fixes
 
 ## Code Context Retrieval
 
@@ -247,8 +194,7 @@ What would you like to do?
 1. Analyze the comment and surrounding code context
 2. Apply the changes using Edit tool
 3. If user approves the changes:
-   - Create semantic commit (no PR reference in message)
-   - Example: `"fix: add token validation and error logging"`
+   - Create semantic commit message (describe what was fixed, not that it's from a PR comment)
    - Record commit SHA in progress file
    - Add to pending_replies array: `"Fixed in <short_sha>"`
    - Move to next comment
@@ -339,10 +285,8 @@ Ready to push? [Y/n]
 
    PR #<number> is ready for re-review!
 
-   Progress has been saved. Run this command again to address any new comments.
+   Run this command again to address any new comments.
    ```
-
-**Note:** Progress file is kept to enable iterative reviews. Do NOT delete it.
 
 ### If user declines push:
 
@@ -384,8 +328,6 @@ Error: <problem>
 - Use `gh` CLI for all GitHub operations
 - Use unified diff format for change previews
 - Display code context with line numbers
-- Progress file location: `.claude/pr-comments-progress.json`
-- Progress file persists across sessions to support iterative reviews
 - Store pending replies in each comment's `pending_replies` array
 - Post pending replies only when user approves push
 - Clear `pending_replies` array after successful posting
