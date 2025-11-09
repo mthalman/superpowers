@@ -76,24 +76,39 @@ When displaying a comment, retrieve code context using this algorithm:
 **Context window:** ±5 lines (adjustable based on code complexity)
 
 **Formatting:**
-- Display in code block with line numbers right-aligned to consistent width
-- Use `>` to mark the commented line (placed at leftmost position, followed by space, then right-aligned line number)
-- **Algorithm for alignment:**
-  1. Determine max line number in the context window (e.g., if showing lines 7-13, max is 13)
-  2. Calculate width needed: `len(str(max_line_number))` (for line 13, width = 2)
-  3. For each line: `line_str = str(line_number).rjust(width)`
-  4. For unmarked lines: print `"  {line_str} | {code}"`
-  5. For marked line: print `"> {line_str} | {code}"`
-- Example with proper alignment (max line = 13, width = 2):
-  ```
-     7 | export function validateEmail(email: string): boolean {
-     8 |   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-     9 |   return regex.test(email);
-    10 | }
-    11 |
-  > 12 | export function sanitizeInput(input: string): string {
-    13 |   return input.trim().replace(/[<>]/g, '');
-  ```
+
+Display code in a block with line numbers right-aligned so all `|` characters line up vertically.
+
+**Algorithm:**
+1. Determine the max line number in context (e.g., lines 15-21 → max is 21)
+2. Calculate width: `width = len(str(max_line_number))` (for 21, width = 2; for 103, width = 3)
+3. For each line, format as: `prefix + line_number.rjust(width) + " | " + code`
+   - For unmarked lines: `prefix = "  "` (2 spaces)
+   - For marked line: `prefix = "> "` (> symbol + 1 space)
+
+**Example implementation (Python-style):**
+```python
+width = len(str(max_line))  # If max_line = 21, width = 2
+for line_num, code in lines:
+    line_str = str(line_num).rjust(width)  # Right-justify: "17" or " 7"
+    if line_num == commented_line:
+        print(f"> {line_str} | {code}")  # "> 17 | code"
+    else:
+        print(f"  {line_str} | {code}")  # "  17 | code"
+```
+
+**Example output (lines 15-21, marked line 17):**
+```
+  15 | // Check expiration exists and is valid
+  16 | if (typeof decoded.exp !== 'number') return false;
+> 17 | return decoded.exp * 1000 > Date.now();
+  18 | } catch (error) {
+  19 | return false;
+  20 | }
+  21 | }
+```
+
+Note: All `|` characters align vertically. The `>` marker replaces the 2 leading spaces.
 
 ## Processing Comments
 
@@ -113,13 +128,7 @@ Thread:
   ...
 
 Code context:
-```
-  <line-2> | <code>
-  <line-1> | <code>
-> <line-0> | <code>  (Note: > at leftmost position, line number right-aligned)
-  <line+1> | <code>
-  <line+2> | <code>
-```
+<display formatted code using algorithm from Code Context Retrieval section>
 
 ──────────────────────────────────────
 What would you like to do?
