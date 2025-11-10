@@ -163,9 +163,13 @@ What would you like to do?
      [B] I'll commit them myself
      [C] Continue without committing these changes
      ```
-     - If [A]: Analyze changes using `git diff`, create semantic commit message, execute commit
-     - If [B]: Show "Type 'done' when committed", wait for 'done', then continue
-     - If [C]: Continue with existing commits
+     - If [A]:
+       - Analyze changes using `git diff`
+       - Create semantic commit message
+       - Execute commit
+       - Automatically record the commit SHA (skip to step 9 to record this commit in the progress file)
+     - If [B]: Show "Type 'done' when committed", wait for 'done', then continue to step 5
+     - If [C]: Continue to step 5
 5. Check if new commits exist:
    - Execute: `git rev-parse --short HEAD` (store as `after_sha`)
    - Compare `before_sha` with `after_sha`
@@ -189,18 +193,18 @@ What would you like to do?
    Enter: number(s), SHA, or range
    Examples: "1", "1,3", "1-2", "all", "abc123f", "skip"
    ```
-5. Parse user input:
+8. Parse user input:
    - Single number: "1" → Select commit 1
    - Multiple numbers: "1,3" → Select commits 1 and 3
    - Range: "1-2" → Select commits 1 and 2
    - Keyword: "all" → Select all listed commits
    - SHA: "abc123f" → Select by SHA
    - Keyword: "skip" → Skip this comment (don't record any commits)
-6. Record in progress file:
+9. Record in progress file:
    - Mark comment as completed
    - Store all selected commit SHAs
    - Add to pending_replies array: `"Fixed in <sha1>, <sha2>"` (or single SHA if only one)
-7. Move to next comment
+10. Move to next comment
 
 ### User Choice: [B] Auto-fix it
 
