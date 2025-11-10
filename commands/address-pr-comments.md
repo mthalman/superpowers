@@ -112,6 +112,10 @@ Note: All `|` characters align vertically. The `>` marker replaces the 2 leading
 
 ## Processing Comments
 
+**URL Formatting Rule:** Always wrap GitHub URLs in angle brackets to prevent markdown from interpreting underscores as emphasis markers.
+- Comment URL format: `<https://github.com/{owner}/{repo}/pull/{pr_number}#discussion_r{comment_id}>`
+- PR URL format: `<https://github.com/{owner}/{repo}/pull/{pr_number}>`
+
 For each pending comment, display:
 
 ```
@@ -120,7 +124,7 @@ For each pending comment, display:
 Comment <n> of <total> in this file
 ──────────────────────────────────────
 Line <number> | @<reviewer>
-🔗 <https://github.com/<owner>/<repo>/pull/<pr_number>#discussion_r<comment_id>>
+🔗 <URL to comment>
 
 Thread:
   @<user1>: <comment text>
@@ -271,7 +275,7 @@ Commits to be pushed:
 
 Comment replies to be posted: <n>
 
-🔗 <https://github.com/<owner>/<repo>/pull/<pr_number>>
+🔗 <PR URL>
 
 ═══════════════════════════════════════════
 Ready to push? [Y/n]
