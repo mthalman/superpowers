@@ -429,7 +429,7 @@ gh pr view --json number,url,title,state
 
 **Command:**
 ```bash
-gh api graphql -F query=@- -F owner="{owner}" -F repo="{repo}" -F pr={pr_number} <<'EOF'
+gh api graphql -F owner="{owner}" -F repo="{repo}" -F pr={pr_number} -F query=@- <<'EOF'
 query($owner: String!, $repo: String!, $pr: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
@@ -437,9 +437,10 @@ query($owner: String!, $repo: String!, $pr: Int!) {
         nodes {
           id
           isResolved
-          comments(first: 1) {
+          comments(first: 10) {
             nodes {
               databaseId
+              createdAt
             }
           }
         }
