@@ -120,7 +120,7 @@ For each pending comment, display:
 Comment <n> of <total> in this file
 ──────────────────────────────────────
 Line <number> | @<reviewer>
-🔗 https://github.com/<owner>/<repo>/pull/<pr_number>#discussion_r<comment_id>
+🔗 <https://github.com/<owner>/<repo>/pull/<pr_number>#discussion_r<comment_id>>
 
 Thread:
   @<user1>: <comment text>
@@ -271,7 +271,7 @@ Commits to be pushed:
 
 Comment replies to be posted: <n>
 
-🔗 https://github.com/<owner>/<repo>/pull/<pr_number>
+🔗 <https://github.com/<owner>/<repo>/pull/<pr_number>>
 
 ═══════════════════════════════════════════
 Ready to push? [Y/n]
