@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const skillsCore = require('../lib/skills-core');
 
 // Paths
 const homeDir = os.homedir();
@@ -13,66 +13,6 @@ const bootstrapFile = path.join(homeDir, '.codex', 'superpowers', '.codex', 'sup
 const superpowersRepoDir = path.join(homeDir, '.codex', 'superpowers');
 
 // Utility functions
-function checkForUpdates() {
-    try {
-        // Quick check with 3 second timeout to avoid delays if network is down
-        const output = execSync('git fetch origin && git status --porcelain=v1 --branch', {
-            cwd: superpowersRepoDir,
-            timeout: 3000,
-            encoding: 'utf8',
-            stdio: 'pipe'
-        });
-
-        // Parse git status output to see if we're behind
-        const statusLines = output.split('\n');
-        for (const line of statusLines) {
-            if (line.startsWith('## ') && line.includes('[behind ')) {
-                return true; // We're behind remote
-            }
-        }
-        return false; // Up to date
-    } catch (error) {
-        // Network down, git error, timeout, etc. - don't block bootstrap
-        return false;
-    }
-}
-
-function extractFrontmatter(filePath) {
-    try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
-
-        let inFrontmatter = false;
-        let name = '';
-        let description = '';
-        let whenToUse = '';
-
-        for (const line of lines) {
-            if (line.trim() === '---') {
-                if (inFrontmatter) break;
-                inFrontmatter = true;
-                continue;
-            }
-
-            if (inFrontmatter) {
-                const match = line.match(/^(\w+):\s*(.*)$/);
-                if (match) {
-                    const [, key, value] = match;
-                    switch (key) {
-                        case 'name': name = value.trim(); break;
-                        case 'description': description = value.trim(); break;
-                        case 'when_to_use': whenToUse = value.trim(); break;
-                    }
-                }
-            }
-        }
-
-        return { name, description, whenToUse };
-    } catch (error) {
-        return { name: '', description: '', whenToUse: '' };
-    }
-}
-
 function printSkill(skillPath, sourceType) {
     const skillFile = path.join(skillPath, 'SKILL.md');
     const relPath = sourceType === 'personal'
@@ -87,46 +27,10 @@ function printSkill(skillPath, sourceType) {
     }
 
     // Extract and print metadata
-    const { name, description, whenToUse } = extractFrontmatter(skillFile);
+    const { name, description } = skillsCore.extractFrontmatter(skillFile);
 
     if (description) console.log(`  ${description}`);
-    if (whenToUse) console.log(`  When to use: ${whenToUse}`);
     console.log('');
-}
-
-function findSkillsInDir(dir, sourceType, maxDepth = 1) {
-    const skills = [];
-
-    if (!fs.existsSync(dir)) return skills;
-
-    function searchDir(currentDir, currentDepth) {
-        if (currentDepth > maxDepth) return;
-
-        try {
-            const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-
-            for (const entry of entries) {
-                if (entry.isDirectory()) {
-                    const skillDir = path.join(currentDir, entry.name);
-                    const skillFile = path.join(skillDir, 'SKILL.md');
-
-                    if (fs.existsSync(skillFile)) {
-                        skills.push(skillDir);
-                    }
-
-                    // For personal skills, search deeper (category/skill structure)
-                    if (sourceType === 'personal' && currentDepth < maxDepth) {
-                        searchDir(skillDir, currentDepth + 1);
-                    }
-                }
-            }
-        } catch (error) {
-            // Ignore permission errors or other issues
-        }
-    }
-
-    searchDir(dir, 0);
-    return skills;
 }
 
 // Commands
@@ -138,19 +42,19 @@ function runFindSkills() {
     const foundSkills = new Set();
 
     // Find personal skills first (these take precedence)
-    const personalSkills = findSkillsInDir(personalSkillsDir, 'personal', 2);
-    for (const skillPath of personalSkills) {
-        const relPath = path.relative(personalSkillsDir, skillPath);
+    const personalSkills = skillsCore.findSkillsInDir(personalSkillsDir, 'personal', 2);
+    for (const skill of personalSkills) {
+        const relPath = path.relative(personalSkillsDir, skill.path);
         foundSkills.add(relPath);
-        printSkill(skillPath, 'personal');
+        printSkill(skill.path, 'personal');
     }
 
     // Find superpowers skills (only if not already found in personal)
-    const superpowersSkills = findSkillsInDir(superpowersSkillsDir, 'superpowers', 1);
-    for (const skillPath of superpowersSkills) {
-        const relPath = path.relative(superpowersSkillsDir, skillPath);
+    const superpowersSkills = skillsCore.findSkillsInDir(superpowersSkillsDir, 'superpowers', 1);
+    for (const skill of superpowersSkills) {
+        const relPath = path.relative(superpowersSkillsDir, skill.path);
         if (!foundSkills.has(relPath)) {
-            printSkill(skillPath, 'superpowers');
+            printSkill(skill.path, 'superpowers');
         }
     }
 
@@ -171,7 +75,7 @@ function runBootstrap() {
     console.log('');
 
     // Check for updates (with timeout protection)
-    if (checkForUpdates()) {
+    if (skillsCore.checkForUpdates(superpowersRepoDir)) {
         console.log('## Update Available');
         console.log('');
         console.log('⚠️  Your superpowers installation is behind the latest version.');
@@ -303,35 +207,13 @@ function runUseSkill(skillName) {
         return;
     }
 
-    // Extract frontmatter and content
+    // Extract frontmatter and content using shared core functions
     let content, frontmatter;
     try {
         const fullContent = fs.readFileSync(skillFile, 'utf8');
-        const { name, description, whenToUse } = extractFrontmatter(skillFile);
-
-        // Extract just the content after frontmatter
-        const lines = fullContent.split('\n');
-        let inFrontmatter = false;
-        let frontmatterEnded = false;
-        const contentLines = [];
-
-        for (const line of lines) {
-            if (line.trim() === '---') {
-                if (inFrontmatter) {
-                    frontmatterEnded = true;
-                    continue;
-                }
-                inFrontmatter = true;
-                continue;
-            }
-
-            if (frontmatterEnded || !inFrontmatter) {
-                contentLines.push(line);
-            }
-        }
-
-        content = contentLines.join('\n').trim();
-        frontmatter = { name, description, whenToUse };
+        const { name, description } = skillsCore.extractFrontmatter(skillFile);
+        content = skillsCore.stripFrontmatter(fullContent);
+        frontmatter = { name, description };
     } catch (error) {
         console.log(`Error reading skill file: ${error.message}`);
         return;
@@ -347,10 +229,7 @@ function runUseSkill(skillName) {
     if (frontmatter.description) {
         console.log(`# ${frontmatter.description}`);
     }
-    if (frontmatter.whenToUse) {
-        console.log(`# When to use: ${frontmatter.whenToUse}`);
-    }
-    console.log(`# Supporting tools and docs are in ${skillDirectory}`);
+    console.log(`# Skill-specific tools and reference files live in ${skillDirectory}`);
     console.log('# ============================================');
     console.log('');
 
