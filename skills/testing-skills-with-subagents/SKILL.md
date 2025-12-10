@@ -822,3 +822,13 @@ From applying TDD to TDD skill itself (2025-10-03):
 - Each REFACTOR closed specific loopholes
 - Final VERIFY GREEN: 100% compliance under maximum pressure
 - Same process works for any discipline-enforcing skill
+
+## After Pressure Testing
+
+**This skill validates process compliance under pressure.**
+
+For expertise-transfer skills (architecture, design, technical writing), you also need quality validation to ensure output matches expert-level quality.
+
+**See:** `validating-skill-output-quality` for expert-agent comparison testing that detects missing tacit knowledge and mechanical application.
+
+**See:** `writing-skills` for guidance on when to use pressure testing vs quality validation.

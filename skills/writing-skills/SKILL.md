@@ -361,52 +361,82 @@ Edit skill without testing? Same violation.
 
 ## Testing All Skill Types
 
-Different skill types need different test approaches:
+Different skill types need different test approaches. Use the right testing methodology for your skill type:
 
 ### Discipline-Enforcing Skills (rules/requirements)
 
 **Examples:** TDD, verification-before-completion, designing-before-coding
 
-**Test with:**
+**Testing approach:** Pressure testing ONLY (testing-skills-with-subagents)
 - Academic questions: Do they understand the rules?
 - Pressure scenarios: Do they comply under stress?
 - Multiple pressures combined: time + sunk cost + exhaustion
 - Identify rationalizations and add explicit counters
 
 **Success criteria:** Agent follows rule under maximum pressure
+**Quality validation:** Not needed (pure discipline enforcement)
 
 ### Technique Skills (how-to guides)
 
 **Examples:** condition-based-waiting, root-cause-tracing, defensive-programming
 
-**Test with:**
+**Testing approach:** Application testing + Quality validation (if expertise involved)
 - Application scenarios: Can they apply the technique correctly?
 - Variation scenarios: Do they handle edge cases?
 - Missing information tests: Do instructions have gaps?
 
 **Success criteria:** Agent successfully applies technique to new scenario
+**Quality validation:** Use if technique involves judgment (e.g., when to apply, trade-offs)
 
 ### Pattern Skills (mental models)
 
 **Examples:** reducing-complexity, information-hiding concepts
 
-**Test with:**
+**Testing approach:** Recognition testing + Quality validation
 - Recognition scenarios: Do they recognize when pattern applies?
 - Application scenarios: Can they use the mental model?
 - Counter-examples: Do they know when NOT to apply?
 
 **Success criteria:** Agent correctly identifies when/how to apply pattern
+**Quality validation:** Usually needed (patterns require judgment and context-sensitivity)
 
 ### Reference Skills (documentation/APIs)
 
 **Examples:** API documentation, command references, library guides
 
-**Test with:**
+**Testing approach:** Retrieval testing ONLY
 - Retrieval scenarios: Can they find the right information?
 - Application scenarios: Can they use what they found correctly?
 - Gap testing: Are common use cases covered?
 
 **Success criteria:** Agent finds and correctly applies reference information
+**Quality validation:** Not needed (objective reference material)
+
+### Expertise-Transfer Skills (judgment/design)
+
+**Examples:** Architecture design, technical writing, code review, planning
+
+**Testing approach:** BOTH pressure testing AND quality validation (both skills required)
+- Pressure testing: Do they follow process under constraints?
+- Quality validation: Does output match expert-level quality?
+
+**Success criteria:**
+- Agent follows approach under pressure ✓
+- Output shows tacit knowledge, context adaptation, trade-off reasoning ✓
+
+**Quality validation:** REQUIRED - this is what validates expertise transfer
+
+---
+
+**Quick decision tree:**
+
+```
+Does skill enforce discipline/rules?
+├─ Yes → Pressure testing only (testing-skills-with-subagents)
+└─ No → Does it require judgment/expertise?
+    ├─ Yes → BOTH pressure AND quality testing (both skills)
+    └─ No → Basic application testing
+```
 
 ## Common Rationalizations for Skipping Testing
 
@@ -520,11 +550,21 @@ Run same scenarios WITH skill. Agent should now comply.
 
 Agent found new rationalization? Add explicit counter. Re-test until bulletproof.
 
-**REQUIRED SUB-SKILL:** Use superpowers:testing-skills-with-subagents for the complete testing methodology:
+**REQUIRED SUB-SKILLS:**
+
+**For all discipline-enforcing skills:**
+Use superpowers:testing-skills-with-subagents for pressure testing:
 - How to write pressure scenarios
 - Pressure types (time, sunk cost, authority, exhaustion)
 - Plugging holes systematically
 - Meta-testing techniques
+
+**For expertise-transfer skills (AFTER pressure testing passes):**
+Use superpowers:validating-skill-output-quality for quality validation:
+- Expert-agent comparison testing
+- Detecting missing tacit knowledge
+- Identifying mechanical application patterns
+- Generating actionable improvement feedback
 
 ## Anti-Patterns
 
@@ -587,6 +627,14 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Build rationalization table from all test iterations
 - [ ] Create red flags list
 - [ ] Re-test until bulletproof
+
+**Quality Validation (if expertise-transfer skill):**
+- [ ] Run expert-agent comparison (validating-skill-output-quality)
+- [ ] Identify missing tacit knowledge gaps
+- [ ] Identify mechanical application patterns
+- [ ] Add audience assessment / context adaptation guidance
+- [ ] Add trade-off reasoning templates and examples
+- [ ] Re-test until quality gap <1.0
 
 **Quality Checks:**
 - [ ] Small flowchart only if decision non-obvious
