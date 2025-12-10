@@ -65,6 +65,17 @@ You understand 1,2,3,6. Unclear on 4,5.
 - **Skip to action** or technical acknowledgment
 
 ### From External Reviewers
+
+⚠️ **COGNITIVE CHECKPOINT: Before implementing external feedback**
+
+For each suggestion, you must be able to articulate:
+- **WHY** this suggestion is technically correct for THIS codebase
+- **WHAT** could break if implemented incorrectly
+- **WHAT** evidence supports this is the right change
+
+If you cannot clearly articulate with evidence → ASK for clarification or investigate further
+If you can clearly articulate → Document reasoning and proceed
+
 ```
 BEFORE implementing:
   1. Check: Technically correct for THIS codebase?

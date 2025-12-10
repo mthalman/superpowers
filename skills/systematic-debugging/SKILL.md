@@ -144,6 +144,16 @@ You MUST complete each phase before proceeding to the next.
 
 ### Phase 3: Hypothesis and Testing
 
+⚠️ **COGNITIVE CHECKPOINT: Before proposing a hypothesis**
+
+You must be able to articulate:
+- **WHY** you believe X is the root cause (not a symptom)
+- **WHAT** evidence from Phase 1 supports this hypothesis
+- **HOW** your proposed test will confirm or refute this hypothesis
+
+If you cannot clearly articulate with evidence → Return to Phase 1, gather more data
+If you can clearly articulate → Document reasoning and proceed to testing
+
 **Scientific method:**
 
 1. **Form Single Hypothesis**

@@ -76,6 +76,16 @@ Task tool (superpowers:code-reviewer):
 
 ### 4. Apply Review Feedback
 
+⚠️ **COGNITIVE CHECKPOINT: Before dispatching fix for review issues**
+
+For each Critical or Important issue, you must be able to articulate:
+- **WHY** this is actually an issue (not just reviewer opinion)
+- **WHAT** specific fix addresses the root cause
+- **WHAT** could break if fixed incorrectly
+
+If you cannot clearly articulate → Ask reviewer or human partner for clarification
+If you can clearly articulate → Document reasoning and dispatch fix subagent
+
 **If issues found:**
 - Fix Critical issues immediately
 - Fix Important issues before next task

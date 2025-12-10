@@ -38,6 +38,16 @@ Use this skill when:
 
 ### 1. Determine If ADR Is Needed
 
+⚠️ **COGNITIVE CHECKPOINT: Before creating an ADR**
+
+You must be able to articulate:
+- **WHY** this decision is significant (not just a local implementation detail)
+- **WHAT** will be harder to change if we don't document this now
+- **WHO** will need to understand this decision in the future
+
+If you cannot clearly articulate significance → This likely doesn't need an ADR
+If you can clearly articulate → Proceed with ADR creation
+
 Not every decision needs an ADR. Ask:
 - Will this decision be hard to change later?
 - Would future developers need to understand why it was made?

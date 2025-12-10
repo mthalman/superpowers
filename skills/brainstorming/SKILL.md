@@ -21,6 +21,16 @@ Start by understanding the current project context, then ask questions one at a 
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**
+
+⚠️ **COGNITIVE CHECKPOINT: Before presenting approaches**
+
+For each approach you're considering, you must be able to articulate in one sentence:
+- **WHY** it serves the user's stated priority/constraint
+- **WHAT** specific advantage it provides for their context
+
+If you cannot clearly articulate why an approach fits → Don't present it
+If you can clearly articulate → Document the reasoning and present
+
 - Propose 2-3 different approaches with trade-offs
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
