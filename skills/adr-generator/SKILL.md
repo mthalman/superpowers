@@ -36,6 +36,119 @@ Use this skill when:
 
 ## Workflow
 
+### 0. Experiments vs Architectural Decisions
+
+**Is this a prototype/spike/experiment?**
+
+Before creating an ADR, determine if you're documenting an experiment or an architectural decision:
+
+**EXPERIMENT:** Exploring what's possible, learning, prototyping
+- Requirements unclear or unstable
+- May pivot, cancel, or discard work
+- Goal is learning, not production deployment
+
+**ARCHITECTURAL DECISION:** Committing to ship/deploy something
+- Decision to use technology in production
+- Affects production system boundaries
+- Other teams will depend on this
+
+**The key distinction:** The architectural decision is "**use in production**," not "**try in prototype**."
+
+---
+
+#### If EXPLORING (not shipping yet):
+
+Create `experiments/YYYY-MM-description.md` instead of ADR.
+
+**Experiment Log Template:**
+
+```markdown
+# Experiment: [Description]
+
+## Status
+In Progress / Completed / Abandoned
+
+## Goal
+[What we're trying to learn or validate]
+
+## Hypothesis
+[What we think will work and why]
+
+## Approach
+- Technology: [What we're testing]
+- Timeline: [How long for spike]
+- Success Criteria: [How we'll know if it works]
+
+## Findings
+[Update as you learn - what worked, what didn't, metrics, observations]
+
+## Decision Point
+**IF this experiment succeeds AND we decide to ship to production:**
+- Create ADR for production technology choice
+- Re-evaluate with production criteria (scale, cost, operations, SLAs)
+- The ADR will document the shipping decision, not the experiment
+
+## References
+- Branch: [link]
+- Test data: [location]
+- Related experiments: [links]
+```
+
+**Why experiment logs instead of ADRs:**
+- Prototypes need different documentation practices than production
+- Prevents ADR bloat (50 prototype ADRs, 3 production decisions)
+- Reduces documentation burden that discourages experimentation
+- Keeps signal-to-noise ratio high for ADRs
+
+**When to promote experiment to ADR:**
+Only when experiment succeeds AND you decide to ship to production. At that point:
+1. Create new ADR: "Production [Technology] for [Feature]"
+2. Reference experiment log as context
+3. Frame decision as: "Should we ship this experiment?"
+4. Re-evaluate with production criteria (not just prototype experience)
+
+---
+
+#### If SHIPPING (promoting experiment to production):
+
+Now create an ADR.
+
+**Key points:**
+- The experiment choice itself isn't the ADR subject
+- The shipping decision is the architectural decision
+- Include experiment log as context
+- Evaluate with production requirements (scale, cost, SLAs, operations)
+
+**Example:**
+- Experiment log: `experiments/2025-12-vector-search-spike.md` (used Pinecone for quick testing)
+- ADR: "ADR-0015: Production Vector Database for AI Search Feature" (may choose different technology after production evaluation)
+
+---
+
+#### Pre-ADR Gate: Is There Actually a Decision?
+
+Before creating ANY ADR, verify:
+
+✅ **Decision is actually made**
+- "We are shipping X to production" → ADR
+- "We might try X in a prototype" → Experiment log
+- "We're exploring X vs Y" → Experiment log
+
+✅ **Decision is binding**
+- Other teams will depend on this → ADR
+- Only affects one prototype → Experiment log
+- Production system boundaries change → ADR
+
+✅ **This is architecture vs implementation**
+- Changes system structure or interfaces → ADR
+- Internal to one component → Code comments
+
+**Don't abuse status fields to force experiments into ADR format.**
+
+If uncertain, use experiment log first. You can always promote to ADR later if you ship.
+
+---
+
 ### 1. Determine If ADR Is Needed
 
 ⚠️ **COGNITIVE CHECKPOINT: Before creating an ADR**
@@ -110,6 +223,122 @@ Open the created file and complete the template sections:
 - **Pros and Cons of Options**: Detailed comparison matrix of all alternatives (see guidance below)
 
 **Read `references/examples.md` for well-written ADR examples.**
+
+---
+
+#### Contextualizing Your Decision (Team, Organization, and Architectural Principles)
+
+**Before writing the ADR, gather context that shapes the decision:**
+
+##### Team Context
+
+Consider team-specific factors that affect technology choices:
+
+- **Team expertise:** What technologies does the team have deep experience with?
+  - Example: "Team has 5 years production PostgreSQL experience"
+  - Impact: Reduces risk, accelerates delivery, affects operational burden
+
+- **Team size/maturity:** How does team composition affect operational choices?
+  - Small team (1-5) → Prefer managed services, boring technology
+  - Large team (20+) → Can handle operational complexity
+  - Junior team → Simpler technologies, less operational burden
+
+- **On-call burden tolerance:** Who maintains this?
+  - Small team with limited on-call → Managed services, proven technology
+  - Dedicated SRE team → More operational complexity acceptable
+
+##### Organization Context
+
+Consider organizational factors:
+
+- **Existing technology stack:** What's already in production?
+  - Example: "PostgreSQL already used for 3 other services"
+  - Benefit: Reuse operational expertise, shared monitoring, consistent tooling
+  - Cost: Adding new database type increases operational complexity
+
+- **Engineering principles:** What principles guide decisions?
+  - Examples: "Boring technology," "API-first," "Optimize for deletion"
+  - Reference by name if documented
+  - Link to principle documentation if available
+
+- **Risk tolerance:** What's acceptable risk level?
+  - Startup experimenting → Higher tolerance for novel technology
+  - Enterprise banking → Prefer proven, battle-tested solutions
+  - Regulated industry → Compliance requirements constrain choices
+
+##### Operational Context
+
+- **Maintenance expectations:** Who operates this long-term?
+  - Team that builds it maintains it → Choose tech team can operate
+  - Dedicated ops team → Can handle more complexity
+  - No ops team → Managed services preferred
+
+- **Operational maturity requirements:** What's the SLA?
+  - Experimental feature → Lower operational maturity acceptable
+  - Critical path service → Proven technology, robust monitoring
+  - Internal tool → Different requirements than customer-facing
+
+- **Support availability:** What support exists?
+  - 24/7 on-call → Boring technology with known failure modes
+  - Business hours only → Simpler systems, less critical
+  - No dedicated support → Self-healing, managed services
+
+##### Referencing Architectural Principles
+
+**Common established principles:**
+
+- **"Boring technology" (Dan McKinley):** Prefer proven over novel to conserve "innovation tokens"
+- **"Optimize for deletion":** Prefer reversible decisions, minimize long-term commitments
+- **"Convention over configuration":** Reduce decisions by following standards
+- **"Worse is better":** Pragmatic simplicity over theoretical perfection
+- **"You build it, you run it":** Team expertise shapes technology choices
+
+**How to reference principles:**
+
+```markdown
+## Decision Drivers
+
+- Team has PostgreSQL production experience (3 services)
+- Aligns with "boring technology" principle: conserve innovation for differentiating features
+- "You build it, you run it": choosing technology team can operate
+- Budget constraints favor open-source solutions
+```
+
+**Benefits of referencing principles:**
+- Connects decision to broader engineering culture
+- Avoids re-explaining foundational reasoning
+- Provides decision-making framework for future choices
+
+##### Format Alternatives with Context
+
+**❌ Generic, context-free:**
+```markdown
+### PostgreSQL
+
+Relational database with good performance and ACID compliance.
+
+* Good, because good performance
+* Good, because ACID support
+* Bad, because vertical scaling limits
+```
+
+**✅ Contextualized with team/org factors:**
+```markdown
+### PostgreSQL
+
+Relational database with JSON support and full ACID compliance.
+
+* Good, because team has 5 years production experience (reduces operational risk)
+* Good, because already in stack for 3 other services (reuse monitoring, runbooks, expertise)
+* Good, because strong ACID guarantees needed for financial transactions
+* Good, because aligns with "boring technology" principle for non-differentiating infrastructure
+* Bad, because vertical scaling limits (may need sharding beyond 1M transactions/day)
+* Bad, because team needs to learn PostgreSQL-specific features (JSONB indexing, query optimization)
+```
+
+**Principle:** Alternatives analysis without team/org context is academic, not architectural. Architecture exists in organizational context.
+
+---
 
 #### How to Write "Pros and Cons of Options"
 
@@ -320,6 +549,150 @@ Track decision lifecycle with these statuses:
 - Don't delete old ADRs - they preserve decision history
 - Link related ADRs when superseding
 - Keep old content intact (immutable record)
+
+---
+
+### Cultural Framing for Superseding Decisions
+
+**How you document superseded decisions affects organizational learning culture.**
+
+When creating a new ADR that supersedes an old decision, language matters for psychological safety and learning culture.
+
+#### Language Guidelines
+
+❌ **Avoid blame-implying language:**
+- "Why [old choice] was wrong"
+- "Problems with [old decision]"
+- "Fixing the [old choice] mistake"
+- "[Old technology] failed us"
+
+✅ **Use context-change framing:**
+- "What changed since we chose [old choice]"
+- "Why [old choice] was right then, but circumstances shifted"
+- "Evolution from [old] to [new]"
+- "Our needs evolved beyond [old choice]'s strengths"
+
+#### Required Sections When Superseding
+
+**1. Historical Context Section**
+
+```markdown
+## Historical Context (Reference ADR-XXXX)
+
+In [year], we chose [old technology] for the following reasons (from ADR-XXXX):
+- [Reason 1 from original ADR]
+- [Reason 2 from original ADR]
+- [Reason 3 from original ADR]
+
+**What has changed since ADR-XXXX:**
+1. **Scale:** [How growth changed requirements]
+2. **Requirements:** [What new needs emerged]
+3. **Use patterns:** [How actual usage differed from expectations]
+4. **Team expertise:** [How team capabilities evolved]
+
+**ADR-XXXX was the correct decision at the time.** [Explain why it made sense then]
+```
+
+**2. Lessons Learned Section**
+
+```markdown
+## Lessons Learned
+
+**What we learned from this evolution:**
+- [Insight 1]: [What this experience taught us]
+- [Insight 2]: [What we'd consider differently next time]
+- [Insight 3]: [How our understanding evolved]
+
+**This is not a reversal of a "mistake"** - it's natural evolution as:
+- Requirements became clearer
+- Scale revealed different needs
+- Team and system matured
+```
+
+**3. Update Old ADR with Respectful Language**
+
+Add to the TOP of the old ADR (ADR-XXXX):
+
+```markdown
+**Status**: Superseded by ADR-YYYY: [New Decision Title] (YYYY-MM-DD)
+
+**Note**: This decision was appropriate for our context in [year] ([brief context]).
+As of [current year], our needs evolved to require [new capability].
+See ADR-YYYY for details on what changed and why.
+```
+
+#### Cultural Principles
+
+**Protect past decision-makers:**
+- Frame as learning, not fixing mistakes
+- Validate original reasoning explicitly
+- Explain what changed externally (scale, requirements), not what was "wrong" internally
+
+**Promote honest documentation:**
+- If teams fear blame for "wrong" decisions, they document defensively or not at all
+- Context-change framing encourages transparency
+
+**Encourage revisiting decisions:**
+- Healthy teams adapt to new information
+- Framing evolution positively makes it safe to change course
+
+#### Example: Context-Change vs Blame Framing
+
+**❌ Blame framing:**
+```markdown
+## Why MongoDB Failed
+
+MongoDB couldn't handle our transaction requirements and caused data consistency issues.
+We're fixing this by migrating to PostgreSQL.
+```
+
+**✅ Context-change framing:**
+```markdown
+## Historical Context (Reference ADR-0003)
+
+In 2023, we chose MongoDB for schema flexibility during rapid MVP iteration (see ADR-0003).
+
+**What has changed since ADR-0003:**
+- Scale grew 10x (50K → 500K users)
+- Requirements: ACID needs emerged for payment workflows
+- Use patterns: Queries became relational (complex joins), fighting document model
+- Schema: Stabilized after 6 months, flexibility less critical
+
+**ADR-0003 was the correct decision at the time.** Schema flexibility enabled rapid
+feature iteration in our MVP phase. Our needs evolved as the system matured.
+
+## Lessons Learned
+
+- Document model works well for early-stage flexibility
+- Relational patterns emerge at scale with stable schemas
+- Next time: Consider transaction patterns earlier in database evaluation
+```
+
+#### When Context Actually Changed vs When Decision Was Flawed
+
+**Be honest if the original decision was flawed:**
+
+If, in retrospect, the original decision missed obvious considerations:
+
+```markdown
+## Reflection on ADR-XXXX
+
+**In retrospect:** ADR-XXXX underestimated [factor] that was knowable at the time.
+
+**What we missed:**
+- [Consideration that should have been evaluated]
+- [Risk that was foreseeable but not assessed]
+
+**What we'd do differently:**
+- [Specific process improvement]
+- [Additional evaluation step]
+
+**Learning:** This isn't about blame - it's about improving our decision-making process.
+```
+
+**Principle:** Honesty about mistakes is fine, but frame as process learning, not individual fault.
+
+---
 
 ## Reference Documentation
 
