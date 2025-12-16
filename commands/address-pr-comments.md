@@ -12,7 +12,7 @@ You are helping the user address review comments on a GitHub Pull Request. Follo
    - If no PR found or branch not pushed, display error and exit (see Error Handling section for format)
 
 2. **Check for progress file:**
-   - Check if `.claude/pr-comments-progress.json` exists
+   - Check if `.claude/pr-comments-progress-{pr_number}.json` exists
    - If exists: Load previous state (resumed session)
    - Re-fetch current comments from GitHub
    - Merge state: Preserve user decisions (skips, completed) while using current GitHub data
@@ -49,7 +49,7 @@ You are helping the user address review comments on a GitHub Pull Request. Follo
    - Group comments by file location
 
 4. **Create or update progress file:**
-   - File location: `.claude/pr-comments-progress.json`
+   - File location: `.claude/pr-comments-progress-{pr_number}.json`
    - Tracks PR number, branch, and comment processing state
    - See Progress File Schema section for complete structure
 
@@ -139,7 +139,7 @@ What would you like to do?
 
 [A] Fix it myself
 [B] Auto-fix it
-[C] Ask clarifying question to reviewer
+[C] Reply to comment
 [D] Mark as done (already fixed outside this tool)
 [E] Skip/Defer
 ```
@@ -209,15 +209,18 @@ What would you like to do?
 ### User Choice: [B] Auto-fix it
 
 1. Analyze the comment and surrounding code context
-2. Apply the changes using Edit tool
-3. If user approves the changes:
+2. Show the proposed changes to the user for approval:
+   - Display the specific changes that will be made
+   - Ask: "Apply these changes? [Y/n]"
+3. If user approves:
+   - Apply the changes using Edit tool
    - Create semantic commit message (describe what was fixed, not that it's from a PR comment)
    - Record commit SHA in progress file
    - Add to pending_replies array: `"Fixed in <short_sha>"`
    - Move to next comment
-4. If user rejects the changes:
+4. If user rejects:
    - Mark comment as "pending" in progress file
-   - Show: "Changes rejected. What would you like to do?"
+   - Show: "Changes not applied. What would you like to do?"
      ```
      [A] Fix it myself
      [D] Mark as done
@@ -225,23 +228,17 @@ What would you like to do?
      ```
    - Process the selected choice
 
-### User Choice: [C] Ask clarifying question
+### User Choice: [C] Reply to comment
 
-1. Draft a question based on comment context (prefix with @<reviewer>)
-2. Show draft:
+1. Prompt user for reply text:
    ```
-   Draft reply to @<reviewer>:
-
-   "@<reviewer> <drafted question>"
-
-   [A] Edit this reply
-   [B] Send as-is
-   [C] Cancel
+   Enter your reply to @<reviewer>:
+   (Type your message, then press Enter)
    ```
-3. If [A]: Allow user to edit the reply text
-4. If [B]: Add the question message to pending_replies array
-5. Mark comment as "questioned" in progress file
-6. Move to next comment
+2. Capture user's reply text
+3. Add the reply message to pending_replies array
+4. Mark comment as "replied" in progress file
+5. Move to next comment
 
 ### User Choice: [D] Mark as done
 
@@ -269,7 +266,7 @@ Summary:
   ✓ <n> comments auto-fixed (<n> commits)
   ✓ <n> comments fixed by you (<n> commits)
   ✓ <n> comments marked as done (no commits)
-  ✓ <n> questions asked to reviewers
+  ✓ <n> replies to comments
   ⊘ <n> comments skipped/deferred
 
 Commits to be pushed:
@@ -565,7 +562,7 @@ wc -l < {file_path}
 
 ## Progress File Schema
 
-The progress file (`.claude/pr-comments-progress.json`) tracks comment processing state across sessions.
+The progress file (`.claude/pr-comments-progress-{pr_number}.json`) tracks comment processing state across sessions.
 
 **Complete schema:**
 ```json
@@ -624,6 +621,6 @@ The progress file (`.claude/pr-comments-progress.json`) tracks comment processin
     - `completed`: Fixed or marked as done
     - `skipped`: User chose to defer or file was deleted
   - `commit_sha` (string | null): Short SHA(s) of commit(s) that address this comment
-  - `action` (enum | null): `"auto_fixed"` | `"fixed_by_user"` | `"marked_done"` | `"deferred"` | `"questioned"` | `"file_deleted"`
+  - `action` (enum | null): `"auto_fixed"` | `"fixed_by_user"` | `"marked_done"` | `"deferred"` | `"replied"` | `"file_deleted"`
   - `pending_replies` (array of strings): Reply messages to post when user pushes
   - `last_post_timestamp` (ISO 8601 timestamp): Timestamp of most recent message in thread (used to detect new activity)
