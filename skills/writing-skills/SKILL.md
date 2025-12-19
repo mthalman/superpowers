@@ -27,6 +27,53 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 
 **Skills are NOT:** Narratives about how you solved a problem once
 
+## Critical: Audience is AI Agents, Not Humans
+
+**Skills are consumed directly by AI agents as executable instructions, NOT read by humans for learning.**
+
+**Three content types - what to write:**
+
+### 1. Direct Protocols (Always include)
+Commands and rules the agent executes:
+- "Run X. If Y, do Z. Never do A."
+- "Add explicit counter. Re-test until bulletproof."
+- "If discipline skill → pressure testing only"
+
+### 2. Actionable Context (Include when it changes behavior)
+Explanations that change WHAT the agent does or HOW it interprets rules:
+- "Why this matters: Prevents generic solutions" → Tells agent what failure mode to avoid
+- "Constraints aren't problems - they're filters" → Mental model that prevents rationalization
+- "Why show rejections: Prevents user suggesting them later" → Reinforces doing the action
+
+### 3. Academic/Motivational Content (Don't write)
+Teaching content that doesn't change behavior:
+- "Understanding why this works helps you..." → Motivational, doesn't change action
+- "Let's explore how to..." → Educational tone, not directive
+- "The reason this is generally good..." → Generic justification without behavioral link
+
+**Decision test when writing:**
+1. Does this tell the agent WHAT to do? → Write it (protocol)
+2. Does this change HOW the agent interprets a rule or what failure modes to avoid? → Write it (actionable context)
+3. Is this explaining why something is generally good without connecting to specific action? → Don't write it (academic)
+
+**Examples:**
+
+```markdown
+# ❌ DON'T WRITE: Academic explanation
+Understanding why persuasion techniques work helps you apply them
+systematically. Cialdini's research shows that authority, commitment,
+and scarcity principles influence decision-making...
+
+# ✅ WRITE: Actionable context
+Why show rejections: Prevents user from suggesting rejected options
+later. Demonstrates thoroughness (didn't just pick first idea).
+
+# ✅ WRITE: Direct protocol
+Capture rationalizations from baseline testing. Every excuse agents
+make goes in the rationalization table. Add explicit counters for
+each loophole identified.
+```
+
 ## TDD Mapping for Skills
 
 | TDD Concept | Skill Creation |
@@ -457,7 +504,7 @@ Does skill enforce discipline/rules?
 
 Skills that enforce discipline (like TDD) need to resist rationalization. Agents are smart and will find loopholes when under pressure.
 
-**Psychology note:** Understanding WHY persuasion techniques work helps you apply them systematically. See persuasion-principles.md for research foundation (Cialdini, 2021; Meincke et al., 2025) on authority, commitment, scarcity, social proof, and unity principles.
+**Apply persuasion principles systematically:** See persuasion-principles.md for authority, commitment, scarcity, social proof, and unity techniques (Cialdini, 2021; Meincke et al., 2025) to close rationalization loopholes.
 
 ### Close Every Loophole Explicitly
 
@@ -568,6 +615,12 @@ Use superpowers:validating-skill-output-quality for quality validation:
 
 ## Anti-Patterns
 
+### ❌ Academic/Motivational Content (No Behavioral Link)
+"Understanding why this pattern works helps you make better decisions..."
+"Let's explore the benefits of test-driven development..."
+"The reason this is generally good practice is to improve code quality..."
+**Why bad:** Generic explanations without connection to specific actions. Doesn't tell agent what to do or what failure modes to avoid. Wastes tokens without changing behavior.
+
 ### ❌ Narrative Example
 "In session 2025-10-03, we found empty projectDir caused..."
 **Why bad:** Too specific, not reusable
@@ -641,6 +694,10 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Quick reference table
 - [ ] Common mistakes section
 - [ ] No narrative storytelling
+- [ ] Protocol language (direct commands and rules)
+- [ ] Actionable context only (explains what to do, what to avoid, mental models for rule interpretation)
+- [ ] No academic/motivational content (generic explanations without behavioral link)
+- [ ] Test each explanation: Does this change what the agent does or how it interprets a rule? If no, don't write it
 - [ ] Supporting files only for tools or heavy reference
 
 **Deployment:**
