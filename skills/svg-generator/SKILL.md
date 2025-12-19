@@ -9,6 +9,10 @@ description: Use when generating SVG graphics from written descriptions includin
 
 This skill provides systematic workflows for generating accurate SVG graphics from textual descriptions. The primary focus is ensuring **visual accuracy** through **expert-level engineering reasoning** - that generated SVGs actually look like what was described, with decisions grounded in explicit trade-off analysis, context constraints, and alternative exploration rather than mechanical template application.
 
+**Supporting skills (load when needed):**
+- **superpowers:designing-ui-color**: For color palette selection, harmony, and accessibility validation
+- **superpowers:designing-ui-typography**: For text/font selection in SVGs with labels or typography
+
 ## When to Use This Skill
 
 Use this skill when:
@@ -298,7 +302,7 @@ Check that:
 - **Data representation:** Values are accurately visualized
 - **Proportions:** Relative sizes match relative values
 - **Labels:** All data is properly labeled
-- **Readability:** Text is readable, colors have sufficient contrast
+- **Readability:** Text is readable, colors have sufficient contrast (validate with superpowers:designing-ui-color)
 
 ## Technical Diagram
 
@@ -343,7 +347,7 @@ Create SVG structure:
 
 2. **Create nodes** - Rectangles, diamonds, circles based on type
 3. **Add connectors** - Lines with arrow markers
-4. **Add labels** - Text centered in or near nodes
+4. **Add labels** - Text centered in or near nodes (use superpowers:designing-ui-typography for font selection if text is prominent)
 5. **Group related elements** - Use `<g>` for logical grouping
 
 ### Step 4: Verify Diagram
@@ -351,7 +355,7 @@ Create SVG structure:
 Check that:
 - **Flow is clear:** Direction and connections are obvious
 - **Layout is balanced:** Nodes are evenly spaced
-- **Labels are readable:** Text doesn't overlap, appropriate font size
+- **Labels are readable:** Text doesn't overlap, appropriate font size (check superpowers:designing-ui-typography for readability standards)
 - **Logic matches description:** Diagram accurately represents the described process
 
 ## Complex Illustration
@@ -393,13 +397,19 @@ Consider using centered origin for symmetrical compositions.
 3. Plan layering order (background to foreground)
 
 **Plan colors:**
-```
-Read references/svg-reference.md (Color Harmony, Visual Accuracy Techniques)
-```
 
-- Choose color palette (complementary, analogous, or monochromatic)
+**For color palette selection, use superpowers:designing-ui-color skill.**
+
+The superpowers:designing-ui-color skill provides:
+- Color harmony strategies (complementary, analogous, monochromatic)
+- Mood and psychology-based color selection
+- Accessibility and contrast validation
+- Industry and context-appropriate palettes
+
+**SVG-specific color considerations:**
 - Select gradients for depth (sky, water, 3D effects)
-- Ensure colors support the mood/description
+- Plan fill vs stroke colors for visual hierarchy
+- Consider dark mode / theme variations if needed
 
 **If image will have text overlay (hero images, backgrounds):**
 
@@ -714,7 +724,7 @@ Document these (even if you can't ask them) to show your thinking:
 **Issue:** Color selection doesn't align with described appearance
 
 **Solution:**
-1. Consult references/svg-reference.md (Common Color Palettes)
+1. Use superpowers:designing-ui-color skill to select appropriate colors based on mood, context, and description
 2. Choose colors that better match the description
 3. Consider using gradients for more accurate representation
 
