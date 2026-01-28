@@ -1,5 +1,7 @@
 # Superpowers Repository Memory
 
+Each time you complete a task or learn important information about the project, you should update the `CLAUDE.md` file in the repo to reflect any new information that you've learned or changes that require updates to the instruction file.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding
