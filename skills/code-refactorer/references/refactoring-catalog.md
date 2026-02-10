@@ -17,6 +17,7 @@ Detailed before/after examples for common refactorings. Each entry shows the sme
 11. [Replace Primitive with Object](#replace-primitive-with-object)
 12. [Extract Interface / Dependency Injection](#extract-interface--dependency-injection)
 13. [Unify Near-Duplicate Code](#unify-near-duplicate-code)
+14. [Cross-File Pattern Consolidation](#cross-file-pattern-consolidation)
 
 ---
 
@@ -569,3 +570,215 @@ public <S extends HasIdNameDate, D extends BaseDTO> D toDTO(S source, Supplier<D
 - If the duplicates are likely to diverge in the future (different business domains)
 - If unifying requires overly complex parameterization (the cure is worse than the disease)
 - If there are only 2 instances and they're short — the Rule of Three applies (wait for a third occurrence before extracting)
+
+---
+
+## Cross-File Pattern Consolidation
+
+**Smell:** Multiple files contain structurally identical logic — same control flow, same error handling, same setup/teardown — varying only in entity names, field references, or configuration values. Unlike near-duplicates within a single file, these are scattered across the codebase and require systematic search to discover.
+
+### Example 1: Parallel service handlers → Generic handler factory
+
+Discovered by searching for files matching `*Service.*` and finding identical CRUD patterns.
+
+Before (`user_service.py`, `product_service.py`, `order_service.py` — 3 separate files):
+```python
+# user_service.py
+class UserService:
+    def __init__(self, db, logger):
+        self.db = db
+        self.logger = logger
+
+    def create(self, data):
+        self.logger.info(f"Creating user")
+        validated = UserSchema.validate(data)
+        result = self.db.users.insert(validated)
+        self.logger.info(f"Created user {result.id}")
+        return result
+
+    def get_by_id(self, id):
+        result = self.db.users.find_by_id(id)
+        if not result:
+            raise NotFoundError(f"User {id} not found")
+        return result
+
+    def update(self, id, data):
+        self.get_by_id(id)  # ensure exists
+        validated = UserSchema.validate(data)
+        return self.db.users.update(id, validated)
+
+    def delete(self, id):
+        self.get_by_id(id)  # ensure exists
+        self.db.users.delete(id)
+        self.logger.info(f"Deleted user {id}")
+
+# product_service.py — nearly identical, replacing "user" with "product"
+# order_service.py — nearly identical, replacing "user" with "order"
+```
+
+After (single `base_service.py` + thin subclasses):
+```python
+# base_service.py
+class BaseService:
+    entity_name: str       # set by subclass
+    schema: Schema         # set by subclass
+
+    def __init__(self, db, logger):
+        self.db = db
+        self.logger = logger
+
+    @property
+    def collection(self):
+        return getattr(self.db, self._collection_name)
+
+    @property
+    def _collection_name(self):
+        return f"{self.entity_name}s"
+
+    def create(self, data):
+        self.logger.info(f"Creating {self.entity_name}")
+        validated = self.schema.validate(data)
+        result = self.collection.insert(validated)
+        self.logger.info(f"Created {self.entity_name} {result.id}")
+        return result
+
+    def get_by_id(self, id):
+        result = self.collection.find_by_id(id)
+        if not result:
+            raise NotFoundError(f"{self.entity_name} {id} not found")
+        return result
+
+    def update(self, id, data):
+        self.get_by_id(id)
+        validated = self.schema.validate(data)
+        return self.collection.update(id, validated)
+
+    def delete(self, id):
+        self.get_by_id(id)
+        self.collection.delete(id)
+        self.logger.info(f"Deleted {self.entity_name} {id}")
+
+# user_service.py
+class UserService(BaseService):
+    entity_name = "user"
+    schema = UserSchema
+
+# product_service.py
+class ProductService(BaseService):
+    entity_name = "product"
+    schema = ProductSchema
+```
+
+### Example 2: Scattered error handling → Shared decorator
+
+Discovered by searching for repeated `try/except` blocks with logging and retry across handler files.
+
+Before (pattern repeated in 5+ route handler files):
+```python
+# routes/users.py
+def create_user(request):
+    try:
+        data = parse_json(request.body)
+        result = user_service.create(data)
+        return JsonResponse(result, status=201)
+    except ValidationError as e:
+        logger.warning(f"Validation failed: {e}")
+        return JsonResponse({"error": str(e)}, status=400)
+    except NotFoundError as e:
+        logger.warning(f"Not found: {e}")
+        return JsonResponse({"error": str(e)}, status=404)
+    except Exception as e:
+        logger.error(f"Unexpected error in create_user: {e}", exc_info=True)
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+# routes/products.py — identical try/except structure
+# routes/orders.py — identical try/except structure
+```
+
+After:
+```python
+# middleware/error_handler.py
+def handle_errors(func):
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return func(request, *args, **kwargs)
+        except ValidationError as e:
+            logger.warning(f"Validation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=400)
+        except NotFoundError as e:
+            logger.warning(f"Not found: {e}")
+            return JsonResponse({"error": str(e)}, status=404)
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
+            return JsonResponse({"error": "Internal server error"}, status=500)
+    return wrapper
+
+# routes/users.py
+@handle_errors
+def create_user(request):
+    data = parse_json(request.body)
+    result = user_service.create(data)
+    return JsonResponse(result, status=201)
+```
+
+### Example 3: Repeated test setup → Shared fixtures
+
+Discovered by searching for identical `setUp`/`beforeEach` blocks across test files.
+
+Before (pattern in `test_user_service.py`, `test_product_service.py`, `test_order_service.py`):
+```python
+class TestUserService(unittest.TestCase):
+    def setUp(self):
+        self.db = MockDatabase()
+        self.db.connect("test_db")
+        self.db.clear_all()
+        self.logger = MockLogger()
+        self.service = UserService(self.db, self.logger)
+
+    def tearDown(self):
+        self.db.clear_all()
+        self.db.disconnect()
+
+    def test_create(self):
+        result = self.service.create({"name": "Alice"})
+        self.assertIsNotNone(result.id)
+
+# test_product_service.py — same setUp/tearDown, different service class
+# test_order_service.py — same setUp/tearDown, different service class
+```
+
+After:
+```python
+# tests/conftest.py or tests/base.py
+class ServiceTestBase(unittest.TestCase):
+    service_class = None  # set by subclass
+    
+    def setUp(self):
+        self.db = MockDatabase()
+        self.db.connect("test_db")
+        self.db.clear_all()
+        self.logger = MockLogger()
+        self.service = self.service_class(self.db, self.logger)
+
+    def tearDown(self):
+        self.db.clear_all()
+        self.db.disconnect()
+
+# test_user_service.py
+class TestUserService(ServiceTestBase):
+    service_class = UserService
+
+    def test_create(self):
+        result = self.service.create({"name": "Alice"})
+        self.assertIsNotNone(result.id)
+```
+
+### When NOT to Consolidate Cross-File Patterns
+
+All the cautions from "Unify Near-Duplicate Code" apply, plus:
+
+- **Different bounded contexts.** Code in `billing/` and `shipping/` may look identical but serves different domains. Coupling them creates cross-domain dependencies that are worse than duplication.
+- **Pattern is still forming.** If the similar files were created recently or are under active development, the pattern hasn't stabilized. Premature abstraction locks in a structure that may not fit.
+- **Abstraction requires >3 extension points.** If every instance needs its own hooks, callbacks, or overrides, the "shared" code is really a framework — and frameworks are much harder to maintain than a few similar files.
+- **Test coverage is sparse.** Cross-file refactoring without adequate tests is high-risk. Write characterization tests for each instance first.
