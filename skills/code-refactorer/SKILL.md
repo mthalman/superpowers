@@ -1,6 +1,6 @@
 ---
 name: code-refactorer
-description: Expert code refactoring that strictly preserves existing behavior. Use when asked to refactor code, improve code structure, reduce duplication, extract methods/classes/modules, simplify complex conditionals, improve naming, apply design patterns, reduce complexity, clean up code, make code more maintainable/readable/testable, decompose large functions/classes, or find cross-file patterns and commonalities to consolidate. Language-agnostic. Triggers on requests like "refactor this", "clean up this code", "this function is too long", "reduce duplication", "simplify this logic", "make this more maintainable", "find common patterns", or "what can be consolidated across files".
+description: Expert code refactoring that strictly preserves existing behavior. Use when asked to refactor code, improve code structure, reduce duplication, extract methods/classes/modules, simplify complex conditionals, improve naming, apply design patterns, reduce complexity, clean up code, make code more maintainable/readable/testable, decompose large functions/classes, or find cross-file patterns and commonalities to consolidate. Language-agnostic. Triggers on requests like "refactor this", "clean up this code", "this function is too long", "reduce duplication", "simplify this logic", "make this more maintainable", "make this more object-oriented", "apply design patterns", "find common patterns", or "what can be consolidated across files".
 ---
 
 # Code Refactorer
@@ -112,6 +112,7 @@ Scan for these common smells to determine what refactoring is needed:
 | Dead Code | Unreachable or unused code | Remove Dead Code | Verify via grep/search that code is truly unreachable — feature flags or reflection may use it. |
 | Comments as Deodorant | Comments explaining confusing code | Rename, Extract Method (make code self-documenting) | Comments may explain *why* (business rules, edge cases) — preserve those. Only remove comments that explain *what* when the code is made self-explanatory. |
 | Cross-File Duplication | Same logic pattern repeated across multiple files with only entity/field names varying | Extract shared base class, factory function, decorator, or utility module (see Cross-File Pattern Discovery) | Instances in different bounded contexts — coupling is worse than duplication. Pattern still evolving — premature abstraction. Only 2 short instances — Rule of Three. |
+| Missing OOP Structure | Procedural patterns in OO code: switch/map dispatch instead of polymorphism, data+functions not co-located, cross-cutting concerns copy-pasted, complex conditionals on state fields | Apply appropriate design pattern (see OOP Design Pattern Opportunities below) | Code is in a scripting/functional context where OOP adds ceremony without benefit. Pattern has fewer than 3 instances — wait for a third. |
 
 ## Refactoring Decision Tree
 
@@ -131,7 +132,9 @@ Determine the refactoring approach based on the request:
 
 **"Find common patterns across files"** or **"What can be consolidated?"** → Use the Cross-File Pattern Discovery workflow. Start with structural reconnaissance (parallel names, shared imports, repeated signatures), then deep-analyze each candidate cluster, then plan consolidation with explicit migration order.
 
-**"General cleanup"** → Prioritize: dead code removal → naming improvements → extract method for long functions → reduce duplication → simplify conditionals.
+**"Make this more object-oriented"** or **"Apply design patterns"** or **"This class has too many dependencies/responsibilities"** → See the OOP Design Pattern Opportunities section below. Scan for procedural patterns that would benefit from polymorphism, encapsulation, or composition. Common triggers: switch/map dispatch, data+behavior separation, copy-pasted cross-cutting concerns, complex state-dependent conditionals.
+
+**"General cleanup"**→ Prioritize: dead code removal → naming improvements → extract method for long functions → reduce duplication → simplify conditionals.
 
 ## Guidelines Per Refactoring Category
 
@@ -255,6 +258,53 @@ When reporting cross-file patterns, structure your findings as:
 4. **Recommended abstraction** — The proposed consolidation with rationale
 5. **Migration plan** — Order of changes, starting with the simplest instance
 6. **Exceptions** — Instances that should NOT be consolidated, with reasons
+
+## OOP Design Pattern Opportunities
+
+When asked to make code "more object-oriented" or when you detect procedural patterns in OO code, systematically scan for these design pattern opportunities. Each entry describes the code smell that indicates the pattern, how to detect it, the pattern to apply, and when not to apply it.
+
+### General Principles
+
+- **Patterns are tools, not goals.** Only apply a pattern when it solves a concrete structural problem. If the current code is clear and easy to change, a pattern adds complexity for no benefit.
+- **Prefer composition over inheritance** unless the relationship is genuinely "is-a" and the base class is stable.
+- **Introduce patterns incrementally.** Don't refactor three things into three patterns at once. Apply one, verify tests pass, then assess whether the next is still needed.
+- **Each new type should earn its existence.** If a class would have only 5 lines of unique logic, it may not justify the indirection.
+
+### Pattern Detection Guide
+
+| Code Smell | Detection Signal | Candidate Pattern | Contraindication |
+|---|---|---|---|
+| **Switch/map dispatch on type or name** to select behavior | A switch, dictionary lookup, or if-else chain maps keys to different code paths. Adding a new variant requires editing the switch. | **Strategy** — Extract each branch into a class implementing a shared interface. Dispatcher becomes a thin router. | Fewer than 4 branches, or branches share significant mutable state across a single call. |
+| **Similar algorithms with varying steps** | Multiple methods/classes follow the same high-level sequence (validate → process → format) but differ in specific steps. Copy-paste with tweaks. | **Template Method** — Extract the shared skeleton into an abstract base class. Varying steps become abstract/virtual methods overridden by subclasses. | Steps will diverge significantly across variants. Only 2 instances exist (Rule of Three). Composition via callbacks/lambdas would be simpler. |
+| **Tight notification coupling** | Class A directly calls methods on classes B, C, D to notify them of changes. Adding a new listener requires editing class A. | **Observer / Event** — A publishes events; B, C, D subscribe independently. New listeners require zero changes to A. | Only 1-2 listeners that are unlikely to grow. Event-driven indirection makes debugging harder when the notification chain is short and stable. |
+| **Complex object construction scattered or duplicated** | Object creation logic (with conditional configuration, defaults, validation) is repeated across multiple call sites. Callers assemble objects step-by-step. | **Factory / Builder** — Centralize creation logic. Factory for single-step creation with variants; Builder for multi-step assembly with optional parts. | Object construction is trivial (just `new Foo(a, b)`). Only one call site exists. |
+| **Cross-cutting concerns copy-pasted** | The same pre/post logic (logging, auth checks, caching, retry, timing) is wrapped around multiple operations. Each wrapper is copy-pasted with minor variations. | **Decorator / Middleware** — Wrap behavior in composable layers that share an interface with the thing they wrap. Stack them via DI or explicit composition. | Each "copy" actually has meaningfully different behavior (different retry strategies, different auth rules). Fewer than 3 instances. |
+| **Complex conditionals on state fields** | Code checks `if (status == "pending") ... else if (status == "approved") ... else if (status == "shipped")` with different behavior per state. State transitions are validated in multiple places. | **State** — Each state becomes a class implementing a shared interface. The context object delegates to its current state. Transitions are enforced by the state objects. | Fewer than 3 states. State transitions are simple and centralized. The state-dependent behavior is trivial (just setting a field). |
+| **Data and behavior separated** | A "data" class/struct holds fields while separate "service" functions operate on it. The service repeatedly reaches into the data's internals. (Feature Envy at scale.) | **Encapsulation** — Move behavior onto the data class as methods. The data object becomes a rich domain object that protects its own invariants. | The "data" class is a DTO crossing a boundary (API, serialization). Behavior genuinely belongs at a different layer. |
+| **Parallel hierarchies with shared boilerplate** | Multiple classes follow the same structure (constructor pattern, shared helper calls, common error handling) but each has unique logic. Adding a new variant means copying an existing class and tweaking it. | **Abstract Base Class + Template** or **Strategy with shared base** — Extract the shared boilerplate into a base class. Each variant overrides only what's unique. Optionally use a second-tier base for subgroups with additional shared logic. | Variants are in different bounded contexts. The "shared" part is evolving rapidly. Composition would avoid the fragile base class problem. |
+
+### Detection Workflow
+
+When scanning for OOP opportunities:
+
+1. **Search for dispatch patterns.** Look for switch statements, type-checking conditionals, and dictionary lookups that route to different behavior. Count the branches — 4+ is a strong signal.
+2. **Audit constructor dependency counts.** Classes with 6+ injected dependencies often mix responsibilities. Check whether each method uses all dependencies or only a subset — disjoint subsets indicate decomposition candidates.
+3. **Search for repeated structural patterns.** Look for classes/functions that follow the same skeleton with different details plugged in. Template Method or Strategy often fits.
+4. **Search for copy-pasted wrappers.** `try/catch` blocks, auth checks, caching logic, or timing code duplicated around multiple operations → Decorator/Middleware.
+5. **Search for state-dependent branching.** Repeated conditionals on the same status/state/phase field across multiple methods → State pattern.
+6. **Search for data + separate functions.** Classes that are just bags of fields, with separate service classes reaching into them → Encapsulation.
+
+### Applying the Pattern
+
+Once you've identified a candidate:
+
+1. **Verify test coverage exists** for the code being restructured. If not, write characterization tests first.
+2. **Define the interface/contract first.** What's the minimal abstraction that all variants share?
+3. **Extract shared infrastructure** into a base class or utility (if 3+ variants share helpers totaling 30+ lines).
+4. **Migrate one variant at a time.** Start with the simplest case as proof-of-concept. Verify tests after each migration.
+5. **Update the wiring** (DI registration, factory methods, event subscriptions).
+6. **Update tests.** Individual variant tests should only need that variant's dependencies, not the full original dependency set.
+7. **Remove the old code** only after all variants are migrated and tests pass.
 
 ## Language-Specific Notes
 

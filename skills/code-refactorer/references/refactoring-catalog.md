@@ -18,6 +18,7 @@ Detailed before/after examples for common refactorings. Each entry shows the sme
 12. [Extract Interface / Dependency Injection](#extract-interface--dependency-injection)
 13. [Unify Near-Duplicate Code](#unify-near-duplicate-code)
 14. [Cross-File Pattern Consolidation](#cross-file-pattern-consolidation)
+15. [Apply OOP Design Patterns](#apply-oop-design-patterns)
 
 ---
 
@@ -782,3 +783,272 @@ All the cautions from "Unify Near-Duplicate Code" apply, plus:
 - **Pattern is still forming.** If the similar files were created recently or are under active development, the pattern hasn't stabilized. Premature abstraction locks in a structure that may not fit.
 - **Abstraction requires >3 extension points.** If every instance needs its own hooks, callbacks, or overrides, the "shared" code is really a framework — and frameworks are much harder to maintain than a few similar files.
 - **Test coverage is sparse.** Cross-file refactoring without adequate tests is high-risk. Write characterization tests for each instance first.
+
+---
+
+## Apply OOP Design Patterns
+
+**Smell:** Procedural patterns in object-oriented code — dispatch switches instead of polymorphism, data and behavior separated, cross-cutting concerns copy-pasted, complex state conditionals.
+
+### Example 1: Strategy — Switch dispatch → polymorphic handlers
+
+Before:
+```python
+class NotificationSender:
+    def __init__(self, email_client, sms_client, push_client, slack_client):
+        self.email = email_client
+        self.sms = sms_client
+        self.push = push_client
+        self.slack = slack_client
+
+    def send(self, channel, message, recipient):
+        if channel == "email":
+            self.email.send(recipient.email, message.subject, message.body)
+        elif channel == "sms":
+            self.sms.send(recipient.phone, message.body[:160])
+        elif channel == "push":
+            self.push.send(recipient.device_token, message.title, message.body)
+        elif channel == "slack":
+            self.slack.post(recipient.slack_id, message.body)
+        else:
+            raise ValueError(f"Unknown channel: {channel}")
+```
+
+After:
+```python
+class NotificationChannel(ABC):
+    @abstractmethod
+    def send(self, message, recipient): ...
+
+class EmailChannel(NotificationChannel):
+    def __init__(self, email_client):
+        self.client = email_client
+    def send(self, message, recipient):
+        self.client.send(recipient.email, message.subject, message.body)
+
+class SmsChannel(NotificationChannel):
+    def __init__(self, sms_client):
+        self.client = sms_client
+    def send(self, message, recipient):
+        self.client.send(recipient.phone, message.body[:160])
+
+# ... PushChannel, SlackChannel similarly
+
+class NotificationSender:
+    def __init__(self, channels: dict[str, NotificationChannel]):
+        self.channels = channels
+
+    def send(self, channel_name, message, recipient):
+        channel = self.channels.get(channel_name)
+        if not channel:
+            raise ValueError(f"Unknown channel: {channel_name}")
+        channel.send(message, recipient)
+```
+
+### Example 2: Template Method — Similar algorithms with varying steps
+
+Before:
+```typescript
+class CsvReportGenerator {
+  generate(data: Record[]): string {
+    const filtered = data.filter(r => r.status === "active");
+    const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    const header = "Name,Email,Date\n";
+    const rows = sorted.map(r => `${r.name},${r.email},${r.date}`);
+    return header + rows.join("\n");
+  }
+}
+
+class JsonReportGenerator {
+  generate(data: Record[]): string {
+    const filtered = data.filter(r => r.status === "active");  // same
+    const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));  // same
+    return JSON.stringify(sorted.map(r => ({
+      name: r.name, email: r.email, date: r.date
+    })));
+  }
+}
+```
+
+After:
+```typescript
+abstract class ReportGenerator {
+  generate(data: Record[]): string {
+    const filtered = this.filter(data);
+    const sorted = this.sort(filtered);
+    return this.format(sorted);
+  }
+  protected filter(data: Record[]): Record[] {
+    return data.filter(r => r.status === "active");
+  }
+  protected sort(data: Record[]): Record[] {
+    return data.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  protected abstract format(data: Record[]): string;
+}
+
+class CsvReportGenerator extends ReportGenerator {
+  protected format(data: Record[]): string {
+    const header = "Name,Email,Date\n";
+    return header + data.map(r => `${r.name},${r.email},${r.date}`).join("\n");
+  }
+}
+
+class JsonReportGenerator extends ReportGenerator {
+  protected format(data: Record[]): string {
+    return JSON.stringify(data.map(r => ({ name: r.name, email: r.email, date: r.date })));
+  }
+}
+```
+
+### Example 3: Decorator — Cross-cutting concerns wrapped around operations
+
+Before:
+```python
+class OrderService:
+    def place_order(self, order):
+        start = time.time()
+        logger.info(f"Placing order {order.id}")
+        try:
+            if not auth.check(order.user_id, "orders:write"):
+                raise PermissionError("Not authorized")
+            result = self._do_place_order(order)
+            logger.info(f"Order {order.id} placed in {time.time()-start:.2f}s")
+            return result
+        except Exception as e:
+            logger.error(f"Order {order.id} failed: {e}")
+            raise
+
+    def cancel_order(self, order_id):
+        start = time.time()
+        logger.info(f"Cancelling order {order_id}")
+        try:
+            if not auth.check(order.user_id, "orders:write"):
+                raise PermissionError("Not authorized")
+            result = self._do_cancel_order(order_id)
+            logger.info(f"Order {order_id} cancelled in {time.time()-start:.2f}s")
+            return result
+        except Exception as e:
+            logger.error(f"Order {order_id} cancel failed: {e}")
+            raise
+```
+
+After:
+```python
+def with_logging(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        name = func.__name__
+        logger.info(f"Starting {name}")
+        start = time.time()
+        try:
+            result = func(*args, **kwargs)
+            logger.info(f"{name} completed in {time.time()-start:.2f}s")
+            return result
+        except Exception as e:
+            logger.error(f"{name} failed: {e}")
+            raise
+    return wrapper
+
+def with_auth(permission):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not auth.check(self.current_user_id, permission):
+                raise PermissionError("Not authorized")
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+class OrderService:
+    @with_logging
+    @with_auth("orders:write")
+    def place_order(self, order):
+        return self._do_place_order(order)
+
+    @with_logging
+    @with_auth("orders:write")
+    def cancel_order(self, order_id):
+        return self._do_cancel_order(order_id)
+```
+
+### Example 4: State — Conditionals on status field → state classes
+
+Before:
+```java
+public class Document {
+    private String state = "draft";
+
+    public void publish() {
+        if (state.equals("draft")) {
+            // run draft->review validation
+            state = "review";
+        } else if (state.equals("review")) {
+            // run review->published validation
+            state = "published";
+        } else {
+            throw new IllegalStateException("Cannot publish from " + state);
+        }
+    }
+
+    public void reject() {
+        if (state.equals("review")) {
+            state = "draft";
+        } else {
+            throw new IllegalStateException("Cannot reject from " + state);
+        }
+    }
+
+    public String getVisibility() {
+        if (state.equals("published")) return "public";
+        else return "private";
+    }
+}
+```
+
+After:
+```java
+public interface DocumentState {
+    DocumentState publish(Document doc);
+    DocumentState reject(Document doc);
+    String getVisibility();
+}
+
+public class DraftState implements DocumentState {
+    public DocumentState publish(Document doc) { return new ReviewState(); }
+    public DocumentState reject(Document doc) {
+        throw new IllegalStateException("Cannot reject a draft");
+    }
+    public String getVisibility() { return "private"; }
+}
+
+public class ReviewState implements DocumentState {
+    public DocumentState publish(Document doc) { return new PublishedState(); }
+    public DocumentState reject(Document doc) { return new DraftState(); }
+    public String getVisibility() { return "private"; }
+}
+
+public class PublishedState implements DocumentState {
+    public DocumentState publish(Document doc) {
+        throw new IllegalStateException("Already published");
+    }
+    public DocumentState reject(Document doc) {
+        throw new IllegalStateException("Cannot reject published doc");
+    }
+    public String getVisibility() { return "public"; }
+}
+
+public class Document {
+    private DocumentState state = new DraftState();
+    public void publish() { state = state.publish(this); }
+    public void reject() { state = state.reject(this); }
+    public String getVisibility() { return state.getVisibility(); }
+}
+```
+
+### When NOT to Apply Patterns
+
+- **Pattern adds more code than it saves.** If the "after" is longer and harder to follow than the "before," the pattern isn't earning its keep.
+- **Only 2 variants exist and growth is unlikely.** A simple if/else or switch is fine. Wait for a third before extracting.
+- **The code is in a scripting or functional context** where classes add ceremony. Prefer higher-order functions, closures, or module-level organization.
+- **The "data class" is a DTO crossing a system boundary** (API request/response, serialization format). Don't add behavior to boundary objects.
