@@ -152,6 +152,7 @@ Display the filename as a navigable link (GitHub/Azure DevOps permalink to the f
 **Read Context:**
 - Read the full file for surrounding context — you need to understand the code to review it well
 - Get the file-specific diff using `git diff <baseRef>..<headRef> -- <file>`
+- **Complete code-review Step 0 (Gather Code Context) for this file before presenting any analysis.** This includes tracing callers/consumers, data producers, execution context, and related code. Do not present a file walkthrough that only describes what changed — the description exists to frame the analysis, not replace it.
 
 **Change Explanation:**
 Provide a plain-English walkthrough of what changed and why. Focus on the intent behind the changes, not line-by-line narration. Reference specific line numbers as navigable links (see Navigable Links section).

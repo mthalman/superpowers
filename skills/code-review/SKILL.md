@@ -23,6 +23,8 @@ Before analyzing, collect code context. **Do NOT read the PR description, linked
 4. **Related code**: If the change fixes a bug or adds a pattern, check whether similar code elsewhere has the same issue or needs the same fix.
 5. **Utility and helper files**: If the diff calls into shared utilities, read those to understand the contracts (thread-safety, idempotency, etc.).
 6. **Git history**: Check recent commits to changed files (`git log --oneline -20 -- <file>`). Look for related changes, reverts, or prior fix attempts. This reveals whether the area is actively churning or whether a similar fix was tried and reverted.
+7. **Execution context**: If the changed code is invoked by CI/CD pipelines, build systems, or orchestration frameworks, find and read the invocation definitions (pipeline YAML, build scripts, task runners). Determine what runs before and after this code, what preconditions hold at the point this code executes, what data has been produced or transformed by prior steps, and what external state exists (registries, databases, caches) at invocation time.
+8. **Data producers**: For any data the changed code consumes, trace it back to its source. Don't assume properties of the data — verify by reading the producer code. Ask: who creates this data? What does it contain? What filtering or transformation has been applied before it reaches this code?
 
 ### Step 1: Form Independent Assessment
 
@@ -59,6 +61,7 @@ Now read the PR description, linked issues, existing review comments, and author
    - Never assert that something "does not exist" or "is deprecated" based on training data alone. When uncertain, ask rather than assert.
 8. **Ensure code suggestions are valid.** Any code you suggest must be syntactically correct and complete.
 9. **Label in-scope vs. follow-up.** Distinguish between issues the PR should fix and out-of-scope improvements that belong in a follow-up.
+10. **Context-shift analysis.** When code is moved from one execution context to another (e.g., from one pipeline stage to another, from sync to async, from one service to another), do not assume behavioral equivalence. Explicitly enumerate what changes: what steps have or haven't run before this code now, what external state (registries, databases, file system) differs, what data preconditions that held in the old context no longer hold, and whether the same code pattern produces different outcomes in the new context. Treat "same code, different context" as a high-risk area. The claim "this pattern already existed" is insufficient — verify that the pattern is still correct in the new execution environment.
 
 ---
 
