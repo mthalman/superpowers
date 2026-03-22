@@ -15,14 +15,23 @@ You are orchestrating the complete pull request lifecycle. Follow the phases bel
 
 Repeat this loop until **all tests pass AND code review is clean**.
 
-### Step 1: Run Tests
+### Step 1: Update Branch
+
+Bring the branch up to date with the target branch:
+
+1. Fetch latest: `git fetch origin`
+2. Rebase onto target: `git rebase origin/main` (or the repo's default branch)
+3. If conflicts arise, resolve them and continue the rebase
+4. Force-push if already pushed: `git push --force-with-lease`
+
+### Step 2: Run Tests
 
 1. Detect the test runner from the repo (look for `package.json` scripts, `Makefile`, `pytest`, `dotnet test`, `go test`, etc.)
 2. Run the full test suite
 3. If tests fail, fix the failures and re-run. Ask the user for guidance if the fix is ambiguous.
 4. Tests must be green before proceeding to code review.
 
-### Step 2: Code Review Loop
+### Step 3: Code Review Loop
 
 1. Determine the git range to review:
    - Base: merge-base with target branch
@@ -36,11 +45,11 @@ Repeat this loop until **all tests pass AND code review is clean**.
 4. After addressing findings, re-run the `superpowers:code-reviewer` agent
 5. Repeat until the review comes back clean (no Critical or Important issues remaining)
 
-### Step 3: Re-run Tests
+### Step 4: Re-run Tests
 
 After code review changes, re-run the full test suite to ensure nothing broke.
 
-### Step 4: Loop Check
+### Step 5: Loop Check
 
 - If tests pass AND review is clean → proceed to Phase 2
 - If either failed → go back to Step 1
@@ -60,7 +69,7 @@ After code review changes, re-run the full test suite to ensure nothing broke.
 
 After the PR is created, run the remote verification loop.
 
-### Step 5: Copilot PR Review
+### Step 6: Copilot PR Review
 
 Use the `copilot-pr-review` skill workflow:
 1. Add `copilot-pull-request-reviewer[bot]` as a reviewer
@@ -77,7 +86,7 @@ Use the `copilot-pr-review` skill workflow:
 
 **After making any code changes in this step → re-run Phase 1 (local loop) before continuing.**
 
-### Step 6: CI Verification
+### Step 7: CI Verification
 
 1. Check GitHub Actions workflow status:
    ```bash
@@ -91,7 +100,7 @@ Use the `copilot-pr-review` skill workflow:
    - Then re-check CI status
 3. All workflows must be green before proceeding.
 
-### Step 7: Merge Conflict Resolution
+### Step 8: Merge Conflict Resolution
 
 1. Check for merge conflicts:
    ```bash
@@ -102,7 +111,7 @@ Use the `copilot-pr-review` skill workflow:
    - Resolve conflicts
    - Force-push: `git push --force-with-lease`
    - **Re-run Phase 1 (local loop)** since code changed
-   - Then re-run Step 5 (Copilot re-review) and Step 6 (CI)
+   - Then re-run from Step 6 (Copilot re-review) and Step 7 (CI)
 3. If `MERGEABLE` → PR is ready
 
 ## Completion
