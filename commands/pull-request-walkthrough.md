@@ -1,19 +1,18 @@
 ---
-name: pull-request-walkthrough
-description: Use when walking through a pull request interactively, checking out PRs, examining diffs file by file, or guiding a structured PR review session. Handles PR platform detection, checkout, diff extraction, and interactive file-by-file walkthrough for both GitHub and Azure DevOps. Use this whenever a PR number or URL is mentioned in the context of reviewing or examining changes, when the user says things like "look at this diff", "review these changes", "check this PR", "walk me through the PR", or "what changed in PR #N". For the actual code analysis criteria, this skill delegates to the code-review skill.
+description: Walk through a pull request interactively, checking out PRs and examining diffs file by file for a structured PR review session. Supports GitHub and Azure DevOps.
 ---
 
 # Reviewing Pull Request
 
-Guide a structured, interactive walkthrough of a pull request. This skill handles the mechanics — detecting the platform, checking out the PR, extracting diffs, and orchestrating a file-by-file review session with the user. For the actual analysis (what to look for, how to evaluate findings, severity classification), apply the guidance from the **code-review** skill.
+Guide a structured, interactive walkthrough of a pull request. This command handles the mechanics — detecting the platform, checking out the PR, extracting diffs, and orchestrating a file-by-file review session with the user. For the actual analysis (what to look for, how to evaluate findings, severity classification), apply the guidance from the **code-review** skill.
 
-The user maintains full control over what gets posted. This skill does not post comments automatically.
+The user maintains full control over what gets posted. This command does not post comments automatically.
 
 ## Prerequisites
 
 - **GitHub PRs:** `gh` CLI installed and authenticated
 - **Azure DevOps PRs:** `az` CLI installed and authenticated
-- Must be in a git repository (or able to clone one)
+- Can be run from any directory — if not inside the target repository, the repo will be cloned to a temp directory automatically (requires a PR URL, not just a number)
 - **code-review** skill should be available for analysis criteria — if unavailable, apply general code review best practices (correctness, safety, performance, readability) inline
 
 ## Handling Checkout Conflicts
@@ -26,14 +25,16 @@ When referencing files and code lines throughout the review, use navigable links
 
 **Link types (prefer PR diff view for changed files):**
 
-- **PR diff view (changed files):** Link to the file in the PR's diff view so the reviewer sees the change in context. Use the `Get-PrFileUrl.ps1` helper script to generate these URLs:
-  ```powershell
-  pwsh -File "<skill-path>/scripts/Get-PrFileUrl.ps1" `
-    -Platform $platform.platform -Org $platform.org -Repo $platform.repo `
-    -PrNumber $platform.prNumber -FilePath "src/Foo.cs" -LineNumber 42 `
-    -Project $platform.project
-  ```
-  - **GitHub:** `https://github.com/{org}/{repo}/pull/{prNumber}/files#diff-{sha256hex(filePath)}R{line}` — the anchor is the SHA256 hex digest of the file path; append `R{line}` for right-side (new file) line numbers.
+- **PR diff view (changed files):** Link to the file in the PR's diff view so the reviewer sees the change in context.
+  - **GitHub:** `https://github.com/{org}/{repo}/pull/{prNumber}/files#diff-{sha256hex}R{line}` — the anchor is the SHA256 hex digest of the file path; append `R{line}` for right-side (new file) line numbers.
+
+    Compute the SHA256 anchor in PowerShell:
+    ```powershell
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($filePath)
+    $hash = [System.Security.Cryptography.SHA256]::HashData($bytes)
+    $hex = [System.BitConverter]::ToString($hash).Replace('-', '').ToLower()
+    # URL: https://github.com/{org}/{repo}/pull/{prNumber}/files#diff-{hex}R{line}
+    ```
   - **Azure DevOps:** `https://dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{prNumber}?_a=files&path=/{filePath}&line={line}`
 - **Blob view (unchanged files or files outside the PR):** For files not in the PR diff (e.g., affected callers discovered during analysis), link to the source at the head commit:
   - **GitHub:** `https://github.com/{org}/{repo}/blob/{headRefOid}/{filePath}#L{line}`
@@ -74,34 +75,179 @@ For GitHub, `gh pr diff` does not support commit ranges. Use `git diff <sinceCom
 
 ### Step 1: Detect Platform & Fetch PR Info
 
-Run the helper scripts to gather PR data. The user provides a PR URL or number.
+The user provides a PR URL or number. Execute the following substeps to gather all PR data.
 
-```powershell
-# 1. Detect platform (GitHub vs Azure DevOps)
-$platformJson = pwsh -File "<skill-path>/scripts/Get-PrPlatform.ps1" -PrInput "<url-or-number>"
-$platform = $platformJson | ConvertFrom-Json
+#### Step 1a: Detect Platform
 
-# 2. Fetch PR metadata (title, description, comments, linked issues)
-$metadataJson = pwsh -File "<skill-path>/scripts/Get-PrMetadata.ps1" `
-  -Platform $platform.platform -Org $platform.org -Repo $platform.repo `
-  -PrNumber $platform.prNumber -Project $platform.project
-$metadata = $metadataJson | ConvertFrom-Json
+Determine whether the PR is on GitHub or Azure DevOps. Store the platform info (`platform`, `org`, `repo`, `project`, `prNumber`) for use in later steps.
 
-# 3. Checkout PR locally
-pwsh -File "<skill-path>/scripts/Checkout-Pr.ps1" `
-  -Platform $platform.platform -Org $platform.org -Repo $platform.repo `
-  -PrNumber $platform.prNumber -Project $platform.project `
-  -BaseRef $metadata.baseRefName -HeadRef $metadata.headRefName
+**If the user provides a URL:**
 
-# 4. Extract diff data
-$diffJson = pwsh -File "<skill-path>/scripts/Get-PrDiff.ps1" `
-  -BaseRef $metadata.baseRefOid -HeadRef $metadata.headRefOid `
-  -Platform $platform.platform -Org $platform.org -Repo $platform.repo `
-  -PrNumber $platform.prNumber -Project $platform.project
-$diff = $diffJson | ConvertFrom-Json
+- **GitHub:** Match `github.com/{org}/{repo}/pull/{number}` → platform = "github"
+- **Azure DevOps:** Match `dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{number}` → platform = "azuredevops"
+- **Azure DevOps (legacy):** Match `{org}.visualstudio.com/{project}/_git/{repo}/pullrequest/{number}` → platform = "azuredevops"
+
+**If the user provides just a PR number:**
+
+Inspect the git remote to detect the platform:
+
+```bash
+git remote -v
 ```
 
-Replace `<skill-path>` with the actual path to this skill's directory.
+Match the origin fetch URL against these patterns:
+
+- `github.com[:/]{org}/{repo}` → platform = "github"
+- `dev.azure.com/{org}/{project}/_git/{repo}` → platform = "azuredevops"
+- `{org}.visualstudio.com/{project}/_git/{repo}` → platform = "azuredevops"
+- `ssh.dev.azure.com/v3/{org}/{project}/{repo}` → platform = "azuredevops"
+
+Strip any trailing `.git` from the repo name.
+
+#### Step 1b: Ensure Local Repository
+
+After detecting the platform, verify that the current working directory is inside the target repository. If not, clone the repository to a temporary directory.
+
+**Check if already in the target repo:**
+
+```bash
+git remote -v
+```
+
+If the current directory is a git repository whose origin remote matches `{org}/{repo}`, proceed directly to Step 1c — no clone needed.
+
+**If the current directory is not a git repository or the remote doesn't match:**
+
+- **If the user provided only a PR number** (no URL), stop with an error: "Not in a git repository for this PR. Please provide a full PR URL so I can clone the repo, or run this command from within the repository."
+- **If the user provided a URL**, clone the repository (see below).
+
+**Clone to a temporary directory:**
+
+Use a path that uniquely identifies the repo and PR to avoid collisions with other reviews:
+
+```
+{TEMP}/pr-review/{org}-{repo}/pr-{prNumber}
+```
+
+Where `{TEMP}` is the system temporary directory (`$env:TEMP` on Windows, `/tmp` on Unix).
+
+If the directory already exists from a previous review, remove it first to ensure a clean state.
+
+**GitHub:**
+
+```bash
+gh repo clone {org}/{repo} "{clonePath}"
+```
+
+**Azure DevOps:**
+
+```bash
+git clone "https://dev.azure.com/{org}/{project}/_git/{repo}" "{clonePath}"
+```
+
+After cloning, `cd` into the clone directory for all subsequent steps.
+
+**Track the clone state** — remember whether a clone was performed and the clone path so that cleanup can be offered at the end of the review (Step 4).
+
+#### Step 1c: Fetch PR Metadata
+
+**GitHub:**
+
+```bash
+gh pr view {prNumber} --repo "{org}/{repo}" --json title,body,comments,reviews,labels,headRefName,baseRefName,headRefOid,files,state,author,url
+```
+
+Also fetch `baseRefOid` separately (not available via `gh pr view --json`):
+
+```bash
+gh api "repos/{org}/{repo}/pulls/{prNumber}" --jq '.base.sha'
+```
+
+**Azure DevOps:**
+
+```bash
+az repos pr show --id {prNumber} --org "https://dev.azure.com/{org}" --output json
+```
+
+Extract the repository ID from the response, then fetch review threads:
+
+```bash
+az devops invoke --area git --resource threads \
+  --route-parameters project="{project}" repositoryId="{repoId}" pullRequestId={prNumber} \
+  --http-method GET --org "https://dev.azure.com/{org}" --api-version 7.1 --output json
+```
+
+**Key metadata to extract (both platforms):**
+
+- `title`, `body`, `author`, `state`
+- `baseRefName`, `headRefName`, `baseRefOid`, `headRefOid`
+- Review comments/threads and review activity
+- PR URL
+
+For Azure DevOps, derive branch names by stripping `refs/heads/` prefix. Use `lastMergeTargetCommit.commitId` for `baseRefOid` and `lastMergeSourceCommit.commitId` for `headRefOid`.
+
+#### Step 1d: Checkout PR Locally
+
+**GitHub:**
+
+```bash
+gh pr checkout {prNumber} --repo "{org}/{repo}"
+```
+
+**Azure DevOps:**
+
+```bash
+# Fetch both branches
+git fetch origin "{baseRef}"
+git fetch origin "{headRef}"
+git checkout "origin/{headRef}" -B "pr-{prNumber}"
+```
+
+If fetching the head ref fails, try the Azure DevOps PR ref format:
+
+```bash
+git fetch origin "+refs/pull/{prNumber}/merge:pr-{prNumber}"
+git checkout "pr-{prNumber}"
+```
+
+#### Step 1e: Extract Diff Data
+
+**GitHub:**
+
+```bash
+gh pr diff {prNumber} --repo "{org}/{repo}"
+```
+
+**Azure DevOps:**
+
+Use the commitDiffs API to get the list of changed files:
+
+```bash
+az devops invoke --area git --resource commitDiffs \
+  --route-parameters project="{project}" repositoryId="{repoId}" \
+  --query-parameters baseVersion={baseRefOid} baseVersionType=commit targetVersion={headRefOid} targetVersionType=commit diffCommonCommit=true \
+  --http-method GET --org "https://dev.azure.com/{org}" --api-version 7.1 --output json
+```
+
+Then get the per-file unified diff using the common commit returned by the API:
+
+```bash
+git diff --no-color "{commonCommit}..{headRefOid}" -- "{filePath}"
+```
+
+**Fallback (any platform):**
+
+```bash
+git merge-base {baseRef} {headRef}
+git diff --no-color "{mergeBase}..{headRef}"
+```
+
+**Parse the unified diff output** to extract per-file data:
+
+- File path and change type (added, deleted, modified, renamed, copied)
+- Original file path (if renamed or copied)
+- Lines added and removed per file
+- Hunk locations (start line, end line, context)
 
 ### Step 2: Present Opening Summary
 
@@ -202,7 +348,15 @@ Consolidated table of all comments made during the walkthrough. File names and l
 **Questions for the Author:**
 Suggest questions about ambiguous design choices or unclear intent — things the reviewer might want to ask the PR author.
 
-**Remind the reviewer:** This skill does not post comments automatically. The reviewer decides what to post and how, using the `github-pr-reviews` or `azure-devops-pr-reviews` skills if needed.
+**Remind the reviewer:** This command does not post comments automatically. The reviewer decides what to post and how, using the `github-pr-reviews` or `azure-devops-pr-reviews` skills if needed.
+
+**Cleanup (cloned repos only):**
+
+If the repository was cloned to a temporary directory in Step 1b, ask the reviewer after the review is complete:
+
+- "The repository was cloned to `{clonePath}` for this review. Would you like me to delete it?"
+- If yes: remove the clone directory and confirm deletion
+- If no: inform the user of the path so they can clean it up later or reuse it
 
 ## Handling Large PRs
 
@@ -210,4 +364,3 @@ For PRs with many files (>20):
 - Group files by component or module in the review order
 - Offer to focus on highest-risk files first and skim lower-risk ones
 - Ask the reviewer if they want the full walkthrough or a targeted review of specific areas
-
