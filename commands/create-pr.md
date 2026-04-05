@@ -63,6 +63,16 @@ After code review changes, re-run the full test suite to ensure nothing broke.
    ```
    - If the user has provided a PR title/body, use `--title` and `--body` instead of `--fill`
    - Ask the user if they want to customize the title/body before creating
+   - **PowerShell backtick hazard:** On Windows/PowerShell, backticks (`` ` ``) in PR titles or bodies are interpreted as escape characters (`` `r `` → carriage return, `` `a `` → bell, etc.), silently mangling the text. When the title or body contains backticks:
+     1. Write the body to a temporary file
+     2. Use `--body-file` instead of `--body` or `--fill`:
+        ```bash
+        git log -1 --format="%b" > $env:TEMP\pr-body.md
+        $title = git log -1 --format="%s"
+        gh pr create --title $title --body-file $env:TEMP\pr-body.md
+        Remove-Item $env:TEMP\pr-body.md
+        ```
+     3. This bypasses PowerShell's string interpolation entirely
 3. Capture the PR URL from the output
 
 ## Phase 3 — Remote Loop
