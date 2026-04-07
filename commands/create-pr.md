@@ -4,6 +4,41 @@ description: "Full PR lifecycle — local code review and test loop, PR creation
 
 You are orchestrating the complete pull request lifecycle. Follow the phases below in order. The guiding principle is: **any code change triggers a re-run of the local loop before continuing the remote loop.**
 
+## PowerShell Text Safety
+
+**⚠️ CRITICAL (Windows/PowerShell only):** Backticks (`` ` ``) in ANY text passed to `gh` CLI commands are interpreted as PowerShell escape characters (`` `r `` → carriage return, `` `n `` → newline, `` `a `` → bell, `` `v `` → vertical tab, etc.), silently mangling the output. This affects **all** GitHub interactions that post text:
+
+- `gh pr create --body "..."` / `--fill`
+- `gh pr comment "..."`
+- `gh issue comment "..."`
+- `gh api ... -f body="..."`
+- Any `--body`, `--message`, or `-f` parameter containing backticks
+
+**Always use file-based input when text may contain backticks:**
+
+```powershell
+# Write text to a temp file first
+$text = "Fixed `validateWorkItem()`: added validation"  # BAD - backticks mangled
+# Instead:
+$tempFile = "$env:TEMP\gh-body-$(Get-Random).md"
+Set-Content -Path $tempFile -Value $bodyText -Encoding UTF8
+gh pr comment 123 --body-file $tempFile
+Remove-Item $tempFile
+```
+
+**For Python (preferred — avoids PowerShell entirely):**
+```python
+import subprocess, tempfile, os
+body = "Fixed `validateWorkItem()`: added validation"
+with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
+    f.write(body)
+    tmpfile = f.name
+subprocess.run(['gh', 'pr', 'comment', '123', '--body-file', tmpfile])
+os.unlink(tmpfile)
+```
+
+This applies everywhere in this workflow — PR creation, Copilot review replies, issue comments, and any other text posted to GitHub.
+
 ## Phase 0 — Context Detection
 
 1. Get the current branch: `git rev-parse --abbrev-ref HEAD`
@@ -63,21 +98,14 @@ After code review changes, re-run the full test suite to ensure nothing broke.
    ```
    - If the user has provided a PR title/body, use `--title` and `--body` instead of `--fill`
    - Ask the user if they want to customize the title/body before creating
-   - **PowerShell backtick hazard:** On Windows/PowerShell, backticks (`` ` ``) in PR titles or bodies are interpreted as escape characters (`` `r `` → carriage return, `` `a `` → bell, etc.), silently mangling the text. When the title or body contains backticks:
-     1. Write the body to a temporary file
-     2. Use `--body-file` instead of `--body` or `--fill`:
-        ```bash
-        git log -1 --format="%b" > $env:TEMP\pr-body.md
-        $title = git log -1 --format="%s"
-        gh pr create --title $title --body-file $env:TEMP\pr-body.md
-        Remove-Item $env:TEMP\pr-body.md
-        ```
-     3. This bypasses PowerShell's string interpolation entirely
+   - **On PowerShell:** Always use `--body-file` (see PowerShell Text Safety above). Never pass backtick-containing text inline.
 3. Capture the PR URL from the output
 
 ## Phase 3 — Remote Loop
 
 After the PR is created, run the remote verification loop.
+
+> **Reminder:** When replying to Copilot review comments, posting PR comments, or any other text posted to GitHub, use `--body-file` with a temp file (see PowerShell Text Safety above). Never pass text containing backticks as inline arguments.
 
 ### Step 6: Copilot PR Review
 
