@@ -124,13 +124,6 @@ When reviewing updated code after a prior review round:
 4. **Don't introduce new scope.** A re-review should not raise new issues on unchanged code unless a prior finding's resolution reveals a new problem.
 5. **Update the verdict.** The re-review verdict applies to the current state of the code, not relative to the prior review.
 
-### Output Format Adaptation
-
-When used as a **delegate** of the `pull-request-walk-through` skill (file-by-file walkthrough), adapt the output:
-- **Skip the Holistic Assessment block** per file — the walkthrough skill handles the opening and closing summaries.
-- **Provide findings inline** per file using the severity classification and format from this skill.
-- **Save the Holistic Assessment and verdict** for the walkthrough's closing summary (Step 4).
-
 ---
 
 ## What to Look For
