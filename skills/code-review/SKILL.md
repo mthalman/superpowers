@@ -206,9 +206,6 @@ Evaluate the change as a whole before reviewing individual lines.
 ### API Design
 
 - **Parameters and contracts must be consistent.** Validate arguments in a consistent order, throw consistent exception types.
-- **`TryX` methods should return `false` only for the expected failure mode.** Throw for everything else (corruption, invalid arguments).
-- **Don't expose mutable state after construction** if values are captured at creation time.
-- **New virtual methods must work with unoverridden derived types.** The default implementation must behave equivalently to the pre-existing path.
 - **Follow the project's established API conventions.** Check for existing patterns before introducing new ones.
 
 ### Testing
