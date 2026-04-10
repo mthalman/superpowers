@@ -97,6 +97,8 @@ gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" \
   -f "body=Fixed in {commit_sha}"
 ```
 
+> **⚠️ PowerShell:** Do NOT use `-f "body=@$tempFile"` — the `@file` syntax does not work in PowerShell and will post the literal file path. Instead, store the body in a variable and pass directly: `-f "body=$bodyVar"`.
+
 ### Step 4.5 — Resolve the conversation thread
 
 After replying to each comment, **resolve the review thread** using the GraphQL API.
