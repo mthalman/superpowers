@@ -117,21 +117,8 @@ Use the `copilot-pr-review` skill workflow:
    - Read and understand the feedback
    - Make the fix (one commit per comment)
    - Push
-   - Reply to the comment with the fix SHA:
-     ```powershell
-     $body = "Fixed in <commit_sha>"
-     gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" -f "body=$body"
-     ```
-   - **Resolve the thread** (required — unresolved threads block clean PR state):
-     ```powershell
-     # Get all unresolved thread IDs
-     $threadIds = gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'
-
-     # Resolve each thread
-     foreach ($tid in $threadIds) {
-       gh api graphql -f query="mutation { resolveReviewThread(input: {threadId: `"$tid`"}) { thread { isResolved } } }" --jq '.data.resolveReviewThread.thread.isResolved'
-     }
-     ```
+   - Reply to the comment with the fix SHA
+   - Resolve the thread
 5. Re-request Copilot review
 6. Repeat until Copilot review is clean (no comments)
 
