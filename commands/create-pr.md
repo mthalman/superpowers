@@ -14,28 +14,28 @@ You are orchestrating the complete pull request lifecycle. Follow the phases bel
 - `gh api ... -f body="..."`
 - Any `--body`, `--message`, or `-f` parameter containing backticks
 
-**Always use file-based input when text may contain backticks:**
+**For `gh` subcommands that support `--body-file` (pr create, pr comment, issue comment):**
 
 ```powershell
-# Write text to a temp file first
-$text = "Fixed `validateWorkItem()`: added validation"  # BAD - backticks mangled
-# Instead:
+# Write text to a temp file, then pass via --body-file
 $tempFile = "$env:TEMP\gh-body-$(Get-Random).md"
 Set-Content -Path $tempFile -Value $bodyText -Encoding UTF8
 gh pr comment 123 --body-file $tempFile
 Remove-Item $tempFile
 ```
 
-**For Python (preferred — avoids PowerShell entirely):**
-```python
-import subprocess, tempfile, os
-body = "Fixed `validateWorkItem()`: added validation"
-with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-    f.write(body)
-    tmpfile = f.name
-subprocess.run(['gh', 'pr', 'comment', '123', '--body-file', tmpfile])
-os.unlink(tmpfile)
+**For `gh api` calls (review replies, etc.) — use a PowerShell variable, NOT `@file`:**
+
+```powershell
+# ⚠️ BAD — @file syntax does NOT work in PowerShell; posts the literal file path:
+gh api "repos/.../comments/123/replies" -f "body=@$tempFile"
+
+# ✅ GOOD — store text in a variable and pass it directly:
+$body = "Fixed in abc1234"
+gh api "repos/.../comments/123/replies" -f "body=$body"
 ```
+
+> **Why:** `gh api -f "body=@file"` is supposed to read from a file, but in PowerShell the `@` is not interpreted correctly, resulting in the literal file path being posted as the comment body.
 
 This applies everywhere in this workflow — PR creation, Copilot review replies, issue comments, and any other text posted to GitHub.
 

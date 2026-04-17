@@ -109,6 +109,15 @@ gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" \
   -f "body=Fixed in {commit_sha}"
 ```
 
+**PowerShell equivalent:**
+
+```powershell
+$body = "Fixed in <commit_sha>"
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" -f "body=$body"
+```
+
+> **⚠️ PowerShell:** Do NOT use `-f "body=@$tempFile"` — the `@file` syntax does not work in PowerShell and will post the literal file path. Always store the body in a variable and pass directly: `-f "body=$bodyVar"`.
+
 ### Step 4.5 — Resolve the conversation thread
 
 After replying to each comment, **resolve the review thread** using the GraphQL API.
@@ -137,9 +146,19 @@ for tid in $(gh api graphql -f query='{ repository(owner: "{owner}", name: "{rep
 done
 ```
 
+**PowerShell batch resolution:**
+
+```powershell
+$threadIds = gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'
+
+foreach ($tid in $threadIds) {
+  gh api graphql -f query="mutation { resolveReviewThread(input: {threadId: `"$tid`"}) { thread { isResolved } } }" --jq '.data.resolveReviewThread.thread.isResolved'
+}
+```
+
 **Rules:**
 - Always resolve after replying — unresolved threads block clean PR state
-- Use `printf` for the mutation query to avoid shell escaping issues
+- Use `printf` (bash) or backtick-escaped quotes (PowerShell) for the mutation query to avoid shell escaping issues
 - Never use `-F` or variable interpolation inside the query string — it breaks GraphQL parsing
 
 ---

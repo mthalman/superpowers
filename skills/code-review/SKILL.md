@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use when analyzing code changes for correctness, performance, safety, and quality. Provides review criteria, severity classification, and output format for code reviews. Use standalone when reviewing any code changes, diffs, or patches. Triggers on "review my code", "check this for bugs", "audit this change", "is this safe to merge", "what could go wrong", "look at my changes", or requests to evaluate code quality or find risks. For PR walkthroughs, use pull-request-walk-through instead.
+description: Use when analyzing code changes for correctness, performance, safety, and quality. Provides review criteria, severity classification, and output format for code reviews. Use standalone when reviewing any code changes, diffs, or patches. Triggers on "review my code", "check this for bugs", "audit this change", "is this safe to merge", "what could go wrong", "look at my changes", or requests to evaluate code quality or find risks.
 ---
 
 # Code Review
