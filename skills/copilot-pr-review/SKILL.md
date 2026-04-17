@@ -44,9 +44,21 @@ gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
   --jq '.users[].login'
 ```
 
+### Step 1.5 — Establish review baseline
+
+**Before requesting review** (or before re-requesting in Step 5), count the existing Copilot reviews so you can detect when a NEW one arrives:
+
+```bash
+BASELINE_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
+  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | length')
+echo "Baseline review count: $BASELINE_COUNT"
+```
+
+Store `BASELINE_COUNT`. You will use it in Step 2 to distinguish new reviews from old ones.
+
 ### Step 2 — Poll for Copilot's review
 
-Poll the reviews endpoint until a review from `copilot-pull-request-reviewer[bot]` appears.
+Poll the reviews endpoint until a **new** review from `copilot-pull-request-reviewer[bot]` appears (count exceeds `BASELINE_COUNT`).
 
 ```bash
 gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
@@ -56,7 +68,7 @@ gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
 **Polling parameters:**
 - **Interval:** 60 seconds between checks
 - **Timeout:** 15 minutes (15 attempts)
-- **Detection:** Review count > 0 means Copilot has reviewed
+- **Detection:** Review count > `BASELINE_COUNT` means Copilot has submitted a NEW review
 
 **Full detection query** (returns review state and comment count):
 
@@ -130,9 +142,31 @@ done
 - Use `printf` for the mutation query to avoid shell escaping issues
 - Never use `-F` or variable interpolation inside the query string — it breaks GraphQL parsing
 
+---
+
+> ⚠️ **CRITICAL: You MUST complete Steps 3-4.5 for ALL comments before proceeding to Step 5.**
+> Do NOT re-request review until every comment has been:
+> 1. Read and understood
+> 2. Fixed (one commit per comment)
+> 3. Replied to with "Fixed in {sha}"
+> 4. Thread resolved via GraphQL
+>
+> If you skip this and re-request review without fixing comments, the loop will never converge.
+
+---
+
 ### Step 5 — Re-request Copilot review
 
-After addressing ALL comments, re-request Copilot's review:
+After addressing ALL comments, re-request Copilot's review.
+
+**Before re-requesting**, update your baseline so Step 2 can detect the next new review:
+
+```bash
+BASELINE_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
+  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | length')
+```
+
+Then re-request:
 
 ```bash
 gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
@@ -142,7 +176,7 @@ gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
 
 ### Step 6 — Repeat
 
-Go back to Step 2. Poll for the NEW review. If the new review has no comments,
+Go back to Step 2. Poll for the NEW review (count > `BASELINE_COUNT`). If the new review has no comments,
 the PR is clean and the Copilot review loop is complete. If it has comments,
 repeat Steps 3-5.
 
@@ -162,3 +196,15 @@ If merge conflicts arise during this workflow:
 2. Resolve conflicts
 3. Force-push: `git push --force-with-lease`
 4. Re-request review (Step 5)
+
+## Reliability Notes
+
+- **Context budget**: The Copilot review loop is context-intensive. If you've already done Phase 1 (local review) in this same agent context, be aware you have limited context remaining. Focus on the mechanical steps: read comment → fix → commit → reply → resolve. Do not re-investigate or re-analyze the broader PR — stay focused on what each comment asks for.
+- **One round at a time**: Process one complete round (all comments from a single review) before re-requesting. Never batch re-requests. Never re-request review while there are still unprocessed comments from the current review.
+- **Verify before re-requesting**: After resolving all threads, verify with `gh api graphql` that no unresolved threads remain before re-requesting review:
+  ```bash
+  UNRESOLVED=$(gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 100) { nodes { isResolved } } } } }' \
+    --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+  echo "Unresolved threads: $UNRESOLVED"
+  ```
+  If `UNRESOLVED` > 0, go back and resolve them before proceeding to Step 5.
