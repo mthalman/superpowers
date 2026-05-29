@@ -144,13 +144,25 @@ regression signal**). To make CI exercise a real reviewer, configure:
 |---|---|---|---|
 | `vars.CODE_REVIEW_ADAPTER` | Repo variable | Always (for real reviewer) | `evals/code-review/adapters/copilot.ps1` |
 | `vars.CODE_REVIEW_TRIALS`  | Repo variable | Optional             | `3` |
-| `secrets.COPILOT_PAT`      | Repo secret   | When adapter is `copilot.ps1` | User-owned fine-grained PAT with the **"Copilot Requests"** permission |
+| `secrets.COPILOT_PAT`      | Repo secret   | When adapter is `copilot.ps1` | User-owned fine-grained PAT (see below) |
 
-The "Copilot Requests" permission is only available on **user-owned**
-fine-grained PATs (not on GitHub App tokens, not on the default
-`GITHUB_TOKEN`). Create one at
-https://github.com/settings/personal-access-tokens/new with that single
-permission enabled, then save it as the `COPILOT_PAT` repo secret.
+**Minting the `COPILOT_PAT` secret.** The Copilot CLI authenticates by
+identifying the user behind the token; your active Copilot subscription
+is what actually grants Copilot access. The fine-grained PAT
+permissions you select only constrain what the Copilot **agent** is
+allowed to do on GitHub via that token — they do not grant or
+gate Copilot service access. For this workflow the adapter only reads
+local files staged into the runner's temp directory and invokes
+`copilot`, so the token needs no repo or API permissions beyond the
+default fine-grained PAT identity. (If you later extend the adapter to
+fetch GitHub data, add the matching permissions then.)
+
+Create the token at
+https://github.com/settings/personal-access-tokens/new, save it as
+`COPILOT_PAT` under **Settings → Secrets and variables → Actions**, and
+the workflow exports it as `COPILOT_GITHUB_TOKEN` + `GH_TOKEN` on the
+eval job (those are the two env vars the Copilot CLI reads, with
+`COPILOT_GITHUB_TOKEN` taking precedence over `GH_TOKEN`).
 
 When `vars.CODE_REVIEW_ADAPTER` mentions `copilot`, the workflow:
 
