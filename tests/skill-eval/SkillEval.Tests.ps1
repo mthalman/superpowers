@@ -141,6 +141,24 @@ Describe 'detect-changed-skills.ps1' {
         $out | Should -Be '["bbb-skill"]'
     }
 
+    It 'auto-discovers repo root from a deep subdirectory' {
+        # Regression for Copilot finding: Find-RepoRoot must traverse
+        # ancestors correctly when no -RepoRoot is passed.
+        New-Item -ItemType Directory -Path "evals/aaa-skill" | Out-Null
+        Set-Content "evals/aaa-skill/run-eval.ps1" "# stub"
+        New-Item -ItemType Directory -Path "skills/aaa-skill/subdir/deeper" -Force | Out-Null
+        Set-Content "skills/aaa-skill/subdir/deeper/notes.md" "x"
+        & git add .
+        & git commit -q -m "init"
+
+        # Run the script with cwd inside skills/<skill>/subdir/deeper —
+        # Find-RepoRoot has to walk up three directories to locate
+        # `evals/`. No -RepoRoot passed.
+        $deep = Join-Path $Repo 'skills/aaa-skill/subdir/deeper'
+        $out = pwsh -NoProfile -Command "Set-Location '$deep'; & '$DetectPs1' -FullSweep"
+        $out | Should -Be '["aaa-skill"]'
+    }
+
     It 'handles a skill directory rename via git diff' {
         New-Item -ItemType Directory -Path "skills/old-name" | Out-Null
         Set-Content "skills/old-name/SKILL.md" "old"

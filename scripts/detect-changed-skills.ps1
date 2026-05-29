@@ -10,6 +10,9 @@
       * `skills/<S>/**` or `evals/<S>/**` ⇒ skill `<S>` re-evals.
       * Any path matching `evals/_*/**` (shared eval infrastructure) ⇒
         re-eval every skill that has a `run-eval.ps1` (a "full sweep").
+        The single exception is `evals/_docs/**`, which is explicitly
+        **excluded** from the full-sweep trigger so documentation-only
+        edits never re-run every skill's eval.
 
     A skill is only emitted if `evals/<skill>/run-eval.ps1` exists at HEAD.
 
@@ -63,12 +66,18 @@ $ErrorActionPreference = 'Stop'
 
 function Find-RepoRoot {
     param([string] $Start)
-    $cur = Resolve-Path -LiteralPath $Start
+    # Keep $cur as a string throughout — Resolve-Path returns PathInfo
+    # but under strict mode the second loop iteration would throw on
+    # $cur.Path access against a string. Use [IO.Path]::GetDirectoryName
+    # for parent navigation: Split-Path's -LiteralPath parameter set
+    # does not allow -Parent, and -Path expands wildcards (which can
+    # mangle paths containing literal brackets/spaces on some systems).
+    $cur = (Resolve-Path -LiteralPath $Start).Path
     while ($cur) {
         if (Test-Path -LiteralPath (Join-Path $cur 'evals') -PathType Container) {
-            return $cur.Path
+            return $cur
         }
-        $parent = Split-Path -LiteralPath $cur -Parent
+        $parent = [System.IO.Path]::GetDirectoryName($cur)
         if (-not $parent -or $parent -eq $cur) { break }
         $cur = $parent
     }
