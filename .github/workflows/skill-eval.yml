@@ -185,8 +185,25 @@ jobs:
           COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
           COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
         run: |
+          # On workflow_dispatch, github.event.head_commit is empty —
+          # fall back to `git log` against the source checkout so the
+          # published commit_message / commit_author are always populated.
           $commitMsg = ($env:COMMIT_MESSAGE -split "`n", 2)[0]
-          $author = "$env:COMMIT_AUTHOR_NAME <$env:COMMIT_AUTHOR_EMAIL>"
+          $authorName = $env:COMMIT_AUTHOR_NAME
+          $authorEmail = $env:COMMIT_AUTHOR_EMAIL
+          if (-not $commitMsg -or -not $authorName) {
+            Push-Location source
+            try {
+              if (-not $commitMsg) {
+                $commitMsg = (& git log -1 --format=%s $env:GITHUB_SHA).Trim()
+              }
+              if (-not $authorName)  { $authorName  = (& git log -1 --format=%an $env:GITHUB_SHA).Trim() }
+              if (-not $authorEmail) { $authorEmail = (& git log -1 --format=%ae $env:GITHUB_SHA).Trim() }
+            } finally {
+              Pop-Location
+            }
+          }
+          $author = "$authorName <$authorEmail>"
           $runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
           $artifactDirs = @(Get-ChildItem -LiteralPath _artifacts -Directory -ErrorAction SilentlyContinue)
           Write-Host "Found $($artifactDirs.Count) shard(s)"
