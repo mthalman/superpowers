@@ -27,23 +27,6 @@ if (-not (Test-Path -LiteralPath $dataRoot -PathType Container)) {
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-function Read-LastJsonlLine {
-    param([string] $Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
-    $text = [System.IO.File]::ReadAllText($Path, $utf8NoBom)
-    if (-not $text) { return $null }
-    # Split, trim trailing blanks, take last non-empty line.
-    $lines = @($text -split "`r?`n" | Where-Object { $_.Trim() })
-    if ($lines.Count -eq 0) { return $null }
-    $last = $lines[$lines.Count - 1]
-    try {
-        return ($last | ConvertFrom-Json)
-    } catch {
-        Write-Warning "Skipping unparseable last line of $Path : $($_.Exception.Message)"
-        return $null
-    }
-}
-
 function Get-Property {
     param($Object, [string] $Name, $Default = $null)
     if ($null -eq $Object) { return $Default }
@@ -51,41 +34,53 @@ function Get-Property {
     return $Default
 }
 
-# Find the second-last row for delta computation.
-function Read-SecondLastJsonlLine {
+# Read history.jsonl ONCE per skill and return a structured summary.
+# Avoids the O(file_size * lookups_per_skill) cost of repeatedly
+# ReadAllText-ing the same file for last row, second-last row, last
+# non-null pattern, and run count.
+function Read-HistorySummary {
     param([string] $Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
-    $text = [System.IO.File]::ReadAllText($Path, $utf8NoBom)
-    if (-not $text) { return $null }
-    $lines = @($text -split "`r?`n" | Where-Object { $_.Trim() })
-    if ($lines.Count -lt 2) { return $null }
-    $prev = $lines[$lines.Count - 2]
-    try { return ($prev | ConvertFrom-Json) } catch { return $null }
-}
-
-function Get-LastNonNullPattern {
-    param([string] $Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
-    $text = [System.IO.File]::ReadAllText($Path, $utf8NoBom)
-    if (-not $text) { return $null }
-    $lines = @($text -split "`r?`n" | Where-Object { $_.Trim() })
-    for ($i = $lines.Count - 1; $i -ge 0; $i--) {
-        try {
-            $obj = $lines[$i] | ConvertFrom-Json
-            $p = Get-Property $obj 'pattern' $null
-            if ($p) { return $p }
-        } catch { continue }
+    $result = [PSCustomObject]@{
+        RunCount        = 0
+        Last            = $null
+        Previous        = $null
+        LastNonNullPattern = $null
     }
-    return $null
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $result }
+    $rawLines = [System.IO.File]::ReadAllLines($Path, $utf8NoBom)
+    $parsed = New-Object System.Collections.Generic.List[object]
+    foreach ($line in $rawLines) {
+        if (-not $line.Trim()) { continue }
+        try {
+            $obj = $line | ConvertFrom-Json
+            [void]$parsed.Add($obj)
+        } catch {
+            Write-Warning "Skipping unparseable line in $Path : $($_.Exception.Message)"
+        }
+    }
+    $result.RunCount = $parsed.Count
+    if ($parsed.Count -ge 1) {
+        $result.Last = $parsed[$parsed.Count - 1]
+    }
+    if ($parsed.Count -ge 2) {
+        $result.Previous = $parsed[$parsed.Count - 2]
+    }
+    # Walk back for the most recent non-null pattern.
+    for ($i = $parsed.Count - 1; $i -ge 0; $i--) {
+        $p = Get-Property $parsed[$i] 'pattern' $null
+        if ($p) { $result.LastNonNullPattern = $p; break }
+    }
+    return $result
 }
 
 $skillEntries = @()
 $skillDirs = @(Get-ChildItem -LiteralPath $dataRoot -Directory -ErrorAction SilentlyContinue)
 foreach ($dir in ($skillDirs | Sort-Object Name)) {
     $historyPath = Join-Path $dir.FullName 'history.jsonl'
-    $last = Read-LastJsonlLine -Path $historyPath
+    $summary = Read-HistorySummary -Path $historyPath
+    $last = $summary.Last
     if (-not $last) { continue }
-    $prev = Read-SecondLastJsonlLine -Path $historyPath
+    $prev = $summary.Previous
     $lastScore = Get-Property $last 'headline_score' $null
     $prevScore = Get-Property $prev 'headline_score' $null
     $delta = $null
@@ -93,18 +88,14 @@ foreach ($dir in ($skillDirs | Sort-Object Name)) {
         $delta = [math]::Round([double]$lastScore - [double]$prevScore, 2)
     }
 
-    $runCount = 0
-    if (Test-Path -LiteralPath $historyPath -PathType Leaf) {
-        $text = [System.IO.File]::ReadAllText($historyPath, $utf8NoBom)
-        $runCount = @($text -split "`r?`n" | Where-Object { $_.Trim() }).Count
-    }
+    $runCount = $summary.RunCount
 
     # When the latest row is an error and has no pattern, carry forward
     # the most recent known pattern so the dashboard can still render the
     # correct chart type for the skill.
     $pattern = Get-Property $last 'pattern' $null
     if (-not $pattern) {
-        $pattern = Get-LastNonNullPattern -Path $historyPath
+        $pattern = $summary.LastNonNullPattern
     }
 
     $latest = [ordered]@{
