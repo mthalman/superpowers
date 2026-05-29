@@ -1,0 +1,195 @@
+name: Skill eval
+
+# Runs per-skill `run-eval.ps1` for each skill whose code or eval suite
+# changed (or every skill, on manual full-sweep). Publishes per-commit
+# headline scores to the `gh-pages` branch as JSON for the dashboard.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skills:
+        description: Comma-separated skill names, or "all" for a full sweep.
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  detect-changed-skills:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.detect.outputs.skills }}
+      count: ${{ steps.detect.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect skills to re-evaluate
+        id: detect
+        shell: pwsh
+        run: |
+          $manual = '${{ inputs.skills }}'.Trim()
+          if ($manual -and $manual -ieq 'all') {
+            $json = (& ./scripts/detect-changed-skills.ps1 -BaseRef '--full-sweep')
+          } elseif ($manual) {
+            $json = (& ./scripts/detect-changed-skills.ps1 -BaseRef '--full-sweep' -OnlySkills $manual)
+          } else {
+            $json = (& ./scripts/detect-changed-skills.ps1)
+          }
+          $arr = $json | ConvertFrom-Json
+          $count = @($arr).Count
+          Write-Host "Detected skills: $json"
+          Write-Host "Count: $count"
+          "skills=$json" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "count=$count"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+  eval:
+    needs: detect-changed-skills
+    if: ${{ needs.detect-changed-skills.outputs.count != '0' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: ${{ fromJson(needs.detect-changed-skills.outputs.skills) }}
+    env:
+      # Adapter API keys exposed here. The smoke adapter requires none.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ${{ matrix.skill }} eval
+        id: run
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          $script = "evals/${{ matrix.skill }}/run-eval.ps1"
+          if (-not (Test-Path $script -PathType Leaf)) {
+            throw "Missing run-eval.ps1 for skill '${{ matrix.skill }}'"
+          }
+          & pwsh -NoProfile -File $script -OutDir $outDir
+
+      - name: Synthesize error contract if missing
+        if: always()
+        shell: pwsh
+        run: |
+          $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          $headline = Join-Path $outDir 'headline-score.json'
+          if (-not (Test-Path $headline -PathType Leaf)) {
+            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=${{ steps.run.outcome }})"
+            $headlineObj = [ordered]@{
+              schema_version = 1
+              pattern        = $null
+              headline_score = $null
+              status         = 'error'
+              error          = $msg
+            }
+            $detailObj = [ordered]@{
+              schema_version = 1
+              pattern        = $null
+              detail         = [ordered]@{ error = $msg }
+            }
+            $enc = New-Object System.Text.UTF8Encoding($false)
+            [IO.File]::WriteAllText($headline, ([PSCustomObject]$headlineObj | ConvertTo-Json -Depth 10), $enc)
+            [IO.File]::WriteAllText((Join-Path $outDir 'run-detail.json'), ([PSCustomObject]$detailObj | ConvertTo-Json -Depth 10), $enc)
+          }
+          # Sidecar so the publisher knows which skill this belongs to.
+          $meta = [ordered]@{
+            skill = '${{ matrix.skill }}'
+            commit = $env:GITHUB_SHA
+            workflow_run_id = $env:GITHUB_RUN_ID
+          }
+          $enc = New-Object System.Text.UTF8Encoding($false)
+          [IO.File]::WriteAllText((Join-Path $outDir 'shard-meta.json'), ([PSCustomObject]$meta | ConvertTo-Json), $enc)
+
+      - name: Upload eval output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-output-${{ matrix.skill }}
+          path: ${{ runner.temp }}/eval-out
+
+  publish:
+    needs: [detect-changed-skills, eval]
+    if: ${{ always() && needs.detect-changed-skills.outputs.count != '0' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Download all eval artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+          pattern: eval-output-*
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _pages
+
+      - name: Wrap each shard + rebuild manifest
+        shell: pwsh
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+        run: |
+          $commitMsg = ($env:COMMIT_MESSAGE -split "`n", 2)[0]
+          $author = "$env:COMMIT_AUTHOR_NAME <$env:COMMIT_AUTHOR_EMAIL>"
+          $runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $artifactDirs = @(Get-ChildItem -LiteralPath _artifacts -Directory -ErrorAction SilentlyContinue)
+          Write-Host "Found $($artifactDirs.Count) shard(s)"
+          foreach ($dir in $artifactDirs) {
+            $metaPath = Join-Path $dir.FullName 'shard-meta.json'
+            $skill = $null
+            if (Test-Path $metaPath) {
+              try { $skill = (Get-Content $metaPath -Raw | ConvertFrom-Json).skill } catch {}
+            }
+            if (-not $skill -and $dir.Name -like 'eval-output-*') {
+              $skill = $dir.Name.Substring('eval-output-'.Length)
+            }
+            if (-not $skill) {
+              Write-Warning "Skipping artifact '$($dir.Name)': no skill identity"
+              continue
+            }
+            Write-Host "Wrapping shard for skill '$skill'"
+            & ./source/scripts/wrap-eval-output.ps1 `
+              -Skill $skill `
+              -EvalOutDir $dir.FullName `
+              -PagesDir _pages `
+              -Commit $env:GITHUB_SHA `
+              -CommitMessage $commitMsg `
+              -CommitAuthor $author `
+              -WorkflowRunUrl $runUrl
+          }
+          & ./source/scripts/build-manifest.ps1 -PagesDir _pages
+
+      - name: Commit + push gh-pages
+        shell: pwsh
+        run: |
+          Set-Location _pages
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+          git add -A
+          $status = git status --porcelain
+          if (-not $status) {
+            Write-Host "No changes to publish."
+            return
+          }
+          git commit -m "skill-eval: publish run for $($env:GITHUB_SHA.Substring(0,7))"
+          git pull --rebase origin gh-pages
+          git push origin gh-pages

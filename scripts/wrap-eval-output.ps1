@@ -1,0 +1,188 @@
+<#
+.SYNOPSIS
+    Wrap a single skill-eval shard's outputs into the publishable JSON
+    shapes for the gh-pages dashboard data feed.
+
+.DESCRIPTION
+    Reads `<EvalOutDir>/headline-score.json` and (optionally)
+    `<EvalOutDir>/run-detail.json` produced by `evals/<skill>/run-eval.ps1`,
+    combines them with run metadata (skill, commit, timestamp, etc.), and
+    writes:
+
+      * `<PagesDir>/data/<skill>/history.jsonl` — one JSON object appended
+        per run (compressed, UTF-8, LF terminated).
+      * `<PagesDir>/data/<skill>/runs/<TimestampSafe>-<ShortSha>.json` —
+        the full per-run drill-down record.
+
+    If `<EvalOutDir>/headline-score.json` is missing or unreadable, an
+    `status: "error"` row is still emitted so the dashboard shows a gap
+    rather than silence.
+
+.PARAMETER Skill
+    Skill name (must match `evals/<skill>/`).
+
+.PARAMETER EvalOutDir
+    Directory produced by run-eval.ps1, expected to contain
+    headline-score.json and optionally run-detail.json.
+
+.PARAMETER PagesDir
+    Root of the gh-pages checkout where data/ lives.
+
+.PARAMETER Commit
+    Full commit SHA the eval ran against.
+
+.PARAMETER CommitMessage
+    First line of the commit message.
+
+.PARAMETER CommitAuthor
+    Author name / email of the commit.
+
+.PARAMETER Timestamp
+    ISO-8601 UTC timestamp string (e.g. 2026-05-29T07:30:00Z). Defaults to
+    UtcNow if omitted.
+
+.PARAMETER WorkflowRunUrl
+    URL to the workflow run that produced the data (for traceability).
+
+.EXAMPLE
+    pwsh -File scripts/wrap-eval-output.ps1 `
+        -Skill code-review `
+        -EvalOutDir _artifacts/eval-output-code-review `
+        -PagesDir _pages `
+        -Commit $env:GITHUB_SHA `
+        -CommitMessage "Fix race condition" `
+        -CommitAuthor "alice <alice@example.com>" `
+        -WorkflowRunUrl "https://github.com/owner/repo/actions/runs/123"
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)] [string] $Skill,
+    [Parameter(Mandatory)] [string] $EvalOutDir,
+    [Parameter(Mandatory)] [string] $PagesDir,
+    [Parameter(Mandatory)] [string] $Commit,
+    [string] $CommitMessage = '',
+    [string] $CommitAuthor  = '',
+    [string] $Timestamp,
+    [string] $WorkflowRunUrl = ''
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+if (-not $Timestamp) {
+    $Timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+}
+
+$shortSha = if ($Commit.Length -ge 7) { $Commit.Substring(0,7) } else { $Commit }
+$timestampSafe = $Timestamp -replace ':', '-'
+
+$evalOut = (Resolve-Path -LiteralPath $EvalOutDir -ErrorAction Stop).Path
+$pagesRoot = New-Item -ItemType Directory -Path $PagesDir -Force
+$pagesRoot = (Resolve-Path -LiteralPath $pagesRoot.FullName).Path
+
+$skillDataDir = Join-Path $pagesRoot "data" $Skill
+$runsDir = Join-Path $skillDataDir "runs"
+$null = New-Item -ItemType Directory -Path $runsDir -Force
+
+$historyPath = Join-Path $skillDataDir "history.jsonl"
+$detailFileRel = "runs/$timestampSafe-$shortSha.json"
+$detailPath = Join-Path $runsDir "$timestampSafe-$shortSha.json"
+
+# --- Load contract files (gracefully handle missing/broken) --------------
+
+$headlinePath = Join-Path $evalOut "headline-score.json"
+$detailInPath = Join-Path $evalOut "run-detail.json"
+
+$headline = $null
+$loadError = $null
+if (Test-Path -LiteralPath $headlinePath -PathType Leaf) {
+    try {
+        $headline = Get-Content -LiteralPath $headlinePath -Raw -Encoding utf8 | ConvertFrom-Json
+    } catch {
+        $loadError = "Failed to parse headline-score.json: $($_.Exception.Message)"
+    }
+} else {
+    $loadError = "headline-score.json not produced by run-eval.ps1"
+}
+
+$detailIn = $null
+if (Test-Path -LiteralPath $detailInPath -PathType Leaf) {
+    try {
+        $detailIn = Get-Content -LiteralPath $detailInPath -Raw -Encoding utf8 | ConvertFrom-Json
+    } catch {
+        Write-Verbose "Could not parse run-detail.json: $($_.Exception.Message)"
+    }
+}
+
+# --- Build history row ---------------------------------------------------
+
+function Get-Property {
+    param($Object, [string] $Name, $Default = $null)
+    if ($null -eq $Object) { return $Default }
+    if ($Object.PSObject.Properties.Name -contains $Name) { return $Object.$Name }
+    return $Default
+}
+
+$status = if ($loadError) { 'error' } else { (Get-Property $headline 'status' 'error') }
+
+$row = [ordered]@{
+    commit          = $Commit
+    short_sha       = $shortSha
+    timestamp       = $Timestamp
+    commit_message  = $CommitMessage
+    commit_author   = $CommitAuthor
+    pattern         = (Get-Property $headline 'pattern' $null)
+    adapter         = (Get-Property $headline 'adapter' $null)
+    trials          = (Get-Property $headline 'trials' $null)
+    headline_score  = (Get-Property $headline 'headline_score' $null)
+    status          = $status
+    metrics         = (Get-Property $headline 'metrics' $null)
+    detail_file     = if ($status -eq 'ok') { $detailFileRel } else { $null }
+}
+if ($status -eq 'error') {
+    $row['error'] = if ($loadError) { $loadError } else { (Get-Property $headline 'error' 'unknown error') }
+}
+
+$rowJson = [PSCustomObject]$row | ConvertTo-Json -Compress -Depth 30
+
+# JSONL: append exactly one line + LF. UTF-8 without BOM.
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$existing = ''
+if (Test-Path -LiteralPath $historyPath -PathType Leaf) {
+    $existing = [System.IO.File]::ReadAllText($historyPath, $utf8NoBom)
+    if ($existing.Length -gt 0 -and -not $existing.EndsWith("`n")) {
+        $existing += "`n"
+    }
+}
+[System.IO.File]::WriteAllText($historyPath, $existing + $rowJson + "`n", $utf8NoBom)
+
+# --- Build per-run drill-down record (only for ok runs) -----------------
+
+if ($status -eq 'ok') {
+    $detail = [ordered]@{
+        schema_version    = 1
+        skill             = $Skill
+        pattern           = (Get-Property $headline 'pattern' $null)
+        commit            = $Commit
+        short_sha         = $shortSha
+        commit_message    = $CommitMessage
+        commit_author     = $CommitAuthor
+        timestamp         = $Timestamp
+        workflow_run_url  = $WorkflowRunUrl
+        adapter           = (Get-Property $headline 'adapter' $null)
+        trials            = (Get-Property $headline 'trials' $null)
+        headline_score    = (Get-Property $headline 'headline_score' $null)
+        metrics           = (Get-Property $headline 'metrics' $null)
+        detail            = (Get-Property $detailIn 'detail' $null)
+    }
+    $detailJson = [PSCustomObject]$detail | ConvertTo-Json -Depth 50
+    [System.IO.File]::WriteAllText($detailPath, $detailJson, $utf8NoBom)
+}
+
+# --- Echo what we wrote --------------------------------------------------
+
+Write-Host "Wrote history row to $historyPath ($status)"
+if ($status -eq 'ok') {
+    Write-Host "Wrote run detail to $detailPath"
+}

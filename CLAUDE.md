@@ -69,3 +69,60 @@ Override the model with `$env:COPILOT_REVIEW_MODEL` (e.g. `claude-opus-4.7`, `gp
 
 To wire a different reviewer, copy `adapters/template.ps1` and follow `adapters/README.md` (JSON request on stdin → markdown review on stdout, optional `META: {...}` on stderr).
 
+## Per-commit skill-eval workflow
+
+Issue #7 adds a CI pipeline that runs the per-skill eval suites on push to
+main and publishes per-commit headline scores to `gh-pages` as JSON.
+
+**Per-skill contract.** Every skill that wants to be scored ships
+`evals/<skill>/run-eval.ps1` — invoked as
+`pwsh -File evals/<skill>/run-eval.ps1 -OutDir <path>` — that writes two
+files in `<path>`:
+
+- `headline-score.json` — `{schema_version,pattern,headline_score,status,
+  metrics,…}`
+- `run-detail.json` — `{schema_version,pattern,detail}`
+
+See `evals/_docs/run-eval-contract.md` for the full schema and
+`evals/_docs/headline-score-pattern-a.md` for the Pattern A formula
+(`100 * caught_in_any / required_bug_count`).
+
+**Scripts** (in `scripts/`):
+
+- `detect-changed-skills.ps1` — emits JSON array of skills whose
+  `skills/<S>/` or `evals/<S>/` paths changed. Used by Job 1 of the
+  workflow.
+- `wrap-eval-output.ps1` — wraps a shard's contract files + git metadata
+  into the publishable `history.jsonl` row and `runs/<ts>-<sha>.json`.
+- `build-manifest.ps1` — sweeps `data/<skill>/history.jsonl` last lines
+  into `data/manifest.json`.
+- `init-gh-pages.ps1` — one-shot helper to create the empty `gh-pages`
+  orphan branch (must be run once per fresh repo before the workflow can
+  publish anything).
+
+**Workflow:** `.github/workflows/skill-eval.yml` (three jobs:
+detect-changed-skills → eval matrix → publish).
+
+**Run the Pester tests for the workflow scripts:**
+
+```powershell
+Invoke-Pester -Path tests/skill-eval/SkillEval.Tests.ps1 -Output Detailed
+```
+
+**Locally exercise the code-review reference run-eval (smoke adapter):**
+
+```powershell
+pwsh -File evals/code-review/run-eval.ps1 -OutDir ./tmp/eval-out
+# Then wrap + publish into a local pages dir:
+pwsh -File scripts/wrap-eval-output.ps1 `
+  -Skill code-review `
+  -EvalOutDir ./tmp/eval-out `
+  -PagesDir ./tmp/pages `
+  -Commit (git rev-parse HEAD)
+pwsh -File scripts/build-manifest.ps1 -PagesDir ./tmp/pages
+```
+
+Set `$env:CODE_REVIEW_ADAPTER` to switch the reference run-eval to a real
+reviewer adapter (e.g. `adapters/copilot.ps1`). Set
+`$env:CODE_REVIEW_TRIALS` to override the per-case trial count.
+
