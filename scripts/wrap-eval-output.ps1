@@ -126,6 +126,29 @@ function Get-Property {
 
 $status = if ($loadError) { 'error' } else { (Get-Property $headline 'status' 'error') }
 
+# Validate contract: a status:"ok" headline MUST have a numeric
+# headline_score in [0,100] and a non-null pattern. If it doesn't, the
+# run-eval.ps1 broke its own contract — demote to error so the publisher
+# doesn't write a misleading "ok" row that breaks downstream consumers.
+if ($status -eq 'ok') {
+    $okPattern = Get-Property $headline 'pattern' $null
+    $okScore   = Get-Property $headline 'headline_score' $null
+    $violations = @()
+    if (-not $okPattern)    { $violations += "pattern is null" }
+    if ($null -eq $okScore) { $violations += "headline_score is null" }
+    elseif ($okScore -isnot [double] -and $okScore -isnot [int] -and $okScore -isnot [long] -and $okScore -isnot [decimal]) {
+        $violations += "headline_score is not numeric (got $($okScore.GetType().Name))"
+    }
+    elseif ([double]$okScore -lt 0 -or [double]$okScore -gt 100) {
+        $violations += "headline_score $okScore is outside [0,100]"
+    }
+    if ($violations) {
+        $status = 'error'
+        $loadError = "contract violation: status='ok' but " + ($violations -join '; ')
+        Write-Warning $loadError
+    }
+}
+
 $row = [ordered]@{
     commit          = $Commit
     short_sha       = $shortSha
@@ -135,7 +158,7 @@ $row = [ordered]@{
     pattern         = (Get-Property $headline 'pattern' $null)
     adapter         = (Get-Property $headline 'adapter' $null)
     trials          = (Get-Property $headline 'trials' $null)
-    headline_score  = (Get-Property $headline 'headline_score' $null)
+    headline_score  = $(if ($status -eq 'ok') { Get-Property $headline 'headline_score' $null } else { $null })
     status          = $status
     metrics         = (Get-Property $headline 'metrics' $null)
     detail_file     = if ($status -eq 'ok') { $detailFileRel } else { $null }

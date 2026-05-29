@@ -284,6 +284,32 @@ Describe 'wrap-eval-output.ps1' {
         ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) | Should -BeFalse
     }
 
+    It 'demotes a contract-violating status=ok to status=error' {
+        $bad = '{"schema_version":1,"pattern":"A","headline_score":null,"status":"ok","adapter":"smoke","trials":1,"metrics":{}}'
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'headline-score.json'), $bad, $Utf8NoBom)
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'run-detail.json'), '{"schema_version":1,"pattern":"A","detail":{}}', $Utf8NoBom)
+
+        & pwsh -NoProfile -File $WrapPs1 -Skill code-review -EvalOutDir $EvalOut -PagesDir $Pages -Commit "abc123" -Timestamp "2026-05-29T00:00:00Z" 2>&1 | Out-Null
+        $lines = @(Get-Content (Join-Path $Pages 'data/code-review/history.jsonl') | Where-Object { $_ })
+        $row = $lines[0] | ConvertFrom-Json
+        $row.status | Should -Be 'error'
+        $row.headline_score | Should -BeNullOrEmpty
+        $row.detail_file | Should -BeNullOrEmpty
+        $row.error | Should -Match 'contract violation'
+    }
+
+    It 'demotes status=ok when headline_score is out of range' {
+        $bad = '{"schema_version":1,"pattern":"A","headline_score":150,"status":"ok","adapter":"smoke","trials":1,"metrics":{}}'
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'headline-score.json'), $bad, $Utf8NoBom)
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'run-detail.json'), '{"schema_version":1,"pattern":"A","detail":{}}', $Utf8NoBom)
+
+        & pwsh -NoProfile -File $WrapPs1 -Skill code-review -EvalOutDir $EvalOut -PagesDir $Pages -Commit "abc124" -Timestamp "2026-05-29T00:00:00Z" 2>&1 | Out-Null
+        $lines = @(Get-Content (Join-Path $Pages 'data/code-review/history.jsonl') | Where-Object { $_ })
+        $row = $lines[0] | ConvertFrom-Json
+        $row.status | Should -Be 'error'
+        $row.error | Should -Match 'outside \[0,100\]'
+    }
+
     It 'tolerates a pre-existing history.jsonl that does not end with a newline' {
         # Seed a history file without trailing LF
         $skillDir = Join-Path $Pages 'data/code-review'
