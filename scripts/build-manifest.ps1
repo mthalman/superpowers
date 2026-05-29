@@ -63,6 +63,22 @@ function Read-SecondLastJsonlLine {
     try { return ($prev | ConvertFrom-Json) } catch { return $null }
 }
 
+function Get-LastNonNullPattern {
+    param([string] $Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+    $text = [System.IO.File]::ReadAllText($Path, $utf8NoBom)
+    if (-not $text) { return $null }
+    $lines = @($text -split "`r?`n" | Where-Object { $_.Trim() })
+    for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+        try {
+            $obj = $lines[$i] | ConvertFrom-Json
+            $p = Get-Property $obj 'pattern' $null
+            if ($p) { return $p }
+        } catch { continue }
+    }
+    return $null
+}
+
 $skillEntries = @()
 $skillDirs = @(Get-ChildItem -LiteralPath $dataRoot -Directory -ErrorAction SilentlyContinue)
 foreach ($dir in ($skillDirs | Sort-Object Name)) {
@@ -83,6 +99,14 @@ foreach ($dir in ($skillDirs | Sort-Object Name)) {
         $runCount = @($text -split "`r?`n" | Where-Object { $_.Trim() }).Count
     }
 
+    # When the latest row is an error and has no pattern, carry forward
+    # the most recent known pattern so the dashboard can still render the
+    # correct chart type for the skill.
+    $pattern = Get-Property $last 'pattern' $null
+    if (-not $pattern) {
+        $pattern = Get-LastNonNullPattern -Path $historyPath
+    }
+
     $latest = [ordered]@{
         commit               = (Get-Property $last 'commit' $null)
         short_sha            = (Get-Property $last 'short_sha' $null)
@@ -95,7 +119,7 @@ foreach ($dir in ($skillDirs | Sort-Object Name)) {
 
     $skillEntries += [ordered]@{
         name      = $dir.Name
-        pattern   = (Get-Property $last 'pattern' $null)
+        pattern   = $pattern
         latest    = [PSCustomObject]$latest
         run_count = $runCount
     }

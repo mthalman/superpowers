@@ -195,17 +195,26 @@ foreach ($case in @($summary)) {
         }
         if ($t.PSObject.Properties.Name -contains 'Score' -and $t.Score) {
             $totalTrialsOk++
-            $det = $t.Score.Detection
-            $caseFpDistractor += [int]$det.FPDistractor
-            $caseFpUnmatched  += [int]$det.FPUnmatched
-            $trialEntry['detection'] = [ordered]@{
-                tp            = [int]$det.TP
-                fn            = [int]$det.FN
-                fp_distractor = [int]$det.FPDistractor
-                fp_unmatched  = [int]$det.FPUnmatched
+            $det = $null
+            if ($t.Score.PSObject.Properties.Name -contains 'Detection') {
+                $det = $t.Score.Detection
+            }
+            if ($det) {
+                $caseFpDistractor += [int]$det.FPDistractor
+                $caseFpUnmatched  += [int]$det.FPUnmatched
+                $trialEntry['detection'] = [ordered]@{
+                    tp            = [int]$det.TP
+                    fn            = [int]$det.FN
+                    fp_distractor = [int]$det.FPDistractor
+                    fp_unmatched  = [int]$det.FPUnmatched
+                }
             }
             $trialBugs = @()
-            foreach ($b in @($t.Score.Bugs)) {
+            $scoreBugs = @()
+            if ($t.Score.PSObject.Properties.Name -contains 'Bugs' -and $t.Score.Bugs) {
+                $scoreBugs = @($t.Score.Bugs)
+            }
+            foreach ($b in $scoreBugs) {
                 $expectation = $b.Expectation
                 if (-not $bugExpectation.ContainsKey($b.Id)) {
                     $bugExpectation[$b.Id] = $expectation

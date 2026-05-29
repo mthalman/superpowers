@@ -8,8 +8,10 @@
     orphan with no history, containing only `.nojekyll` so GitHub Pages
     serves files without Jekyll processing.
 
-    Existing branch contents are preserved by default; pass `-Force` to
+    Working tree contents are preserved by default; pass `-Force` to
     reset the branch completely.
+
+    Requires git ≥ 2.42 (uses `git worktree add --orphan`).
 
 .PARAMETER RepoRoot
     Repo root. Defaults to current directory.

@@ -81,7 +81,7 @@ $evalOut = (Resolve-Path -LiteralPath $EvalOutDir -ErrorAction Stop).Path
 $pagesRoot = New-Item -ItemType Directory -Path $PagesDir -Force
 $pagesRoot = (Resolve-Path -LiteralPath $pagesRoot.FullName).Path
 
-$skillDataDir = Join-Path $pagesRoot "data" $Skill
+$skillDataDir = Join-Path (Join-Path $pagesRoot "data") $Skill
 $runsDir = Join-Path $skillDataDir "runs"
 $null = New-Item -ItemType Directory -Path $runsDir -Force
 

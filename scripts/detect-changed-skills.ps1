@@ -17,13 +17,16 @@
     The array is always a JSON array even for 0 or 1 elements (important
     for GitHub Actions `fromJson` matrix consumers).
 
+.PARAMETER FullSweep
+    If set, skip git entirely and emit every skill that has a
+    `run-eval.ps1` (useful for `workflow_dispatch` manual reruns and for
+    repos in pre-history state where `HEAD^` does not exist).
+
 .PARAMETER BaseRef
-    The base git ref. Default is `HEAD^`. Pass `--full-sweep` (case
-    insensitive) to skip git entirely and emit all skills that have a
-    run-eval.ps1 (useful for workflow_dispatch manual reruns).
+    The base git ref. Default is `HEAD^`. Ignored when `-FullSweep` is set.
 
 .PARAMETER HeadRef
-    The head git ref. Default is `HEAD`.
+    The head git ref. Default is `HEAD`. Ignored when `-FullSweep` is set.
 
 .PARAMETER RepoRoot
     Repo root. Defaults to the closest ancestor containing an `evals/`
@@ -42,8 +45,8 @@
     pwsh -File scripts/detect-changed-skills.ps1 -OnlySkills "code-review,brainstorming"
 
 .EXAMPLE
-    pwsh -File scripts/detect-changed-skills.ps1 -BaseRef --full-sweep
-    # full sweep — all skills with run-eval.ps1
+    pwsh -File scripts/detect-changed-skills.ps1 -FullSweep
+    # all skills with run-eval.ps1
 #>
 
 [CmdletBinding()]
@@ -51,7 +54,8 @@ param(
     [string] $BaseRef = 'HEAD^',
     [string] $HeadRef = 'HEAD',
     [string] $RepoRoot,
-    [string] $OnlySkills
+    [string] $OnlySkills,
+    [switch] $FullSweep
 )
 
 Set-StrictMode -Version Latest
@@ -121,7 +125,7 @@ function Add-FullSweep {
     foreach ($s in $allSkills) { [void]$resultSet.Add($s) }
 }
 
-if ($BaseRef -ieq '--full-sweep' -or $HeadRef -ieq '--full-sweep') {
+if ($FullSweep -or $BaseRef -ieq '--full-sweep' -or $HeadRef -ieq '--full-sweep') {
     Add-FullSweep
 } else {
     Push-Location $RepoRoot
@@ -146,8 +150,10 @@ if ($BaseRef -ieq '--full-sweep' -or $HeadRef -ieq '--full-sweep') {
                 $changed = @($diffOutput | Where-Object { $_ })
                 foreach ($path in $changed) {
                     $norm = $path -replace '\\', '/'
-                    # Shared eval infrastructure ⇒ full sweep.
-                    if ($norm -match '^evals/_[^/]+/') {
+                    # Shared eval infrastructure ⇒ full sweep. `_docs/` is
+                    # explicitly excluded because doc-only edits never
+                    # affect scoring.
+                    if ($norm -match '^evals/_[^/]+/' -and $norm -notmatch '^evals/_docs/') {
                         Add-FullSweep
                         break
                     }

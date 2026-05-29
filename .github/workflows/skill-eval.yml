@@ -31,12 +31,14 @@ jobs:
       - name: Detect skills to re-evaluate
         id: detect
         shell: pwsh
+        env:
+          MANUAL_SKILLS: ${{ inputs.skills }}
         run: |
-          $manual = '${{ inputs.skills }}'.Trim()
+          $manual = ($env:MANUAL_SKILLS ?? '').Trim()
           if ($manual -and $manual -ieq 'all') {
-            $json = (& ./scripts/detect-changed-skills.ps1 -BaseRef '--full-sweep')
+            $json = (& ./scripts/detect-changed-skills.ps1 -FullSweep)
           } elseif ($manual) {
-            $json = (& ./scripts/detect-changed-skills.ps1 -BaseRef '--full-sweep' -OnlySkills $manual)
+            $json = (& ./scripts/detect-changed-skills.ps1 -FullSweep -OnlySkills $manual)
           } else {
             $json = (& ./scripts/detect-changed-skills.ps1)
           }
@@ -58,31 +60,40 @@ jobs:
     env:
       # Adapter API keys exposed here. The smoke adapter requires none.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Optional overrides for the code-review reference run-eval. Empty
+      # values are ignored by run-eval.ps1.
+      CODE_REVIEW_ADAPTER: ${{ vars.CODE_REVIEW_ADAPTER }}
+      CODE_REVIEW_TRIALS:  ${{ vars.CODE_REVIEW_TRIALS }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run ${{ matrix.skill }} eval
+      - name: Run eval
         id: run
         continue-on-error: true
         shell: pwsh
+        env:
+          SKILL: ${{ matrix.skill }}
         run: |
           $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
           New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-          $script = "evals/${{ matrix.skill }}/run-eval.ps1"
+          $script = "evals/$env:SKILL/run-eval.ps1"
           if (-not (Test-Path $script -PathType Leaf)) {
-            throw "Missing run-eval.ps1 for skill '${{ matrix.skill }}'"
+            throw "Missing run-eval.ps1 for skill '$env:SKILL'"
           }
           & pwsh -NoProfile -File $script -OutDir $outDir
 
       - name: Synthesize error contract if missing
         if: always()
         shell: pwsh
+        env:
+          SKILL: ${{ matrix.skill }}
+          STEP_OUTCOME: ${{ steps.run.outcome }}
         run: |
           $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
           New-Item -ItemType Directory -Path $outDir -Force | Out-Null
           $headline = Join-Path $outDir 'headline-score.json'
           if (-not (Test-Path $headline -PathType Leaf)) {
-            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=${{ steps.run.outcome }})"
+            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=$env:STEP_OUTCOME)"
             $headlineObj = [ordered]@{
               schema_version = 1
               pattern        = $null
@@ -101,7 +112,7 @@ jobs:
           }
           # Sidecar so the publisher knows which skill this belongs to.
           $meta = [ordered]@{
-            skill = '${{ matrix.skill }}'
+            skill = $env:SKILL
             commit = $env:GITHUB_SHA
             workflow_run_id = $env:GITHUB_RUN_ID
           }

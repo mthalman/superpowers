@@ -140,6 +140,59 @@ Describe 'detect-changed-skills.ps1' {
         $out = & pwsh -NoProfile -File $DetectPs1 -RepoRoot $Repo -BaseRef '--full-sweep' -OnlySkills "bbb-skill"
         $out | Should -Be '["bbb-skill"]'
     }
+
+    It 'handles a skill directory rename via git diff' {
+        New-Item -ItemType Directory -Path "skills/old-name" | Out-Null
+        Set-Content "skills/old-name/SKILL.md" "old"
+        New-Item -ItemType Directory -Path "evals/new-name" | Out-Null
+        Set-Content "evals/new-name/run-eval.ps1" "# stub"
+        & git add .
+        & git commit -q -m "init"
+
+        # Rename old -> new (preserves history; old dir no longer exists)
+        & git mv "skills/old-name" "skills/new-name"
+        & git commit -q -m "rename"
+
+        $out = & pwsh -NoProfile -File $DetectPs1 -RepoRoot $Repo -BaseRef "HEAD~1" -HeadRef HEAD
+        $arr = $out | ConvertFrom-Json
+        # Git's default rename detection may collapse the diff to show
+        # only the destination path. The new skill (which still has
+        # run-eval.ps1) must be re-evaluated; the old name no longer
+        # exists so it's correctly absent from the matrix.
+        @($arr) | Should -Contain 'new-name'
+    }
+
+    It 'does not full-sweep on evals/_docs/ changes' {
+        New-Item -ItemType Directory -Path "evals/aaa-skill" | Out-Null
+        New-Item -ItemType Directory -Path "evals/_docs" | Out-Null
+        Set-Content "evals/aaa-skill/run-eval.ps1" "# stub"
+        Set-Content "evals/_docs/headline-score.md" "doc"
+        & git add .
+        & git commit -q -m "add docs + skill"
+
+        Set-Content "evals/_docs/headline-score.md" "doc v2"
+        & git add .
+        & git commit -q -m "edit doc only"
+
+        $out = & pwsh -NoProfile -File $DetectPs1 -RepoRoot $Repo -BaseRef "HEAD~1" -HeadRef HEAD
+        $out | Should -Be '[]'
+    }
+
+    It 'still full-sweeps on evals/_shared/ changes' {
+        New-Item -ItemType Directory -Path "evals/aaa-skill" | Out-Null
+        New-Item -ItemType Directory -Path "evals/_shared" | Out-Null
+        Set-Content "evals/aaa-skill/run-eval.ps1" "# stub"
+        Set-Content "evals/_shared/lib.ps1" "shared"
+        & git add .
+        & git commit -q -m "add shared + skill"
+
+        Set-Content "evals/_shared/lib.ps1" "shared v2"
+        & git add .
+        & git commit -q -m "edit shared"
+
+        $out = & pwsh -NoProfile -File $DetectPs1 -RepoRoot $Repo -BaseRef "HEAD~1" -HeadRef HEAD
+        $out | Should -Be '["aaa-skill"]'
+    }
 }
 
 # ============================================================================
@@ -230,6 +283,27 @@ Describe 'wrap-eval-output.ps1' {
         $bytes = [IO.File]::ReadAllBytes((Join-Path $Pages 'data/code-review/history.jsonl'))
         ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) | Should -BeFalse
     }
+
+    It 'tolerates a pre-existing history.jsonl that does not end with a newline' {
+        # Seed a history file without trailing LF
+        $skillDir = Join-Path $Pages 'data/code-review'
+        New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
+        $existing = '{"commit":"prev","short_sha":"prev","timestamp":"t0","pattern":"A","headline_score":10.0,"status":"ok","detail_file":"runs/x.json"}'
+        [IO.File]::WriteAllText((Join-Path $skillDir 'history.jsonl'), $existing, $Utf8NoBom)
+        # Sanity: no trailing newline
+        $bytes = [IO.File]::ReadAllBytes((Join-Path $skillDir 'history.jsonl'))
+        $bytes[-1] | Should -Not -Be 0x0A
+
+        $h = @{ schema_version=1; pattern="A"; headline_score=20.0; status="ok"; adapter="smoke"; trials=1; metrics=@{ tp=1; fn=0; case_count=1; required_bug_count=1 } } | ConvertTo-Json -Compress -Depth 5
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'headline-score.json'), $h, $Utf8NoBom)
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'run-detail.json'), '{"schema_version":1,"pattern":"A","detail":{}}', $Utf8NoBom)
+        & pwsh -NoProfile -File $WrapPs1 -Skill code-review -EvalOutDir $EvalOut -PagesDir $Pages -Commit "next" -Timestamp "2026-05-29T01:00:00Z" | Out-Null
+
+        $lines = @(Get-Content (Join-Path $skillDir 'history.jsonl') | Where-Object { $_ })
+        $lines.Count | Should -Be 2
+        ($lines[0] | ConvertFrom-Json).headline_score | Should -Be 10.0
+        ($lines[1] | ConvertFrom-Json).headline_score | Should -Be 20.0
+    }
 }
 
 # ============================================================================
@@ -289,6 +363,19 @@ Describe 'build-manifest.ps1' {
         $m = Get-Content (Join-Path $Pages 'data/manifest.json') -Raw | ConvertFrom-Json
         $m.skills[0].latest.status | Should -Be 'error'
         $m.skills[0].latest.delta_from_previous | Should -BeNullOrEmpty
+        # Pattern is carried forward from the previous ok row.
+        $m.skills[0].pattern | Should -Be 'A'
+    }
+
+    It 'leaves pattern null when the only history is an error row' {
+        Write-Jsonl (Join-Path $Pages 'data/code-review/history.jsonl') @(
+            '{"commit":"a","short_sha":"a","timestamp":"t1","pattern":null,"headline_score":null,"status":"error","error":"oops","detail_file":null}'
+        )
+        & pwsh -NoProfile -File $BuildPs1 -PagesDir $Pages | Out-Null
+        $m = Get-Content (Join-Path $Pages 'data/manifest.json') -Raw | ConvertFrom-Json
+        $m.skills[0].latest.status | Should -Be 'error'
+        $m.skills[0].latest.delta_from_previous | Should -BeNullOrEmpty
+        $m.skills[0].pattern | Should -BeNullOrEmpty
     }
 }
 

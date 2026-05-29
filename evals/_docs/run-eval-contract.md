@@ -41,9 +41,16 @@ does not inspect *how* the score is computed — only the contract files.
 Required fields:
 
 - `schema_version` — integer `1` in this version.
-- `pattern` — one of `"A"`, `"B"`, `"C"`, `"D"`, `"E"`, `"F"`. See
-  [`headline-score.md`](headline-score.md).
-- `headline_score` — a number 0–100, or `null` if `status != "ok"`.
+- `pattern` — one of `"A"`, `"B"`, `"C"`, `"D"`, `"E"`, `"F"` when
+  `status == "ok"`. May be `null` when `status == "error"` and the
+  failure happened before a pattern could be determined (e.g., the
+  workflow synthesizes an error contract when `run-eval.ps1` itself
+  crashed). See [`headline-score.md`](headline-score.md). When the
+  publisher encounters a `null` pattern on an error row, it carries
+  forward the most recent non-null pattern from the skill's history so
+  the dashboard can still render the correct chart type.
+- `headline_score` — a number 0–100 when `status == "ok"`; `null` when
+  `status == "error"`.
 - `status` — `"ok"` or `"error"`.
 
 Optional fields:
