@@ -85,6 +85,11 @@ jobs:
           # crashes before writing headline-score.json.
           $logPath = Join-Path $env:RUNNER_TEMP 'run-eval.log'
           & pwsh -NoProfile -File $script -OutDir $outDir *>&1 | Tee-Object -FilePath $logPath
+          # Propagate the child process exit code so steps.run.outcome
+          # accurately reflects success/failure (otherwise this step is
+          # always 'success' regardless of the child's exit status, and
+          # the synthesized error message reports a misleading outcome).
+          exit $LASTEXITCODE
 
       - name: Synthesize error contract if missing
         if: always()
