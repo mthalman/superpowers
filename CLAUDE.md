@@ -135,3 +135,30 @@ Set `$env:CODE_REVIEW_ADAPTER` to switch the reference run-eval to a real
 reviewer adapter (e.g. `adapters/copilot.ps1`). Set
 `$env:CODE_REVIEW_TRIALS` to override the per-case trial count.
 
+### Configuring the CI workflow
+
+The workflow defaults to the smoke adapter (free, deterministic, **not a
+regression signal**). To make CI exercise a real reviewer, configure:
+
+| Setting | Type | Required when | Example value |
+|---|---|---|---|
+| `vars.CODE_REVIEW_ADAPTER` | Repo variable | Always (for real reviewer) | `evals/code-review/adapters/copilot.ps1` |
+| `vars.CODE_REVIEW_TRIALS`  | Repo variable | Optional             | `3` |
+| `secrets.COPILOT_PAT`      | Repo secret   | When adapter is `copilot.ps1` | User-owned fine-grained PAT with the **"Copilot Requests"** permission |
+
+The "Copilot Requests" permission is only available on **user-owned**
+fine-grained PATs (not on GitHub App tokens, not on the default
+`GITHUB_TOKEN`). Create one at
+https://github.com/settings/personal-access-tokens/new with that single
+permission enabled, then save it as the `COPILOT_PAT` repo secret.
+
+When `vars.CODE_REVIEW_ADAPTER` mentions `copilot`, the workflow:
+
+1. Sets up Node.js 22 (a Copilot CLI prerequisite).
+2. `npm install -g @github/copilot`.
+3. Exports `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` from `secrets.COPILOT_PAT`
+   so the Copilot CLI authenticates non-interactively.
+
+Otherwise (smoke adapter, or any non-Copilot adapter), the install steps
+are skipped to keep CI fast and free.
+

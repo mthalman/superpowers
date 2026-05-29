@@ -58,14 +58,34 @@ jobs:
       matrix:
         skill: ${{ fromJson(needs.detect-changed-skills.outputs.skills) }}
     env:
-      # Adapter API keys exposed here. The smoke adapter requires none.
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      # Optional overrides for the code-review reference run-eval. Empty
-      # values are ignored by run-eval.ps1.
+      # Adapter-specific credentials. Empty values are ignored by run-eval.ps1.
+      #
+      # COPILOT_PAT — user-owned fine-grained PAT with "Copilot Requests"
+      # permission. Required when vars.CODE_REVIEW_ADAPTER points at
+      # adapters/copilot.ps1. NOT a GitHub App token: the "Copilot
+      # Requests" permission is only available on user-owned PATs.
+      # Exposed under all three names the Copilot CLI reads (in its
+      # documented precedence order).
+      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+      GH_TOKEN:             ${{ secrets.COPILOT_PAT }}
+      # Repo-variable dials for the code-review reference run-eval. Both
+      # optional; the run-eval falls back to its in-script defaults
+      # (smoke adapter, trials=1) when these are unset.
       CODE_REVIEW_ADAPTER: ${{ vars.CODE_REVIEW_ADAPTER }}
       CODE_REVIEW_TRIALS:  ${{ vars.CODE_REVIEW_TRIALS }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: contains(vars.CODE_REVIEW_ADAPTER, 'copilot')
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install GitHub Copilot CLI
+        if: contains(vars.CODE_REVIEW_ADAPTER, 'copilot')
+        run: npm install -g @github/copilot
+        shell: bash
 
       - name: Run eval
         id: run

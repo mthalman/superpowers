@@ -99,17 +99,23 @@ What goes in it is up to the pattern's sub-doc, but it should:
 
 ## CI environment
 
-The workflow exposes secrets to the eval step via `env:` (e.g., adapter API
-keys). Authors should:
+The workflow exposes secrets and repo variables to the eval step via
+`env:`. Authors should:
 
 - Make their script work with a **free / deterministic** default (e.g., a
   smoke adapter) so the workflow remains green even without API keys.
 - Accept env-var overrides for the adapter, model, trial count, etc., so a
   human can re-run a real eval out-of-band when needed.
+- Document any extra secrets/variables the script reads in CLAUDE.md so
+  consumers know what to configure.
 
 The `code-review` reference implementation honors `$env:CODE_REVIEW_ADAPTER`
 (path to adapter script, defaults to `adapters/smoke.ps1`) and
-`$env:CODE_REVIEW_TRIALS` (integer, defaults to `1`).
+`$env:CODE_REVIEW_TRIALS` (integer, defaults to `1`). When pointed at
+`adapters/copilot.ps1`, the workflow also installs the GitHub Copilot CLI
+on the runner and authenticates via `secrets.COPILOT_PAT` (a user-owned
+fine-grained PAT with the "Copilot Requests" permission). See CLAUDE.md
+§ "Configuring the CI workflow" for the full configuration table.
 
 ## Reference
 
