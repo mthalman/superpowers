@@ -4,10 +4,11 @@
     shapes for the gh-pages dashboard data feed.
 
 .DESCRIPTION
-    Reads `<EvalOutDir>/headline-score.json` and (optionally)
-    `<EvalOutDir>/run-detail.json` produced by `evals/<skill>/run-eval.ps1`,
-    combines them with run metadata (skill, commit, timestamp, etc.), and
-    writes:
+    Reads `<EvalOutDir>/headline-score.json` and `<EvalOutDir>/run-detail.json`
+    produced by `evals/<skill>/run-eval.ps1` (both are required for
+    `status: "ok"` runs per the run-eval contract — see
+    `evals/_docs/run-eval-contract.md`), combines them with run metadata
+    (skill, commit, timestamp, etc.), and writes:
 
       * `<PagesDir>/data/<skill>/history.jsonl` — one JSON object appended
         per run (compressed, UTF-8, LF terminated).
@@ -16,14 +17,19 @@
 
     If `<EvalOutDir>/headline-score.json` is missing or unreadable, an
     `status: "error"` row is still emitted so the dashboard shows a gap
-    rather than silence.
+    rather than silence. The same demotion applies if `run-detail.json`
+    is missing or unparseable on an otherwise-ok run — the contract
+    requires both files together, and the publisher refuses to write a
+    misleading "ok" row that would link to an empty drill-down.
 
 .PARAMETER Skill
     Skill name (must match `evals/<skill>/`).
 
 .PARAMETER EvalOutDir
-    Directory produced by run-eval.ps1, expected to contain
-    headline-score.json and optionally run-detail.json.
+    Directory produced by run-eval.ps1, which MUST contain
+    headline-score.json AND run-detail.json for a successful run, per
+    the run-eval contract. Missing run-detail.json on a status:ok
+    headline is treated as a producer bug and demotes the row to error.
 
 .PARAMETER PagesDir
     Root of the gh-pages checkout where data/ lives.
@@ -107,12 +113,15 @@ if (Test-Path -LiteralPath $headlinePath -PathType Leaf) {
 }
 
 $detailIn = $null
+$detailLoadError = $null
 if (Test-Path -LiteralPath $detailInPath -PathType Leaf) {
     try {
         $detailIn = Get-Content -LiteralPath $detailInPath -Raw -Encoding utf8 | ConvertFrom-Json
     } catch {
-        Write-Verbose "Could not parse run-detail.json: $($_.Exception.Message)"
+        $detailLoadError = "Failed to parse run-detail.json: $($_.Exception.Message)"
     }
+} else {
+    $detailLoadError = "run-detail.json not produced by run-eval.ps1"
 }
 
 # --- Build history row ---------------------------------------------------
@@ -127,9 +136,11 @@ function Get-Property {
 $status = if ($loadError) { 'error' } else { (Get-Property $headline 'status' 'error') }
 
 # Validate contract: a status:"ok" headline MUST have a numeric
-# headline_score in [0,100] and a non-null pattern. If it doesn't, the
+# headline_score in [0,100] and a non-null pattern, AND run-detail.json
+# must be present and parseable. If any of those is missing, the
 # run-eval.ps1 broke its own contract — demote to error so the publisher
-# doesn't write a misleading "ok" row that breaks downstream consumers.
+# doesn't write a misleading "ok" row that breaks downstream consumers
+# (e.g., a drill-down link that resolves to detail:null).
 if ($status -eq 'ok') {
     $okPattern = Get-Property $headline 'pattern' $null
     $okScore   = Get-Property $headline 'headline_score' $null
@@ -141,6 +152,9 @@ if ($status -eq 'ok') {
     }
     elseif ([double]$okScore -lt 0 -or [double]$okScore -gt 100) {
         $violations += "headline_score $okScore is outside [0,100]"
+    }
+    if ($detailLoadError) {
+        $violations += $detailLoadError
     }
     if ($violations) {
         $status = 'error'
