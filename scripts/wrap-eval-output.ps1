@@ -170,15 +170,25 @@ if ($status -eq 'error') {
 $rowJson = [PSCustomObject]$row | ConvertTo-Json -Compress -Depth 30
 
 # JSONL: append exactly one line + LF. UTF-8 without BOM.
+# Read only the trailing byte of the existing file (if any) to decide
+# whether to prepend a newline — avoids rewriting the whole file on
+# every publish, which would be O(file size) per run.
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$existing = ''
+$prefix = ''
 if (Test-Path -LiteralPath $historyPath -PathType Leaf) {
-    $existing = [System.IO.File]::ReadAllText($historyPath, $utf8NoBom)
-    if ($existing.Length -gt 0 -and -not $existing.EndsWith("`n")) {
-        $existing += "`n"
+    $fi = New-Object System.IO.FileInfo $historyPath
+    if ($fi.Length -gt 0) {
+        $fs = [System.IO.File]::Open($historyPath, 'Open', 'Read', 'ReadWrite')
+        try {
+            [void]$fs.Seek(-1, [System.IO.SeekOrigin]::End)
+            $lastByte = $fs.ReadByte()
+            if ($lastByte -ne 0x0A) { $prefix = "`n" }
+        } finally {
+            $fs.Dispose()
+        }
     }
 }
-[System.IO.File]::WriteAllText($historyPath, $existing + $rowJson + "`n", $utf8NoBom)
+[System.IO.File]::AppendAllText($historyPath, ($prefix + $rowJson + "`n"), $utf8NoBom)
 
 # --- Build per-run drill-down record (only for ok runs) -----------------
 
