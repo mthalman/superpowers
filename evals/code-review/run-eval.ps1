@@ -166,9 +166,13 @@ $optionalCaughtTotal = 0
 $optionalTotal = 0
 $totalTrialsRun = 0
 $totalTrialsOk = 0
+$schemaErrorCount = 0
+$schemaErrorIds = @()
 
 foreach ($case in @($summary)) {
     if ($case.PSObject.Properties.Name -contains 'Status' -and $case.Status -eq 'schema_error') {
+        $schemaErrorCount++
+        $schemaErrorIds += $case.CaseId
         $caseSummaries += [ordered]@{
             case_id = $case.CaseId
             status  = 'schema_error'
@@ -279,7 +283,29 @@ foreach ($case in @($summary)) {
 $caseCount = @($summary).Count
 $fn = $requiredTotal - $caughtInAny
 
-if ($requiredTotal -eq 0) {
+if ($schemaErrorCount -gt 0) {
+    # A broken fixture is a hard failure: scoring while ignoring schema
+    # errors would silently hide regressions and inflate the headline.
+    $headline = [ordered]@{
+        schema_version = 1
+        pattern        = 'A'
+        headline_score = $null
+        status         = 'error'
+        error          = "fixture schema errors in $schemaErrorCount case(s): $($schemaErrorIds -join ', ')"
+        adapter        = $adapterName
+        trials         = $Trials
+        metrics        = [ordered]@{
+            tp                  = $caughtInAny
+            fn                  = $fn
+            fp_distractor       = $totalFpDistractor
+            fp_unmatched        = $totalFpUnmatched
+            case_count          = $caseCount
+            required_bug_count  = $requiredTotal
+            schema_error_count  = $schemaErrorCount
+            schema_error_cases  = $schemaErrorIds
+        }
+    }
+} elseif ($requiredTotal -eq 0) {
     $headline = [ordered]@{
         schema_version = 1
         pattern        = 'A'
