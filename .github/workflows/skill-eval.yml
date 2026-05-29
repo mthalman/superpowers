@@ -169,6 +169,12 @@ jobs:
         with:
           ref: gh-pages
           path: _pages
+          # Full history is required so the later `git pull --rebase
+          # origin gh-pages` step can replay our new commit against any
+          # racing publishes; the default fetch-depth of 1 would make
+          # the rebase fail with "fatal: refusing to merge unrelated
+          # histories" once another publish lands first.
+          fetch-depth: 0
 
       - name: Wrap each shard + rebuild manifest
         shell: pwsh
