@@ -22,20 +22,22 @@
     Where to write the contract files (created if missing).
 
 .PARAMETER Adapter
-    Path to a reviewer adapter script. Defaults to
-    `$env:CODE_REVIEW_ADAPTER` if set, else `adapters/smoke.ps1`.
+    Either an absolute or relative path to an adapter script, OR the
+    short name of a bundled adapter (e.g. `smoke`, `copilot`), in which
+    case it resolves to `adapters/<name>.ps1` under this skill. Defaults
+    to `$env:EVAL_ADAPTER` if set, else `smoke`.
 
     The smoke adapter returns canned reviews and is suitable for harness
     self-tests / CI plumbing validation only — it does NOT exercise
-    `SKILL.md` so its score will NOT move when the prompt is edited. Use a
-    real adapter (e.g. `adapters/copilot.ps1`) for regression-detection
-    runs by setting `$env:CODE_REVIEW_ADAPTER`.
+    `SKILL.md` so its score will NOT move when the prompt is edited. Use
+    a real adapter (e.g. `copilot`) for regression-detection runs by
+    setting `$env:EVAL_ADAPTER=copilot`.
 
 .PARAMETER Fixtures
     Fixture root. Defaults to `fixtures/detection/dev`.
 
 .PARAMETER Trials
-    Trials per case. Defaults to `$env:CODE_REVIEW_TRIALS` if set, else 1.
+    Trials per case. Defaults to `$env:EVAL_TRIALS` if set, else 1.
 #>
 
 [CmdletBinding()]
@@ -51,15 +53,22 @@ $ErrorActionPreference = 'Stop'
 
 $skillDir = $PSScriptRoot
 
+# Resolve adapter: explicit -Adapter takes precedence, then $env:EVAL_ADAPTER,
+# else default to 'smoke'. The value may be a path or a bundled-adapter name.
 if (-not $Adapter) {
-    $Adapter = if ($env:CODE_REVIEW_ADAPTER) { $env:CODE_REVIEW_ADAPTER }
-               else { Join-Path $skillDir 'adapters' 'smoke.ps1' }
+    $Adapter = if ($env:EVAL_ADAPTER) { $env:EVAL_ADAPTER } else { 'smoke' }
+}
+# If the value isn't a path (no separator, no .ps1 extension), treat it as
+# a bundled-adapter name and resolve to adapters/<name>.ps1.
+if (-not (Test-Path -LiteralPath $Adapter) -and
+    -not ($Adapter -match '[\\/]' -or $Adapter -like '*.ps1')) {
+    $Adapter = Join-Path $skillDir 'adapters' "$Adapter.ps1"
 }
 if (-not $Fixtures) {
     $Fixtures = Join-Path $skillDir 'fixtures' 'detection' 'dev'
 }
 if (-not $Trials) {
-    $Trials = if ($env:CODE_REVIEW_TRIALS) { [int]$env:CODE_REVIEW_TRIALS } else { 1 }
+    $Trials = if ($env:EVAL_TRIALS) { [int]$env:EVAL_TRIALS } else { 1 }
 }
 
 $adapterName = [System.IO.Path]::GetFileNameWithoutExtension($Adapter)

@@ -13,6 +13,10 @@ on:
         description: Comma-separated skill names, or "all" for a full sweep.
         required: false
         default: ""
+      adapter:
+        description: Override the eval adapter ("smoke", "copilot", ...). Leave blank to use vars.EVAL_ADAPTER.
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -58,34 +62,29 @@ jobs:
       matrix:
         skill: ${{ fromJson(needs.detect-changed-skills.outputs.skills) }}
     env:
-      # Adapter-specific credentials. Empty values are ignored by run-eval.ps1.
-      #
-      # COPILOT_PAT — user-owned fine-grained PAT used to authenticate
-      # the Copilot CLI when vars.CODE_REVIEW_ADAPTER points at
-      # adapters/copilot.ps1. The CLI identifies the user behind the
-      # token; the user's Copilot subscription gates access. The PAT
-      # permissions only constrain what the agent does on GitHub via
-      # that token — for this adapter, no repo/API scopes are required.
-      # Exposed under both env var names the Copilot CLI reads, with
-      # COPILOT_GITHUB_TOKEN taking precedence over GH_TOKEN.
+      # The Copilot CLI just needs a GitHub identity to authenticate;
+      # only consumed when EVAL_ADAPTER resolves to copilot. Exposed
+      # under both env var names the CLI reads, with COPILOT_GITHUB_TOKEN
+      # taking precedence over GH_TOKEN.
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
       GH_TOKEN:             ${{ secrets.COPILOT_PAT }}
-      # Repo-variable dials for the code-review reference run-eval. Both
-      # optional; the run-eval falls back to its in-script defaults
-      # (smoke adapter, trials=1) when these are unset.
-      CODE_REVIEW_ADAPTER: ${{ vars.CODE_REVIEW_ADAPTER }}
-      CODE_REVIEW_TRIALS:  ${{ vars.CODE_REVIEW_TRIALS }}
+      # Workflow-wide knobs that every skill's run-eval.ps1 honors.
+      # See evals/_docs/run-eval-contract.md for the contract. The
+      # workflow_dispatch `adapter` input takes precedence over
+      # vars.EVAL_ADAPTER when non-empty.
+      EVAL_ADAPTER: ${{ inputs.adapter != '' && inputs.adapter || vars.EVAL_ADAPTER }}
+      EVAL_TRIALS:  ${{ vars.EVAL_TRIALS }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js
-        if: contains(vars.CODE_REVIEW_ADAPTER, 'copilot')
+        if: contains(env.EVAL_ADAPTER, 'copilot')
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Install GitHub Copilot CLI
-        if: contains(vars.CODE_REVIEW_ADAPTER, 'copilot')
+        if: contains(env.EVAL_ADAPTER, 'copilot')
         run: npm install -g @github/copilot
         shell: bash
 

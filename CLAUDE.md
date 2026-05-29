@@ -131,46 +131,51 @@ pwsh -File scripts/wrap-eval-output.ps1 `
 pwsh -File scripts/build-manifest.ps1 -PagesDir ./tmp/pages
 ```
 
-Set `$env:CODE_REVIEW_ADAPTER` to switch the reference run-eval to a real
-reviewer adapter (e.g. `adapters/copilot.ps1`). Set
-`$env:CODE_REVIEW_TRIALS` to override the per-case trial count.
+Set `$env:EVAL_ADAPTER=copilot` (or any bundled-adapter name) to switch
+the reference run-eval to a real reviewer. Set `$env:EVAL_TRIALS=N` to
+override the per-case trial count. Both env vars are honored by every
+skill's `run-eval.ps1` per the contract in
+`evals/_docs/run-eval-contract.md`.
 
 ### Configuring the CI workflow
 
-The workflow defaults to the smoke adapter (free, deterministic, **not a
-regression signal**). To make CI exercise a real reviewer, configure:
+The workflow defaults to the smoke adapter for every skill (free,
+deterministic, **not a regression signal**). To switch all skills to a
+real reviewer, set a single repo variable:
 
-| Setting | Type | Required when | Example value |
-|---|---|---|---|
-| `vars.CODE_REVIEW_ADAPTER` | Repo variable | Always (for real reviewer) | `evals/code-review/adapters/copilot.ps1` |
-| `vars.CODE_REVIEW_TRIALS`  | Repo variable | Optional             | `3` |
-| `secrets.COPILOT_PAT`      | Repo secret   | When adapter is `copilot.ps1` | User-owned fine-grained PAT (see below) |
+| Setting | Type | Value |
+|---|---|---|
+| `vars.EVAL_ADAPTER` | Repo variable | `copilot` (or `smoke`) — applies to every skill's `run-eval.ps1` |
+| `vars.EVAL_TRIALS`  | Repo variable (optional) | Integer, e.g. `3` — trials per case where the pattern supports it |
+| `secrets.COPILOT_PAT` | Repo secret | User-owned fine-grained PAT (see below) |
 
-**Minting the `COPILOT_PAT` secret.** The Copilot CLI authenticates by
-identifying the user behind the token; your active Copilot subscription
-is what actually grants Copilot access. The fine-grained PAT
-permissions you select only constrain what the Copilot **agent** is
-allowed to do on GitHub via that token — they do not grant or
-gate Copilot service access. For this workflow the adapter only reads
-local files staged into the runner's temp directory and invokes
-`copilot`, so the token needs no repo or API permissions beyond the
-default fine-grained PAT identity. (If you later extend the adapter to
-fetch GitHub data, add the matching permissions then.)
+**Adapter resolution.** Each skill's `run-eval.ps1` reads
+`$env:EVAL_ADAPTER` as a short name (e.g. `smoke`, `copilot`) and
+resolves it to `adapters/<name>.ps1` under its own skill directory. So
+`EVAL_ADAPTER=copilot` selects `evals/code-review/adapters/copilot.ps1`
+today, and `evals/<future-skill>/adapters/copilot.ps1` once a future
+skill ships its own copilot adapter. This is intentional: one
+workflow-wide knob, one adapter naming convention per skill.
 
-Create the token at
-https://github.com/settings/personal-access-tokens/new, save it as
-`COPILOT_PAT` under **Settings → Secrets and variables → Actions**, and
-the workflow exports it as `COPILOT_GITHUB_TOKEN` + `GH_TOKEN` on the
-eval job (those are the two env vars the Copilot CLI reads, with
-`COPILOT_GITHUB_TOKEN` taking precedence over `GH_TOKEN`).
+**Manual override.** The workflow's `workflow_dispatch` trigger
+exposes an `adapter` input that takes precedence over `vars.EVAL_ADAPTER`
+for that one run — useful for testing a real adapter before flipping
+the repo-wide default, or for one-off backfills.
 
-When `vars.CODE_REVIEW_ADAPTER` mentions `copilot`, the workflow:
+**Authentication for the Copilot adapter.** When `EVAL_ADAPTER`
+resolves to `copilot`, the workflow installs the Copilot CLI and
+exports `COPILOT_GITHUB_TOKEN` + `GH_TOKEN` from `secrets.COPILOT_PAT`
+(those are the two env vars the CLI reads, with `COPILOT_GITHUB_TOKEN`
+taking precedence). The fine-grained PAT just provides a GitHub
+identity for the CLI to authenticate as — your account's Copilot
+subscription is what gates Copilot access. For the bundled `copilot.ps1`
+adapter the token needs no repo or API permissions; if you later extend
+the adapter to fetch GitHub data, add the matching permissions then.
 
-1. Sets up Node.js 22 (a Copilot CLI prerequisite).
-2. `npm install -g @github/copilot`.
-3. Exports `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` from `secrets.COPILOT_PAT`
-   so the Copilot CLI authenticates non-interactively.
+Create the PAT at
+https://github.com/settings/personal-access-tokens/new and save it as
+`COPILOT_PAT` under **Settings → Secrets and variables → Actions**.
 
-Otherwise (smoke adapter, or any non-Copilot adapter), the install steps
-are skipped to keep CI fast and free.
+When `EVAL_ADAPTER` does NOT contain `copilot`, the install steps are
+skipped to keep CI fast and free.
 

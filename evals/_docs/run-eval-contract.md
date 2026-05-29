@@ -109,13 +109,28 @@ The workflow exposes secrets and repo variables to the eval step via
 - Document any extra secrets/variables the script reads in CLAUDE.md so
   consumers know what to configure.
 
-The `code-review` reference implementation honors `$env:CODE_REVIEW_ADAPTER`
-(path to adapter script, defaults to `adapters/smoke.ps1`) and
-`$env:CODE_REVIEW_TRIALS` (integer, defaults to `1`). When pointed at
-`adapters/copilot.ps1`, the workflow also installs the GitHub Copilot CLI
-on the runner and authenticates via `secrets.COPILOT_PAT` (a user-owned
-fine-grained PAT with the "Copilot Requests" permission). See CLAUDE.md
-§ "Configuring the CI workflow" for the full configuration table.
+The `code-review` reference implementation honors `$env:EVAL_ADAPTER`
+(adapter name, defaults to `smoke`) and `$env:EVAL_TRIALS` (integer,
+defaults to `1`). When `EVAL_ADAPTER` resolves to `copilot`, the
+workflow also installs the GitHub Copilot CLI on the runner and
+authenticates via `secrets.COPILOT_PAT` (a user-owned fine-grained
+PAT). See CLAUDE.md § "Configuring the CI workflow" for the full
+configuration table.
+
+### Workflow-wide env contract
+
+Every `run-eval.ps1` script MUST honor the following env vars when set,
+so the CI workflow can switch all skills' adapters with a single repo
+variable instead of per-skill configuration:
+
+| Env var | Meaning |
+|---|---|
+| `EVAL_ADAPTER` | Short adapter name (e.g. `smoke`, `copilot`) OR an absolute path to an adapter script. When a short name, the script resolves it to `adapters/<name>.ps1` under its own skill directory. |
+| `EVAL_TRIALS`  | Integer number of trials per case (for patterns where the concept applies). |
+
+Scripts MAY support their own additional env-var knobs (e.g. for
+pattern-specific options), but the two above are the cross-skill
+contract that the workflow controls.
 
 ## Reference
 

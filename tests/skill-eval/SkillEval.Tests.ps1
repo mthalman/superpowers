@@ -514,4 +514,39 @@ Describe 'evals/code-review/run-eval.ps1' {
             Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
         }
     }
+
+    It 'resolves a short adapter NAME via EVAL_ADAPTER to adapters/<name>.ps1' {
+        $out = New-TempDir
+        try {
+            # No -Adapter arg, just $env:EVAL_ADAPTER set to a short name.
+            $env:EVAL_ADAPTER = 'smoke'
+            try {
+                & pwsh -NoProfile -File $RunEvalPs1 -OutDir $out *> $null
+            } finally {
+                Remove-Item Env:EVAL_ADAPTER -ErrorAction SilentlyContinue
+            }
+            $h = Get-Content (Join-Path $out 'headline-score.json') -Raw | ConvertFrom-Json
+            $h.status  | Should -Be 'ok'
+            $h.adapter | Should -Be 'smoke'
+        } finally {
+            Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'reports an error when EVAL_ADAPTER points at an unknown name' {
+        $out = New-TempDir
+        try {
+            $env:EVAL_ADAPTER = 'no-such-adapter'
+            try {
+                & pwsh -NoProfile -File $RunEvalPs1 -OutDir $out *> $null
+            } finally {
+                Remove-Item Env:EVAL_ADAPTER -ErrorAction SilentlyContinue
+            }
+            $h = Get-Content (Join-Path $out 'headline-score.json') -Raw | ConvertFrom-Json
+            $h.status | Should -Be 'error'
+            $h.error  | Should -Match 'adapter not found'
+        } finally {
+            Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
+        }
+    }
 }
