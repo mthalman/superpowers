@@ -58,18 +58,14 @@ jobs:
       matrix:
         skill: ${{ fromJson(needs.detect-changed-skills.outputs.skills) }}
     env:
-      # Adapter-specific credentials. Empty values are ignored by run-eval.ps1.
-      #
-      # COPILOT_PAT — user-owned fine-grained PAT used to authenticate
-      # the Copilot CLI when vars.CODE_REVIEW_ADAPTER points at
-      # adapters/copilot.ps1. The CLI identifies the user behind the
-      # token; the user's Copilot subscription gates access. The PAT
-      # permissions only constrain what the agent does on GitHub via
-      # that token — for this adapter, no repo/API scopes are required.
-      # Exposed under both env var names the Copilot CLI reads, with
-      # COPILOT_GITHUB_TOKEN taking precedence over GH_TOKEN.
-      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
-      GH_TOKEN:             ${{ secrets.COPILOT_PAT }}
+      # The Copilot CLI just needs a GitHub identity to authenticate;
+      # the workflow's built-in github.token is sufficient and requires
+      # no manual secret setup. Exposed under both env var names the
+      # CLI reads, with COPILOT_GITHUB_TOKEN taking precedence over
+      # GH_TOKEN. (Only consumed when vars.CODE_REVIEW_ADAPTER points
+      # at adapters/copilot.ps1.)
+      COPILOT_GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN:             ${{ github.token }}
       # Repo-variable dials for the code-review reference run-eval. Both
       # optional; the run-eval falls back to its in-script defaults
       # (smoke adapter, trials=1) when these are unset.
