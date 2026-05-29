@@ -355,6 +355,31 @@ Describe 'wrap-eval-output.ps1' {
         $row.error | Should -Match 'Failed to parse run-detail.json'
     }
 
+    It 'demotes status=ok when run-detail.json is missing the detail field' {
+        $good = '{"schema_version":1,"pattern":"A","headline_score":75,"status":"ok","adapter":"smoke","trials":1,"metrics":{"tp":3,"fn":1,"case_count":4,"required_bug_count":4}}'
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'headline-score.json'), $good, $Utf8NoBom)
+        # Parseable JSON but no `detail` property
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'run-detail.json'), '{"schema_version":1,"pattern":"A"}', $Utf8NoBom)
+
+        & pwsh -NoProfile -File $WrapPs1 -Skill code-review -EvalOutDir $EvalOut -PagesDir $Pages -Commit "abc127" -Timestamp "2026-05-29T00:00:00Z" 2>&1 | Out-Null
+        $lines = @(Get-Content (Join-Path $Pages 'data/code-review/history.jsonl') | Where-Object { $_ })
+        $row = $lines[0] | ConvertFrom-Json
+        $row.status | Should -Be 'error'
+        $row.error | Should -Match "missing required 'detail' field"
+    }
+
+    It 'demotes status=ok when run-detail.json has detail=null' {
+        $good = '{"schema_version":1,"pattern":"A","headline_score":75,"status":"ok","adapter":"smoke","trials":1,"metrics":{"tp":3,"fn":1,"case_count":4,"required_bug_count":4}}'
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'headline-score.json'), $good, $Utf8NoBom)
+        [IO.File]::WriteAllText((Join-Path $EvalOut 'run-detail.json'), '{"schema_version":1,"pattern":"A","detail":null}', $Utf8NoBom)
+
+        & pwsh -NoProfile -File $WrapPs1 -Skill code-review -EvalOutDir $EvalOut -PagesDir $Pages -Commit "abc128" -Timestamp "2026-05-29T00:00:00Z" 2>&1 | Out-Null
+        $lines = @(Get-Content (Join-Path $Pages 'data/code-review/history.jsonl') | Where-Object { $_ })
+        $row = $lines[0] | ConvertFrom-Json
+        $row.status | Should -Be 'error'
+        $row.error | Should -Match "'detail' field is null"
+    }
+
     It 'tolerates a pre-existing history.jsonl that does not end with a newline' {
         # Seed a history file without trailing LF
         $skillDir = Join-Path $Pages 'data/code-review'

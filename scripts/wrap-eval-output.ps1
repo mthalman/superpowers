@@ -124,6 +124,17 @@ if (Test-Path -LiteralPath $detailInPath -PathType Leaf) {
     $detailLoadError = "run-detail.json not produced by run-eval.ps1"
 }
 
+# Even a parseable run-detail.json must carry a non-null `detail` field
+# per the contract; otherwise the drill-down page renders as empty.
+if (-not $detailLoadError -and $null -ne $detailIn) {
+    $detailHasField = $detailIn.PSObject.Properties.Name -contains 'detail'
+    if (-not $detailHasField) {
+        $detailLoadError = "run-detail.json is missing required 'detail' field"
+    } elseif ($null -eq $detailIn.detail) {
+        $detailLoadError = "run-detail.json 'detail' field is null"
+    }
+}
+
 # --- Build history row ---------------------------------------------------
 
 function Get-Property {
