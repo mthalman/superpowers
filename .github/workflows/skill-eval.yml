@@ -80,7 +80,11 @@ jobs:
           if (-not (Test-Path $script -PathType Leaf)) {
             throw "Missing run-eval.ps1 for skill '$env:SKILL'"
           }
-          & pwsh -NoProfile -File $script -OutDir $outDir
+          # Tee stdout AND stderr to a log so the publisher can include a
+          # snippet in the synthesized error contract when run-eval.ps1
+          # crashes before writing headline-score.json.
+          $logPath = Join-Path $env:RUNNER_TEMP 'run-eval.log'
+          & pwsh -NoProfile -File $script -OutDir $outDir *>&1 | Tee-Object -FilePath $logPath
 
       - name: Synthesize error contract if missing
         if: always()
@@ -93,7 +97,18 @@ jobs:
           New-Item -ItemType Directory -Path $outDir -Force | Out-Null
           $headline = Join-Path $outDir 'headline-score.json'
           if (-not (Test-Path $headline -PathType Leaf)) {
-            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=$env:STEP_OUTCOME)"
+            $logPath = Join-Path $env:RUNNER_TEMP 'run-eval.log'
+            $logSnippet = ''
+            if (Test-Path $logPath -PathType Leaf) {
+              $log = Get-Content -LiteralPath $logPath -Raw -ErrorAction SilentlyContinue
+              if ($log) {
+                # Keep the last ~2 KB so the published error is diagnosable
+                # without bloating history.jsonl rows.
+                $tail = if ($log.Length -gt 2048) { $log.Substring($log.Length - 2048) } else { $log }
+                $logSnippet = "`n`n--- run-eval.ps1 output (tail) ---`n$tail"
+              }
+            }
+            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=$env:STEP_OUTCOME)$logSnippet"
             $headlineObj = [ordered]@{
               schema_version = 1
               pattern        = $null
