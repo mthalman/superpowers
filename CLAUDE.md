@@ -91,7 +91,16 @@ See `evals/_docs/run-eval-contract.md` for the full schema and
 
 - `detect-changed-skills.ps1` — emits JSON array of skills whose
   `skills/<S>/` or `evals/<S>/` paths changed. Used by Job 1 of the
-  workflow.
+  workflow. Special cases:
+  - Any change under `evals/_<name>/` (shared eval infra such as
+    `evals/_shared/`) triggers a **full sweep** — every skill with a
+    `run-eval.ps1` is re-evaluated.
+  - `evals/_docs/` is explicitly **excluded** from the full-sweep
+    trigger: documentation-only edits never re-run scoring.
+  - Initial commits (no `HEAD^`) also fall back to a full sweep so the
+    workflow never silently emits nothing.
+  - Manual `workflow_dispatch` runs with `skills: all` use `-FullSweep`;
+    `skills: foo,bar` uses `-FullSweep -OnlySkills foo,bar`.
 - `wrap-eval-output.ps1` — wraps a shard's contract files + git metadata
   into the publishable `history.jsonl` row and `runs/<ts>-<sha>.json`.
 - `build-manifest.ps1` — sweeps `data/<skill>/history.jsonl` last lines
