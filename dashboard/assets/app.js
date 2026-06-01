@@ -422,9 +422,14 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Lets click and hover resolve to the nearest point in the x
+        // direction, so users don't have to land pixel-perfectly on a
+        // dot to open the commit. Tooltip and click handler both honor
+        // this — see onHover/onClick below.
+        interaction: { mode: 'nearest', intersect: false, axis: 'x' },
         scales: {
           y: { beginAtZero: true, max: 100, title: { display: true, text: 'Headline score' } },
-          x: { title: { display: true, text: 'Commit' } },
+          x: { title: { display: true, text: 'Commit (click a point to open on GitHub)' } },
         },
         plugins: {
           legend: { display: false },
@@ -455,14 +460,27 @@
                     }
                   }
                 }
+                lines.push('Click to open commit on GitHub');
                 return lines;
               },
             }
           }
         },
+        // Show the link-cursor as soon as the user hovers near any point
+        // whose row has a non-empty commit — affordance for click-to-commit.
+        onHover: function (evt, activeElements) {
+          const target = evt && evt.native && evt.native.target;
+          if (!target) return;
+          const hasCommit = activeElements && activeElements.length > 0 &&
+            !!(chartData.meta[activeElements[0].index] || {}).commit;
+          target.style.cursor = hasCommit ? 'pointer' : 'default';
+        },
         onClick: function (_evt, elements) {
           if (!elements || !elements.length) return;
+          // Resolve via the active element's index. interaction.mode is
+          // 'nearest', so this is the closest point to the click.
           const m = chartData.meta[elements[0].index];
+          if (!m) return;
           const url = buildCommitUrl(repository, m.commit);
           if (url) window.open(url, '_blank', 'noopener');
         },
