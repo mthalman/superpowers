@@ -1,6 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-29T21:04:26Z",
+  "generated_at": "2026-06-01T21:01:00Z",
+  "repository": "mthalman/superpowers",
+  "sparkline_length": 20,
+  "regression_window": 10,
+  "worst_recent_drop": null,
   "skills": [
     {
       "name": "code-review",
@@ -9,12 +13,22 @@
         "commit": "d9cdf7c8ccc9a0b92aa76457bf9b92918e6462b7",
         "short_sha": "d9cdf7c",
         "timestamp": "2026-05-29T21:04:26Z",
+        "commit_message": "Add per-commit skill-eval workflow (#9)",
         "headline_score": 100.0,
         "delta_from_previous": null,
         "status": "ok",
         "adapter": "copilot"
       },
-      "run_count": 1
+      "run_count": 1,
+      "sparkline": [
+        {
+          "short_sha": "d9cdf7c",
+          "timestamp": "2026-05-29T21:04:26Z",
+          "status": "ok",
+          "headline_score": 100.0
+        }
+      ],
+      "biggest_drop_last_10": null
     }
   ]
 }
