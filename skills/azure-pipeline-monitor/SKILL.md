@@ -74,33 +74,17 @@ pwsh -NoProfile -File <skill>/scripts/Watch-AdoPipeline.ps1 `
 
 When the process completes, read `result.json` and report the outcome to the user.
 
-## How the cadence adapts
+## Polling cadence
 
-The script samples up to `-HistorySamples` (default 10) past **completed** runs of the
-same pipeline definition to estimate a median duration — deliberately including
-canceled/failed runs because some definitions rarely produce a clean `succeeded`, and a
-rough estimate is enough. For a single record it samples those past runs' timelines for
-the same record name.
+The script handles polling itself — estimating the run's duration from past runs of the
+same pipeline and polling slowly early on, faster as the expected finish nears, and at a
+floor (default 15s) once it's overdue. It degrades gracefully when the estimate is wrong
+and falls back to a fixed cadence when no history exists, so you don't need to pick
+timings. Just launch it and trust it.
 
-The poll interval is then `clamp(timeRemainingToExpectedFinish / 5, MinInterval,
-MaxInterval)`:
-
-- Far from the expected finish → polls slowly (caps at `MaxInterval`).
-- Approaching the expected finish → polls progressively faster.
-- Past the estimate or already overdue → polls at `MinInterval` (default 15s).
-
-`MaxInterval` is **auto-scaled to the estimate** by default: `expected / 10`, clamped to
-120s–600s. So a 10-minute job keeps a tight 120s ceiling and stays responsive, while a
-3-hour run is allowed an ~18-minute ceiling and isn't polled excessively early on. The
-ceiling exists mainly to bound how late a finish is noticed when the estimate runs
-*high* — scaling it keeps that worst-case latency proportional to the run's length.
-
-This keeps API traffic low early and responsiveness high near the end, and it degrades
-gracefully when the estimate is wrong: an underestimate just means frequent polling
-sooner; an overestimate means slower early polling. When no history exists, it waits at a
-120s ceiling until the target nears completion. Override with `-MinIntervalSeconds`, a
-fixed `-MaxIntervalSeconds` (disables the auto-scaling), or force a single fixed interval
-with `-PollSeconds`.
+You rarely need to tune this, but the knobs are there if you do: `-MinIntervalSeconds`
+and `-MaxIntervalSeconds` bound the interval, `-PollSeconds` forces a single fixed
+interval, and `-HistorySamples` controls how many past runs feed the estimate.
 
 ## Output
 
