@@ -465,6 +465,7 @@ function Get-Duration {
 }
 
 $failures = @()
+$issues = @()
 
 if ($RecordName) {
     if ($timedOut -and -not $finalState) {
@@ -480,7 +481,10 @@ if ($RecordName) {
     $resultVal = if ($finalState) { Get-Prop $finalState 'result' } else { $null }
     $startT = if ($finalState) { Get-Prop $finalState 'startTime' } else { $null }
     $finishT = if ($finalState) { Get-Prop $finalState 'finishTime' } else { $null }
-    # Failed descendant leaf records under the monitored record.
+    # Non-clean descendant leaf records under the monitored record. Real failures
+    # (failed/canceled) and softer "had problems" outcomes (partiallySucceeded/
+    # succeededWithIssues) are tracked separately so a partial run can still point at
+    # the offending job without mislabelling it as a failure.
     if ($finalState -and $finalTimeline -and $finalTimeline.records) {
         $byParent = @{}
         foreach ($r in $finalTimeline.records) {
@@ -495,8 +499,12 @@ if ($RecordName) {
             $cur = $stack.Pop()
             if ($byParent.ContainsKey($cur)) {
                 foreach ($child in $byParent[$cur]) {
-                    if ((Get-Prop $child 'result') -in 'failed', 'canceled') {
-                        $failures += [pscustomobject]@{ name = $child.name; type = $child.type; result = $child.result }
+                    $childResult = Get-Prop $child 'result'
+                    if ($childResult -in 'failed', 'canceled') {
+                        $failures += [pscustomobject]@{ name = $child.name; type = $child.type; result = $childResult }
+                    }
+                    elseif ($childResult -in 'partiallySucceeded', 'succeededWithIssues') {
+                        $issues += [pscustomobject]@{ name = $child.name; type = $child.type; result = $childResult }
                     }
                     $stack.Push($child.id)
                 }
@@ -513,8 +521,14 @@ else {
     if ($status -eq 'completed') {
         try {
             $tl = Invoke-Ado -Uri "$baseUri/build/builds/$bid/timeline?api-version=$ApiVersion"
-            foreach ($r in @($tl.records | Where-Object { $_.type -in 'Job', 'Task' -and (Get-Prop $_ 'result') -in 'failed', 'canceled' })) {
-                $failures += [pscustomobject]@{ name = $r.name; type = $r.type; result = $r.result }
+            foreach ($r in @($tl.records | Where-Object { $_.type -in 'Job', 'Task' })) {
+                $rr = Get-Prop $r 'result'
+                if ($rr -in 'failed', 'canceled') {
+                    $failures += [pscustomobject]@{ name = $r.name; type = $r.type; result = $rr }
+                }
+                elseif ($rr -in 'partiallySucceeded', 'succeededWithIssues') {
+                    $issues += [pscustomobject]@{ name = $r.name; type = $r.type; result = $rr }
+                }
             }
         }
         catch { }
@@ -542,9 +556,11 @@ $result = [ordered]@{
     timedOut                = $timedOut
     failures                = @($failures | Select-Object -First 25)
     failureCount            = $failures.Count
+    issues                  = @($issues | Select-Object -First 25)
+    issueCount              = $issues.Count
 }
 
 $outcome = if ($timedOut) { 'TIMED OUT' } else { "$status / $resultVal" }
-Write-Progress2 "Done. Outcome: $outcome. Failures: $($failures.Count). Polls: $polls."
+Write-Progress2 "Done. Outcome: $outcome. Failures: $($failures.Count). Issues: $($issues.Count). Polls: $polls."
 
 $result | ConvertTo-Json -Depth 6

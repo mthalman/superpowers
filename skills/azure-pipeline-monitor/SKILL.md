@@ -50,12 +50,21 @@ From the user's context, establish:
 If you cannot determine the build id or org/project from context, ask the user rather
 than guessing.
 
-## Running it (do this in the background)
+## Running it (launch once, then wait for the notification)
 
-Because the script blocks until the run finishes, launch it as a **background /
-detached process with a long initial wait** and let the completion notification tell
-you when it's done — don't sit in a foreground call for hours, and don't re-implement
-polling yourself. Capture stdout (the JSON result) to a file; progress goes to stderr.
+The script blocks until the run finishes, so the goal is to launch it **once** and then
+stop — let the runtime tell you when it's done rather than watching it.
+
+Run it as a **synchronous command with a modest `initial_wait` (about 30–60s)**, capturing
+stdout (the JSON result) to a file. This launch shape does exactly what you want with no
+babysitting:
+
+- If something is wrong at startup (bad auth, unknown build, malformed URL) the script
+  exits non-zero **within** that initial wait, so you see the failure immediately.
+- If it's still running when the wait elapses, the runtime **auto-backgrounds it and
+  sends a completion notification** when it finishes. That notification carries the exit
+  status — everything you need — so there is no reason to poll the shell or read the
+  progress log while you wait.
 
 ```powershell
 # Whole run
@@ -72,7 +81,13 @@ pwsh -NoProfile -File <skill>/scripts/Watch-AdoPipeline.ps1 `
   1> result.json 2> watch.log
 ```
 
-When the process completes, read `result.json` and report the outcome to the user.
+When the completion notification arrives, read `result.json` **once** and report the
+outcome. The `watch.log` (stderr) is progress/debug output for post-mortems only — don't
+tail it while waiting; it tells you nothing the notification and `result.json` won't.
+
+For a pipeline so long that the session might be shut down before it finishes, run it
+fully detached instead so it survives — but that severs the exit status from the launch,
+so prefer the synchronous shape above whenever the wait fits within the session.
 
 ## Polling cadence
 
@@ -98,10 +113,13 @@ The script writes one JSON object to **stdout**. Key fields:
 | `startTime` / `finishTime` / `durationMinutes` | Actual timing of the target |
 | `expectedDurationMinutes` / `estimateSamples` | The estimate used and how many past samples it came from |
 | `failures` / `failureCount` | Failed/canceled leaf records (jobs/tasks) for quick diagnosis |
+| `issues` / `issueCount` | Leaf records that finished `partiallySucceeded`/`succeededWithIssues` — these explain *why* an overall result is partial without being outright failures |
 | `timedOut` | `true` if the safety timeout was hit before completion |
 | `url` | Link back to the run |
 
-Report `result` (and `failures` when it didn't succeed) to the user, and link `url`.
+Report `result` to the user and link `url`. When it didn't cleanly succeed, surface the
+relevant list: `failures` for a `failed`/`canceled` run, or `issues` for a
+`partiallySucceeded`/`succeededWithIssues` run.
 
 A safety timeout (default `max(2× expected, 60)` minutes, capped at 600) prevents an
 unbounded wait; raise it with `-TimeoutMinutes` for very long pipelines. A `timedOut`
@@ -111,18 +129,25 @@ re-running with a larger `-TimeoutMinutes`.
 ## Interpreting results
 
 - `succeededWithIssues` and `partiallySucceeded` are **not** outright failures; report
-  them as such rather than calling the run "failed".
+  them as such rather than calling the run "failed". Consult the `issues` list to tell the
+  user *which* job(s) had problems — a partial result with an empty `failures` list is
+  expected, and `issues` is where the explanation lives.
 - When `result` is `failed`/`canceled`, surface the `failures` list so the user knows
   which jobs/tasks broke without opening the portal.
-- For record mode, `failures` lists failed descendants **under that record**, so it's
-  scoped to the job/stage the user cared about.
+- For record mode, `failures` and `issues` list descendants **under that record**, so
+  they're scoped to the job/stage the user cared about.
 
 ## Anti-patterns
 
 - **Don't poll the pipeline yourself in a loop of agent tool calls.** Hand control to
   the script — that's the entire point. One launch, one JSON answer.
-- **Don't run it in a blocking foreground call for a long pipeline.** Background/detach
-  it and wait for the completion notification.
+- **Don't tail the progress log (`watch.log` / stderr) while waiting.** It's debug output
+  for post-mortems; it carries nothing the completion notification and `result.json`
+  won't give you. Launch once, then wait quietly for the notification.
+- **Don't default to a detached background launch.** Prefer the synchronous launch with a
+  modest `initial_wait` — startup errors surface immediately and the runtime still
+  notifies you on completion. Reserve full detach for runs long enough to outlive the
+  session.
 - **Don't treat `succeededWithIssues`/`partiallySucceeded` as failure.**
 - **Don't invent a build id or org/project.** Parse them from the URL or ask.
 - **Don't add `&view=results` parsing logic** — pass the raw URL; the script handles
