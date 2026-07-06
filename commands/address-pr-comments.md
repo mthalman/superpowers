@@ -1,351 +1,240 @@
 ---
-description: Systematically address PR review comments with interactive guidance
+description: Systematically address GitHub PR review comments one at a time, with interactive guidance and resumable progress
 ---
 
-You are helping the user address review comments on a GitHub Pull Request. Follow this workflow systematically.
+You are helping the user address review comments on a GitHub Pull Request, one comment at a time. Follow this workflow systematically.
+
+## How this command works
+
+This command speaks in **actions**, not in a specific tool's vocabulary. Wherever it says:
+
+- **read a file** — use your native file-reading capability (it already shows line numbers).
+- **edit a file** — use your native edit/patch capability.
+- **run a command** — use your shell.
+- **ask the user** — use your native interactive question capability. When the user is choosing between fixed options, present them as a **single-select question**, not a block of text the user has to answer in prose. Never print a lettered `[A]/[B]/[C]` menu and parse the reply yourself.
+- **track progress with a todo list** — use your native task/todo list so the user can see, at a glance, which comments are done and which remain.
+
+Render everything you show the user as clean **markdown** — headings, lists, blockquotes, fenced code blocks, and links. Do not hand-draw ASCII boxes or hand-align columns; let the rendering layer format it.
+
+## Working File (Progress State)
+
+Progress is persisted to a JSON file so an interrupted or iterative review can resume exactly where it left off. This is the durable source of truth; the in-session todo list is just a live view of it.
+
+**Where to store it:** your agent's working/scratch directory — *not* inside the repository, and never a tool-specific folder like `.claude/`. If your agent exposes a dedicated session or working-files directory, use that. Otherwise use the **system temporary directory** (`$env:TEMP` on Windows, `$TMPDIR` or `/tmp` on Unix).
+
+**Path:** key it by repository and PR so multiple PRs and repos never collide:
+
+```
+{working_dir}/address-pr-comments/{owner}-{repo}/pr-{pr_number}.json
+```
+
+See the [Progress File Schema](#progress-file-schema) section for the full structure.
 
 ## Initial Setup
 
 1. **Detect the PR:**
-   - Execute: `git rev-parse --abbrev-ref HEAD` to get current branch
-   - Execute: `gh pr view --json number,url,title` to find the associated PR
-   - If no PR found or branch not pushed, display error and exit (see Error Handling section for format)
+   - Run `git rev-parse --abbrev-ref HEAD` to get the current branch.
+   - Run `gh pr view --json number,url,title,state` to find the associated PR.
+   - Resolve `owner/repo`: `gh repo view --json nameWithOwner -q .nameWithOwner`.
+   - If no PR is found or the branch isn't pushed, show a clear error and stop (see [Error Handling](#error-handling)).
 
-2. **Check for progress file:**
-   - Check if `.claude/pr-comments-progress-{pr_number}.json` exists
-   - If exists: Load previous state (resumed session)
-   - Re-fetch current comments from GitHub
-   - Merge state: Preserve user decisions (skips, completed) while using current GitHub data
+2. **Check for an existing progress file:**
+   - Look for the working file at the path above.
+   - If it exists, load it — this is a resumed session. Preserve the user's prior decisions (skips, completed items, pending replies) and reconcile them against freshly fetched GitHub data below.
 
 3. **Fetch all unresolved comments:**
 
-   **Definition:** A comment is UNRESOLVED if:
-   - `position` field is not `null` (comment is on current diff, not outdated), AND
-   - Review thread is not marked "Resolved" (check via GraphQL)
+   **Definition:** a comment is UNRESOLVED when both are true:
+   - its `position` field is not `null` (the comment still maps onto the current diff, i.e. it is not outdated), and
+   - its review thread is not marked **Resolved** (checked via GraphQL).
 
    **Fetch process:**
 
-   a. Fetch all comments via REST (see GitHub CLI Reference for command)
+   a. Fetch all review comments via REST (see [GitHub CLI Reference](#fetch-pr-review-comments)).
 
-   b. Fetch resolution status via GraphQL (see GitHub CLI Reference for query)
+   b. Fetch thread resolution status via GraphQL (see [GitHub CLI Reference](#get-review-thread-resolution-status-graphql)).
 
-   c. Filter comments:
-   - Exclude if `position == null` (outdated)
-   - Exclude if thread is marked `isResolved: true` in GraphQL response
-   - Cross-reference using comment `databaseId` from GraphQL = comment `id` from REST
+   c. Filter the comments:
+   - Exclude any where `position == null` (outdated).
+   - Exclude any whose thread is `isResolved: true` in the GraphQL response.
+   - Cross-reference using the comment `databaseId` from GraphQL = comment `id` from REST.
 
    **Edge cases:**
-   - **Outdated comments** (`position == null`): Skip these entirely
-   - **Comments on deleted files**: Check if file exists in current tree using `git ls-files --error-unmatch {file_path}`. If file doesn't exist:
-     - Automatically mark as skipped with `action: "file_deleted"` in progress file
-     - Add to pending_replies: "File was deleted in recent changes"
-     - Don't show to user during interactive flow
-     - Include in final summary: "⊘ <n> comments auto-skipped (files deleted)"
-   - **Resolved with new activity**: If `last_post_timestamp` newer than progress file, re-show
+   - **Outdated comments** (`position == null`): skip entirely.
+   - **Comments on deleted files:** check whether the file still exists with `git ls-files --error-unmatch {file_path}`. If it doesn't:
+     - Auto-mark the comment as skipped with `action: "file_deleted"` in the progress file.
+     - Queue a pending reply: "File was deleted in recent changes."
+     - Don't surface it in the interactive flow.
+     - Account for it in the final summary: "⊘ N comments auto-skipped (files deleted)".
+   - **Resolved with new activity:** if a thread's latest post is newer than `last_post_timestamp` in the progress file, re-surface it even if previously addressed.
 
    **Processing:**
-   - Include full conversation threads (root comment + all replies)
-   - For each comment thread, capture the timestamp of the most recent post
-   - Group comments by file location
+   - Include the full conversation thread (root comment + all replies).
+   - Capture the timestamp of the most recent post in each thread.
+   - Group comments by file.
 
-4. **Create or update progress file:**
-   - File location: `.claude/pr-comments-progress-{pr_number}.json`
-   - Tracks PR number, branch, and comment processing state
-   - See Progress File Schema section for complete structure
+4. **Create or update the progress file** at the working path with the reconciled state.
 
-5. **Detect new activity on comments:**
-   - When resuming, compare `last_post_timestamp` from progress file with latest post timestamp from GitHub
-   - If current thread has newer timestamp: Re-prompt the comment (even if previously addressed)
+5. **Build a todo list for visible progress:** create one todo per unresolved comment (a short label like `src/auth.ts:42 — @reviewer`), in the order you'll process them. Mark the current comment **in progress** as you work it and **complete** when its decision is recorded. This gives the user a live overview alongside the persisted JSON. Comments auto-skipped for deleted files can be added as already-completed (or omitted) — don't make the user act on them.
 
-## Code Context Retrieval
+6. **Detect new activity on resume:** for each thread, compare its latest post timestamp against `last_post_timestamp` in the progress file. If newer, re-prompt that comment even if it was previously addressed.
 
-When displaying a comment, retrieve code context using this algorithm:
+## Showing a Comment
 
-**Primary method (accurate to comment):**
-1. Get `commit_id` from comment metadata
-2. Execute: `git show {commit_id}:{file_path}`
-3. Extract lines from `(line - 5)` through `(line + 5)` (11 lines total)
-4. Format with line numbers
-5. Mark the comment's line with `>` prefix
+Process comments **one at a time**. For each pending comment, show the user a compact markdown block:
 
-**Fallback method (if commit not available):**
-1. Use Read tool on current file: `Read(file_path)`
-2. Extract lines from `(line - 5)` through `(line + 5)`
-3. Show warning: "⚠️ Showing current file state, may differ from when comment was made"
+- A heading with the file path.
+- "Comment _n_ of _total_ in this file".
+- The line number and reviewer.
+- A markdown link to the comment (see URL rule below).
+- The thread, rendered as blockquotes — one quoted line per participant, in order.
+- The surrounding **code context** (see below).
 
-**Context window:** ±5 lines (adjustable based on code complexity)
+**URL rule:** wrap GitHub URLs in angle brackets (or use markdown link syntax) so underscores aren't interpreted as emphasis.
+- Comment: `<https://github.com/{owner}/{repo}/pull/{pr_number}#discussion_r{comment_id}>`
+- PR: `<https://github.com/{owner}/{repo}/pull/{pr_number}>`
 
-**Formatting:**
+### Showing code context
 
-Display code in a block with line numbers right-aligned so all `|` characters line up vertically.
+Show the code around the commented line so the user understands it in place:
 
-**Algorithm:**
-1. Determine the max line number in context (e.g., lines 15-21 → max is 21)
-2. Calculate width: `width = len(str(max_line_number))` (for 21, width = 2; for 103, width = 3)
-3. For each line, format as: `prefix + line_number.rjust(width) + " | " + code`
-   - For unmarked lines: `prefix = "  "` (2 spaces)
-   - For marked line: `prefix = "> "` (> symbol + 1 space)
+1. Identify the file, line, and `commit_id` from the comment metadata.
+2. Read the file **as of the comment's commit** when possible: `git show {commit_id}:{file_path}`. If that commit isn't available locally, read the current working-tree version instead and tell the user: "⚠️ Showing the current file; it may differ from when the comment was made."
+3. Show roughly **±5 lines** around the commented line.
+4. Render it as a **fenced code block** so it's syntax-highlighted, and clearly mark which line the comment is on — e.g. an arrow (`→`) on that line, or a one-line note ("comment is on line 42").
 
-**Example implementation (Python-style):**
-```python
-width = len(str(max_line))  # If max_line = 21, width = 2
-for line_num, code in lines:
-    line_str = str(line_num).rjust(width)  # Right-justify: "17" or " 7"
-    if line_num == commented_line:
-        print(f"> {line_str} | {code}")  # "> 17 | code"
-    else:
-        print(f"  {line_str} | {code}")  # "  17 | code"
-```
+Do **not** hand-align line numbers or build ASCII tables — read the file with your native tooling and let the code block format it.
 
-**Example output (lines 15-21, marked line 17):**
-```
-  15 | // Check expiration exists and is valid
-  16 | if (typeof decoded.exp !== 'number') return false;
-> 17 | return decoded.exp * 1000 > Date.now();
-  18 | } catch (error) {
-  19 | return false;
-  20 | }
-  21 | }
-```
+## Processing a Comment
 
-Note: All `|` characters align vertically. The `>` marker replaces the 2 leading spaces.
+After showing the comment, **ask the user** — as a single-select question — how they want to handle it. Offer these options:
 
-## Processing Comments
+- **Fix it myself** — the user will make and commit the change, then continue.
+- **Auto-fix it** — you propose and apply the fix.
+- **Reply to the comment** — post a reply without a code change.
+- **Mark as done** — already fixed outside this command.
+- **Skip / defer** — leave it for a later pass.
 
-**URL Formatting Rule:** Always wrap GitHub URLs in angle brackets to prevent markdown from interpreting underscores as emphasis markers.
-- Comment URL format: `<https://github.com/{owner}/{repo}/pull/{pr_number}#discussion_r{comment_id}>`
-- PR URL format: `<https://github.com/{owner}/{repo}/pull/{pr_number}>`
+Then follow the matching flow below. (Comments on deleted files are handled automatically and never reach this step.)
 
-For each pending comment, display:
+### Fix it myself
 
-```
-📁 <file_path>
+1. Record the current HEAD: `git rev-parse --short HEAD` → `before_sha`.
+2. Tell the user to make and commit their fix, and to let you know when they're ready to continue. Wait for them.
+3. When they return, check for uncommitted changes: `git status --porcelain`.
+   - If there are uncommitted changes, list them and **ask the user** (single-select):
+     - **Auto-commit with a semantic message** — analyze `git diff`, craft a semantic commit message, and commit. Then go to step 5 to record the commit.
+     - **I'll commit them myself** — wait until they confirm they've committed, then continue.
+     - **Continue without committing** — proceed without committing these changes.
+4. Check whether new commits exist: `git rev-parse --short HEAD` → `after_sha`. If `after_sha == before_sha`, **ask the user** whether to skip this comment (yes → mark skipped and move on; no → re-ask the handling question for this comment).
+5. Show the recent commits (`git log --oneline -10`) as a short markdown list, and **ask the user** which commit(s) address this comment. Accept a multi-select of the listed commits, explicit SHAs, or "none".
+6. Record in the progress file: mark the comment **completed**, store the selected commit SHA(s), and queue a pending reply: `"Fixed in <sha1>, <sha2>"` (or a single SHA). Mark its todo complete. Move on.
 
-Comment <n> of <total> in this file
-──────────────────────────────────────
-Line <number> | @<reviewer>
-🔗 <URL to comment>
+### Auto-fix it
 
-Thread:
-  @<user1>: <comment text>
-  @<user2>: <reply text>
-  ...
+1. Analyze the comment together with the surrounding code.
+2. Propose the change and show it to the user — as a unified-diff fenced block, or by previewing the edit with your native tooling.
+3. **Ask the user** to approve (yes/no).
+   - **Approved:** edit the file, commit with a semantic message (describe *what* was fixed, not "from a PR comment"), record the commit SHA, queue a pending reply `"Fixed in <short_sha>"`, mark the comment completed and its todo complete, and move on.
+   - **Rejected:** leave the comment pending and **ask the user** again (single-select: Fix it myself / Mark as done / Skip), then follow that flow.
 
-Code context:
-<display formatted code using algorithm from Code Context Retrieval section>
+### Reply to the comment
 
-──────────────────────────────────────
-What would you like to do?
+1. **Ask the user** for their reply text.
+2. Queue it in the comment's `pending_replies`.
+3. Mark the comment **replied** in the progress file. Move on.
 
-[A] Fix it myself
-[B] Auto-fix it
-[C] Reply to comment
-[D] Mark as done (already fixed outside this tool)
-[E] Skip/Defer
-```
+### Mark as done
 
-**Note:** Comments on deleted files are automatically skipped and not shown in this interactive flow.
+1. Mark the comment **completed** in the progress file (no pending reply — it was addressed outside this command).
+2. Mark its todo complete. Move on.
 
-### User Choice: [A] Fix it myself
+### Skip / defer
 
-1. Get current HEAD SHA: `git rev-parse --short HEAD` (store as `before_sha`)
-2. Show: `"You can now fix the issue and commit your changes. Type 'done' when ready to continue."`
-3. Wait for user to type 'done'
-4. Check for uncommitted changes:
-   - Execute: `git status --porcelain`
-   - If output is not empty:
-     ```
-     You have uncommitted changes:
-     <list changed files>
+1. Mark the comment **pending** with `action: "deferred"` so it reappears next pass.
+2. Move on.
 
-     What would you like to do?
-     [A] Auto-commit with semantic message
-     [B] I'll commit them myself
-     [C] Continue without committing these changes
-     ```
-     - If [A]:
-       - Analyze changes using `git diff`
-       - Create semantic commit message
-       - Execute commit
-       - Automatically record the commit SHA (skip to step 9 to record this commit in the progress file)
-     - If [B]: Show "Type 'done' when committed", wait for 'done', then continue to step 5
-     - If [C]: Continue to step 5
-5. Check if new commits exist:
-   - Execute: `git rev-parse --short HEAD` (store as `after_sha`)
-   - Compare `before_sha` with `after_sha`
-   - If identical: Show "No new commits found. Skip this comment? [Y/n]"
-     - If yes: Mark as skipped, move to next comment
-     - If no: Return to main choice prompt for this comment
-6. Fetch recent commits using: `git log --oneline -5`
-   - Shows last 5 commits on current branch
-   - Format: `<short_sha> <commit_message>`
-7. Show commits to user:
-   ```
-   Recent commits:
+## Completion
 
-   1. abc123f - fix: add input validation
-   2. def456a - fix: handle null case
-   3. ghi789b - test: add edge case coverage
-   4. jkl012c - refactor: extract helper
-   5. mno345d - docs: update README
+When every comment has been processed, show a markdown summary:
 
-   Which commit(s) address this comment?
-   Enter: number(s), SHA, or range
-   Examples: "1", "1,3", "1-2", "all", "abc123f", "skip"
-   ```
-8. Parse user input:
-   - Single number: "1" → Select commit 1
-   - Multiple numbers: "1,3" → Select commits 1 and 3
-   - Range: "1-2" → Select commits 1 and 2
-   - Keyword: "all" → Select all listed commits
-   - SHA: "abc123f" → Select by SHA
-   - Keyword: "skip" → Skip this comment (don't record any commits)
-9. Record in progress file:
-   - Mark comment as completed
-   - Store all selected commit SHAs
-   - Add to pending_replies array: `"Fixed in <sha1>, <sha2>"` (or single SHA if only one)
-10. Move to next comment
+> **All comments processed**
+>
+> - ✓ N auto-fixed (M commits)
+> - ✓ N fixed by you (M commits)
+> - ✓ N marked done (no commits)
+> - ✓ N replies queued
+> - ⊘ N skipped/deferred
+> - ⊘ N auto-skipped (files deleted)
+>
+> **Commits to push**
+> - `<sha>` — <message>
+> - …
+>
+> **Replies to post:** N
+>
+> PR: <PR URL>
 
-### User Choice: [B] Auto-fix it
+Then **ask the user** whether to push (yes/no).
 
-1. Analyze the comment and surrounding code context
-2. Show the proposed changes to the user for approval:
-   - Display the specific changes that will be made
-   - Ask: "Apply these changes? [Y/n]"
-3. If user approves:
-   - Apply the changes using Edit tool
-   - Create semantic commit message (describe what was fixed, not that it's from a PR comment)
-   - Record commit SHA in progress file
-   - Add to pending_replies array: `"Fixed in <short_sha>"`
-   - Move to next comment
-4. If user rejects:
-   - Mark comment as "pending" in progress file
-   - Show: "Changes not applied. What would you like to do?"
-     ```
-     [A] Fix it myself
-     [D] Mark as done
-     [E] Skip/Defer
-     ```
-   - Process the selected choice
+### If the user approves the push
 
-### User Choice: [C] Reply to comment
+1. Push: `git push`.
+2. For each comment with queued `pending_replies`, post each message as a reply (see [Post Reply to Comment](#post-reply-to-comment)). On success, remove that message from the array and save the progress file immediately. On failure, keep the message, log `"Failed to post reply to comment {comment_id}: {error}"`, and continue.
+3. Confirm in markdown:
 
-1. Prompt user for reply text:
-   ```
-   Enter your reply to @<reviewer>:
-   (Type your message, then press Enter)
-   ```
-2. Capture user's reply text
-3. Add the reply message to pending_replies array
-4. Mark comment as "replied" in progress file
-5. Move to next comment
+> ✓ Pushed N commits to `origin/<branch>`
+> ✓ Posted N replies _(✗ M failed — will retry next push, if any)_
+>
+> PR #<number> is ready for re-review. Run this command again to pick up new comments.
 
-### User Choice: [D] Mark as done
+### If the user declines
 
-1. Mark comment as completed in progress file
-2. Move to next comment
-
-**Note:** No message is added to pending_replies - this is for comments already addressed outside the tool.
-
-### User Choice: [E] Skip/Defer
-
-1. Mark comment as skipped in progress file (status: "pending")
-2. Will appear again in next session
-3. Move to next comment
-
-## Completion Workflow
-
-After all comments are processed, show summary:
-
-```
-═══════════════════════════════════════════
-All comments addressed!
-═══════════════════════════════════════════
-
-Summary:
-  ✓ <n> comments auto-fixed (<n> commits)
-  ✓ <n> comments fixed by you (<n> commits)
-  ✓ <n> comments marked as done (no commits)
-  ✓ <n> replies to comments
-  ⊘ <n> comments skipped/deferred
-
-Commits to be pushed:
-  <sha> - <message>
-  <sha> - <message>
-  ...
-
-Comment replies to be posted: <n>
-
-🔗 <PR URL>
-
-═══════════════════════════════════════════
-Ready to push? [Y/n]
-```
-
-### If user approves push:
-
-1. Execute: `git push`
-2. For each comment with pending_replies in progress file:
-   - For each message in the pending_replies array:
-     - Post reply using `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments -X POST -f body="<message>" -F in_reply_to={comment_id}`
-     - On success: Remove that specific message from the pending_replies array, update progress file immediately
-     - On failure: Log error `"Failed to post reply to comment {comment_id}: {error}"`, keep message in array, continue with next
-3. Count successful and failed replies
-4. Display confirmation:
-   ```
-   ✓ Pushed <n> commits to origin/<branch>
-   ✓ Posted <n> comment replies
-   [If any failures: ✗ Failed to post <n> replies (will retry on next push)]
-
-   PR #<number> is ready for re-review!
-
-   Run this command again to address any new comments.
-   ```
-
-### If user declines push:
-
-- Keep progress file intact with all pending_replies arrays
-- User can push manually or run command again later
-- Remind: "Comment replies won't be posted until you push via this command"
+- Keep the progress file (and all queued replies) intact so a later run can finish the job.
+- Remind the user: "Queued replies won't be posted until you push through this command."
 
 ## Error Handling
 
-**Fail fast with clear messages for:**
+Fail fast with a clear, actionable message for:
 
-- No PR found for current branch
-- Branch not pushed to remote
-- GitHub CLI not authenticated (`gh auth status`)
-- Uncommitted changes in working directory
-- GitHub API failures (rate limit, network issues)
-- Progress file corruption
+- No PR found for the current branch.
+- Branch not pushed to the remote.
+- `gh` not authenticated (`gh auth status`).
+- GitHub API failures (rate limit, network).
+- A corrupt or unreadable progress file.
 
-**Example error format:**
-```
-Error: <problem>
+**Format:**
 
-<Actionable instruction to fix>
-```
+> **Error:** <what went wrong>
+>
+> <one concrete step to fix it>
 
 ## Key Principles
 
-- **One comment at a time** - Don't batch, process sequentially
-- **Each fix gets its own commit** - Never bundle multiple fixes
-- **Semantic commit messages** - Describe what was fixed, not that it's from a PR comment
-- **Minimal PR replies** - Just "Fixed in <sha>"
-- **Preserve state** - Progress file enables resuming interrupted sessions and iterative reviews
-- **Always re-fetch** - Ensure GitHub state is current on resume
-- **Fail fast** - Clear errors are better than confusing degraded states
-- **Iterative review support** - Never delete progress file; detect new activity to re-prompt comments
+- **One comment at a time** — process sequentially, never batch.
+- **One commit per fix** — never bundle multiple fixes into a commit.
+- **Semantic commit messages** — describe what was fixed, not that it came from a PR comment.
+- **Minimal replies** — usually just "Fixed in <sha>".
+- **Resumable** — never delete the progress file; it powers cross-session resume and iterative reviews.
+- **Always re-fetch** — reconcile against current GitHub state on every run; re-prompt threads with new activity.
+- **Defer to the agent** — use your native question, todo, read, and edit capabilities rather than reinventing them in text.
 
-## Technical Notes
+## PowerShell Text Safety
 
-- Use `gh` CLI for all GitHub operations
-- Use unified diff format for change previews
-- Display code context with line numbers
-- Store pending replies in each comment's `pending_replies` array
-- Post pending replies only when user approves push
-- Clear `pending_replies` array after successful posting
-- Support multiple replies per comment (e.g., question followed by fix)
+**⚠️ Windows/PowerShell only.** Backticks (`` ` ``) in any text passed to `gh` are interpreted as PowerShell escape characters (`` `n ``, `` `r ``, …), silently mangling the posted text. This matters when posting reply bodies that contain user-provided text or code.
+
+When posting a reply via `gh api`, put the body in a PowerShell variable and pass it directly — **do not** use the `-f "body=@file"` syntax (PowerShell posts the literal file path):
+
+```powershell
+# ✅ GOOD
+$body = "Fixed in abc1234"
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" -f "body=$body" -F in_reply_to=$commentId
+
+# ⚠️ BAD — posts the literal path, not the file contents
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" -f "body=@$tempFile" -F in_reply_to=$commentId
+```
+
+For `gh` subcommands that support `--body-file` (e.g. `gh pr comment`), writing the text to a UTF-8 temp file and passing `--body-file` is the safest route.
 
 ---
 
@@ -353,86 +242,23 @@ Error: <problem>
 
 ### Fetch PR Review Comments
 
-**Command:**
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
-```
-
-**Getting owner/repo dynamically:**
-```bash
-REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-# Returns: "owner/repo"
-```
-
-**Expected JSON output:**
-```json
-[
-  {
-    "id": 123456789,
-    "path": "src/auth.ts",
-    "position": 5,
-    "commit_id": "abc123f456def789...",
-    "in_reply_to_id": null,
-    "user": {
-      "login": "reviewer_username"
-    },
-    "body": "Add null check here to handle edge cases",
-    "created_at": "2025-11-07T10:30:00Z",
-    "line": 42
-  }
-]
-```
-
-**Key fields:**
-- `id`: Comment ID (needed for posting replies)
-- `path`: File path relative to repo root
-- `line`: Line number in the file
-- `commit_id`: SHA of commit the comment references
-- `body`: Comment text
-- `created_at`: Timestamp
-- `position`: Position in diff (`null` if outdated)
-
-**Filtering for unresolved comments:**
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  --jq '.[] | select(.position != null)'
-```
-
-**Pagination (for PRs with 100+ comments):**
 ```bash
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate
 ```
 
-### Post Reply to Comment
+Use `--paginate` for PRs with 100+ comments.
 
-**Command:**
+**Key fields:** `id` (needed to post replies), `path`, `line`, `commit_id`, `body`, `created_at`, `position` (`null` ⇒ outdated), `user.login`, `in_reply_to_id`.
+
+Filter to comments still on the diff:
+
 ```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  -X POST \
-  -f body="Fixed in abc123f" \
-  -F in_reply_to={comment_id}
-```
-
-### Get PR Details
-
-**Command:**
-```bash
-gh pr view --json number,url,title,state
-```
-
-**Expected output:**
-```json
-{
-  "number": 123,
-  "url": "https://github.com/owner/repo/pull/123",
-  "title": "Add authentication feature",
-  "state": "OPEN"
-}
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate \
+  --jq '.[] | select(.position != null)'
 ```
 
 ### Get Review Thread Resolution Status (GraphQL)
 
-**Command:**
 ```bash
 gh api graphql -F owner="{owner}" -F repo="{repo}" -F pr={pr_number} -F query=@- <<'EOF'
 query($owner: String!, $repo: String!, $pr: Int!) {
@@ -456,115 +282,63 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 EOF
 ```
 
-**Expected output:**
-```json
-{
-  "data": {
-    "repository": {
-      "pullRequest": {
-        "reviewThreads": {
-          "nodes": [
-            {
-              "id": "PRRT_kwDOAbc123...",
-              "isResolved": false,
-              "comments": {
-                "nodes": [
-                  {
-                    "databaseId": 123456789
-                  }
-                ]
-              }
-            },
-            {
-              "id": "PRRT_kwDODef456...",
-              "isResolved": true,
-              "comments": {
-                "nodes": [
-                  {
-                    "databaseId": 234567890
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    }
-  }
-}
+- `databaseId` (GraphQL) corresponds to `id` (REST).
+- Exclude comments whose thread has `isResolved: true`.
+- For 100+ threads, page with the `after` cursor.
+
+### Post Reply to Comment
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
+  -X POST \
+  -f body="Fixed in abc123f" \
+  -F in_reply_to={comment_id}
 ```
 
-**Usage:**
-- `databaseId` in GraphQL corresponds to `id` in REST API comments
-- Filter out comments where their thread has `isResolved: true`
-- **Note:** GraphQL pagination uses `first: 100`. For PRs with 100+ threads, use cursor-based pagination with `after` parameter
+On Windows, build `body` from a variable (see [PowerShell Text Safety](#powershell-text-safety)).
+
+### Get PR Details
+
+```bash
+gh pr view --json number,url,title,state
+```
 
 ---
 
 ## Git Command Reference
 
-### Get Recent Commits
+### Recent commits
 
-**Command:**
 ```bash
-git log --oneline -5
+git log --oneline -10
 ```
 
-**Expected output:**
-```
-abc123f fix: add input validation
-def456a fix: handle null case
-ghi789b test: add edge case coverage
-jkl012c refactor: extract helper
-mno345d docs: update README
-```
+### Show a file at a specific commit
 
-### Show File at Specific Commit
-
-**Command:**
 ```bash
 git show {commit_sha}:{file_path}
 ```
 
-**Example:**
-```bash
-git show abc123f:src/auth.ts
-```
+Returns the file contents as they existed in that commit — used to show code context that matches the comment.
 
-**Expected output:**
-The complete file contents as they existed in that commit.
+### Current branch
 
-### Get Current Branch
-
-**Command:**
 ```bash
 git rev-parse --abbrev-ref HEAD
 ```
 
-**Expected output:**
-```
-feature/add-auth
-```
+### Current HEAD (short)
 
-### Get File Line Count
-
-**Command:**
 ```bash
-wc -l < {file_path}
-```
-
-**Expected output:**
-```
-42
+git rev-parse --short HEAD
 ```
 
 ---
 
 ## Progress File Schema
 
-The progress file (`.claude/pr-comments-progress-{pr_number}.json`) tracks comment processing state across sessions.
+The progress file (`{working_dir}/address-pr-comments/{owner}-{repo}/pr-{pr_number}.json`) tracks comment processing state across sessions.
 
-**Complete schema:**
 ```json
 {
   "pr_number": 123,
@@ -578,9 +352,7 @@ The progress file (`.claude/pr-comments-progress-{pr_number}.json`) tracks comme
       "status": "completed",
       "commit_sha": "abc123f",
       "action": "auto_fixed",
-      "pending_replies": [
-        "Fixed in abc123f"
-      ],
+      "pending_replies": ["Fixed in abc123f"],
       "last_post_timestamp": "2025-11-07T21:48:42Z"
     },
     {
@@ -592,16 +364,6 @@ The progress file (`.claude/pr-comments-progress-{pr_number}.json`) tracks comme
       "action": null,
       "pending_replies": [],
       "last_post_timestamp": "2025-11-08T10:15:30Z"
-    },
-    {
-      "id": "345678901",
-      "file": "README.md",
-      "line": 8,
-      "status": "skipped",
-      "commit_sha": null,
-      "action": "deferred",
-      "pending_replies": [],
-      "last_post_timestamp": "2025-11-06T16:20:00Z"
     }
   ]
 }
@@ -609,18 +371,15 @@ The progress file (`.claude/pr-comments-progress-{pr_number}.json`) tracks comme
 
 **Field definitions:**
 
-- `pr_number` (number): PR number from GitHub
-- `branch` (string): Git branch name
-- `last_updated` (ISO 8601 timestamp): When progress file was last modified
-- `comments` (array): List of all comments processed or pending
-  - `id` (string): Comment ID from GitHub API
-  - `file` (string): File path relative to repo root
-  - `line` (number): Line number in file
-  - `status` (enum): `"pending"` | `"completed"` | `"skipped"`
-    - `pending`: Not yet addressed
-    - `completed`: Fixed or marked as done
-    - `skipped`: User chose to defer or file was deleted
-  - `commit_sha` (string | null): Short SHA(s) of commit(s) that address this comment
-  - `action` (enum | null): `"auto_fixed"` | `"fixed_by_user"` | `"marked_done"` | `"deferred"` | `"replied"` | `"file_deleted"`
-  - `pending_replies` (array of strings): Reply messages to post when user pushes
-  - `last_post_timestamp` (ISO 8601 timestamp): Timestamp of most recent message in thread (used to detect new activity)
+- `pr_number` (number): PR number.
+- `branch` (string): git branch name.
+- `last_updated` (ISO 8601): when the file was last written.
+- `comments` (array):
+  - `id` (string): comment ID from the GitHub API.
+  - `file` (string): path relative to the repo root.
+  - `line` (number): line number in the file.
+  - `status` (enum): `"pending"` | `"completed"` | `"skipped"`.
+  - `commit_sha` (string | null): short SHA(s) of the commit(s) addressing the comment.
+  - `action` (enum | null): `"auto_fixed"` | `"fixed_by_user"` | `"marked_done"` | `"deferred"` | `"replied"` | `"file_deleted"`.
+  - `pending_replies` (array of strings): reply messages to post on the next push.
+  - `last_post_timestamp` (ISO 8601): timestamp of the most recent post in the thread (used to detect new activity).
