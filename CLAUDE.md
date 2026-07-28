@@ -2,6 +2,8 @@
 
 Each time you complete a task or learn important information about the project, you should update the `CLAUDE.md` file in the repo to reflect any new information that you've learned or changes that require updates to the instruction file.
 
+The repository no longer includes the `adr-generator`, `brainstorming`, `writing-plans`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `test-driven-development`, `using-superpowers`, or `verification-before-completion` skills. Active skills must not depend on those workflows.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding
@@ -34,7 +36,9 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 
 Lives at `evals/code-review/`. Five evaluation dimensions are documented under `design/`; only **detection quality** has a runnable harness in v1.
 
-**Run the Pester unit tests** (24 tests cover parser, matcher, schema):
+The code-review process is single-model. Step 5 is the final self-critique ("Grill Your Assessment"); the skill and eval harness do not delegate critique to additional model families.
+
+**Run the Pester unit tests** (25 tests cover parser, matcher, schema):
 
 ```powershell
 cd evals/code-review/harness/tests
@@ -231,4 +235,3 @@ Invoke-Pester -Path tests/dashboard/, tests/skill-eval/Dashboard.Tests.ps1 -Outp
 **Local smoke test the dashboard against fake data:** see the recipe in
 `dashboard/README.md`. Requires a real static server — `file://` won't
 work because browsers block local `fetch()`.
-

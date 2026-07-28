@@ -12,10 +12,8 @@
         SummaryLine    : string | $null             # raw verdict line text
         Verdict        : 'lgtm'|'needs_human_review'|'needs_changes'|'reject'|'unknown'
         Findings       : Finding[]
-        HasMultiModel  : bool                       # detected a 'Multi-Model' / 'Step 5' section
-        MultiModelSkipDocumented : bool             # 'Multi-model review skipped: ...'
         HasGrillSection: bool
-        GrillWordCount : int                        # length of content after a Grill / Step 6 heading
+        GrillWordCount : int                        # length of content after a Grill / Step 5 heading
         RawText        : string
         ParseWarnings  : string[]
       }
@@ -138,8 +136,6 @@ function ConvertFrom-ReviewMarkdown {
     $approach       = $null
     $summaryLine    = $null
     $findings       = New-Object System.Collections.Generic.List[object]
-    $hasMultiModel  = $false
-    $multiModelSkipDocumented = $false
     $hasGrillSection = $false
     $grillContent   = New-Object System.Text.StringBuilder
 
@@ -200,11 +196,7 @@ function ConvertFrom-ReviewMarkdown {
             $hLower = $h.ToLowerInvariant()
             if     ($hLower -match 'holistic|summary|verdict')  { $section = 'holistic' }
             elseif ($hLower -match 'detailed findings|findings|issues') { $section = 'findings' }
-            elseif ($hLower -match 'multi[\s\-]?model|step\s*5') {
-                $section = 'multi_model'
-                $hasMultiModel = $true
-            }
-            elseif ($hLower -match 'grill|self[\s\-]?critique|step\s*6') {
+            elseif ($hLower -match 'grill|self[\s\-]?critique|step\s*5') {
                 $section = 'grill'
                 $hasGrillSection = $true
             }
@@ -251,11 +243,6 @@ function ConvertFrom-ReviewMarkdown {
             [void]$grillContent.AppendLine($line)
         }
 
-        # Detect documented skip
-        if ($line -match 'multi[\s\-]?model.+(skip|skipped)' -or
-            $line -match '(skip|skipped).+multi[\s\-]?model') {
-            $multiModelSkipDocumented = $true
-        }
     }
 
     # Flush trailing finding
@@ -291,8 +278,6 @@ function ConvertFrom-ReviewMarkdown {
         SummaryLine               = $summaryLine
         Verdict                   = $verdict
         Findings                  = $findings.ToArray()
-        HasMultiModel             = $hasMultiModel
-        MultiModelSkipDocumented  = $multiModelSkipDocumented
         HasGrillSection           = $hasGrillSection
         GrillWordCount            = $grillWords
         RawText                   = $Markdown
