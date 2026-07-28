@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-01T21:30:34Z",
+  "generated_at": "2026-07-28T21:53:37Z",
   "repository": "mthalman/superpowers",
   "sparkline_length": 20,
   "regression_window": 10,
@@ -10,20 +10,26 @@
       "name": "code-review",
       "pattern": "A",
       "latest": {
-        "commit": "d9cdf7c8ccc9a0b92aa76457bf9b92918e6462b7",
-        "short_sha": "d9cdf7c",
-        "timestamp": "2026-05-29T21:04:26Z",
-        "commit_message": "Add per-commit skill-eval workflow (#9)",
+        "commit": "4459ff563c2cd6335d454d5fe76bf5fdb42bc140",
+        "short_sha": "4459ff5",
+        "timestamp": "2026-07-28T21:53:37Z",
+        "commit_message": "Remove legacy workflow skills and multi-model review (#15)",
         "headline_score": 100.0,
-        "delta_from_previous": null,
+        "delta_from_previous": 0.0,
         "status": "ok",
         "adapter": "copilot"
       },
-      "run_count": 1,
+      "run_count": 2,
       "sparkline": [
         {
           "short_sha": "d9cdf7c",
           "timestamp": "2026-05-29T21:04:26Z",
+          "status": "ok",
+          "headline_score": 100.0
+        },
+        {
+          "short_sha": "4459ff5",
+          "timestamp": "2026-07-28T21:53:37Z",
           "status": "ok",
           "headline_score": 100.0
         }
