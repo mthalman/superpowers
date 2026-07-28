@@ -39,8 +39,8 @@ DEST_REL="plugins/superpowers"
 # Paths in upstream that should NOT land in the embedded plugin.
 # All patterns use a leading "/" to anchor them to the source root.
 # Unanchored patterns like "scripts/" would match any directory named
-# "scripts" at any depth — including legitimate nested dirs like
-# skills/brainstorming/scripts/. Anchoring prevents that.
+# "scripts" at any depth — including legitimate nested skill directories.
+# Anchoring prevents that.
 # (.DS_Store is intentionally unanchored — Finder creates them everywhere.)
 EXCLUDES=(
   # Dotfiles and infra — top-level only

@@ -41,7 +41,7 @@ it against three variants of `SKILL.md`:
 | Variant | What we remove | Expected validator response |
 |---------|---------------|-----------------------------|
 | **Current** | nothing | High score |
-| **Ablated** | Steps 5 and 6 (multi-model critique + grilling) | Substantially lower score; validator should call out the gap |
+| **Ablated** | Step 5 (grilling) | Substantially lower score; validator should call out the gap |
 | **Topic-only** | All process steps, keep only "What to Look For" | Low score; validator should detect it's a topic list, not a behavior transfer |
 
 If the validator scores all three similarly, the validator itself is
@@ -61,7 +61,7 @@ fixtures/prompt-meta/
 │       └── differential-scores.md  # current vs ablated vs topic-only
 └── variants/
     ├── current.md                  # symlink/copy of SKILL.md
-    ├── ablated.md                  # SKILL.md - Steps 5 & 6
+    ├── ablated.md                  # SKILL.md - Step 5
     └── topic-only.md               # only "What to Look For"
 ```
 
@@ -79,8 +79,8 @@ From the rubber-duck critique on this dimension, the validator should ask:
   on consistent local style)?
 - Does it prevent **severity inflation** to look thorough?
 - Does it adapt between **PR mode and standalone mode**?
-- Does it create **observable artifacts** that can be audited (a verdict,
-  per-finding evidence, a documented Step 5 or skip notice)?
+- Does it create **observable artifacts** that can be audited (a verdict and
+  per-finding evidence)?
 
 ## Limits of this dimension
 

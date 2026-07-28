@@ -79,21 +79,7 @@ Now read the PR description, linked issues, existing review comments, and author
 9. **Label in-scope vs. follow-up.** Distinguish between issues the PR should fix and out-of-scope improvements that belong in a follow-up.
 10. **Context-shift analysis.** When code is moved from one execution context to another (e.g., from one pipeline stage to another, from sync to async, from one service to another), do not assume behavioral equivalence. Explicitly enumerate what changes: what steps have or haven't run before this code now, what external state (registries, databases, file system) differs, what data preconditions that held in the old context no longer hold, and whether the same code pattern produces different outcomes in the new context. Treat "same code, different context" as a high-risk area. The claim "this pattern already existed" is insufficient — verify that the pattern is still correct in the new execution environment.
 
-### Step 5: Multi-Model Critique
-
-Run an adversarial review across multiple model families. Different models catch different classes of issues.
-
-If you skip multi-model review for any reason — environment limitation, cost, time, or judgment — you MUST state this fact in the review output along with the reason (e.g., *"Multi-model review skipped: only one model family available in this environment."* or *"Multi-model review skipped: review is for exploratory draft code per author's request."*). Silent skips are not permitted.
-
-**A confirmed finding does not justify skipping this step.** Confirming one bug tells you that bug is real; it tells you nothing about what else you missed. Coverage and finding-confidence are independent properties — do not conflate them.
-
-1. **Select models**: Pick one model from each distinct family (e.g., one Anthropic, one Google, one OpenAI). Use 2-4 models. Pick from models explicitly listed as available — highest capability tier, never "mini" or "fast." Don't select your own model.
-2. **Launch in parallel**: Give each agent the same review prompt (diff, review rules, severity format) and your independent assessment from Step 2.
-3. **Synthesize**: Deduplicate shared findings, elevate issues flagged by multiple models (higher confidence), include unique findings that meet the confidence bar. When models **disagree on severity**, use the higher severity but note the disagreement — the reviewer can downgrade with context the models lack. When models **contradict** each other (one says it's a bug, another says it's correct), present both perspectives and mark the finding as needing human judgment.
-4. **Timeout handling**: If a sub-agent hasn't completed after 10 minutes and you have other results, proceed. Note which models contributed.
-5. **Carry into Step 6**: Step 6 (Grill) now operates on the synthesized findings, not your single-model findings alone. Note which findings came from which model so the grill can challenge each source.
-
-### Step 6: Grill Your Assessment
+### Step 5: Grill Your Assessment
 
 Before producing the review output, interrogate your own assessment relentlessly. The biggest review failure modes are missed issues, overconfident findings, and verdicts shaped by hope rather than evidence — this step exists to catch them.
 
@@ -110,7 +96,7 @@ Walk down each branch of your reasoning one question at a time, resolving each b
 - Which assumption did I make about surrounding code that I never actually verified?
 - Which class of issue (concurrency, error handling, input validation, resource leaks, off-by-one, security, performance under load) did I not deliberately consider for this change?
 - If this change interacts with code I didn't read, what could go wrong at that interaction point?
-- Did I treat a single confirmed finding as proof the review is complete? A verified bug demonstrates one issue exists; it says nothing about coverage. If I leaned on "this finding feels concrete enough" to justify skipping rigorous validation (including Step 5), that is a coverage failure dressed up as confidence — re-open the question and complete the skipped work.
+- Did I treat a single confirmed finding as proof the review is complete? A verified bug demonstrates one issue exists; it says nothing about coverage. If I leaned on "this finding feels concrete enough" to stop investigating, that is a coverage failure dressed up as confidence — re-open the question and complete the skipped work.
 
 **Grill the verdict:**
 - If this merges and causes a production incident, what is the most likely failure mode? Did I flag it?
@@ -126,9 +112,7 @@ Resolve each question — do not just list them. If a question reveals a real ga
 
 Patterns that reliably produce bad reviews. If you catch yourself doing any of these, restart the corresponding step rather than rationalizing past it.
 
-- **Coverage-via-confirmation**: Finding one concrete bug and concluding the review is solid. Confirming a single issue says nothing about what you missed. Multi-model critique (Step 5) exists to address this; do not skip it on the strength of one finding.
-- **Self-grill substitution**: Treating Step 6 (your own interrogation) as a substitute for Step 5 (independent models). They serve different purposes — introspection cannot surface what you don't know you don't know.
-- **Effort-cost rationalization**: Skipping Step 5 because it would be slower, take more context, or cost more tokens. The skill requires it for merge-bound code; cost is not an approved exception. The only approved exceptions are environment limitation (no second model available) and explicitly-exploratory non-merge-bound code.
+- **Coverage-via-confirmation**: Finding one concrete bug and concluding the review is solid. Confirming a single issue says nothing about what you missed; continue tracing callers, data flow, and unexamined issue classes.
 - **Narrative anchoring**: Reading the PR description, issue, or author comments before Step 2 and then "independently" reaching the same conclusions. Once you've seen the framing, you cannot un-see it.
 - **Cleanliness bias**: Concluding LGTM because the diff is short, well-formatted, or matches familiar patterns — without verifying correctness against actual call sites, data flow, or edge cases.
 - **Findings-inflation to look thorough**: Inventing or stretching findings to justify a "Needs Changes" verdict. Every finding must be actionable; padding dilutes the signal.
@@ -151,10 +135,9 @@ If unsure between two levels, choose the higher one.
 
 ## Pre-Output Checklist
 
-Before producing the review, confirm each item — do not write the output until all four are true. If any item is false, return to the corresponding step and complete it.
+Before producing the review, confirm each item — do not write the output until all three are true. If any item is false, return to the corresponding step and complete it.
 
-- [ ] **Multi-model critique** (Step 5) was completed, OR the skip and its reason are documented in the review output itself.
-- [ ] **Every grill question** in Step 6 has a written, reasoned answer — not just a thought. If a question revealed a gap, the findings or verdict have been updated.
+- [ ] **Every grill question** in Step 5 has a written, reasoned answer — not just a thought. If a question revealed a gap, the findings or verdict have been updated.
 - [ ] **Every finding cites concrete evidence** — file:line reference, observed behavior, test outcome, or quoted code. No findings based purely on pattern-matching or speculation.
 - [ ] **The verdict is justified independently** of how "clean" the diff looks, the author's reputation, or how much you trust the PR description. Re-read the verdict with the question: would I defend this if a bug surfaced in code I called clean?
 

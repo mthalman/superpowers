@@ -45,7 +45,7 @@
     # ["code-review"]
 
 .EXAMPLE
-    pwsh -File scripts/detect-changed-skills.ps1 -OnlySkills "code-review,brainstorming"
+    pwsh -File scripts/detect-changed-skills.ps1 -OnlySkills "code-review,systematic-debugging"
 
 .EXAMPLE
     pwsh -File scripts/detect-changed-skills.ps1 -FullSweep
