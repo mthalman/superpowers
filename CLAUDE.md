@@ -34,7 +34,7 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 
 `commands/address-pr-comments.md` supports both GitHub and Azure DevOps PRs through a shared provider-neutral workflow. Deterministic provider helpers live in `scripts/address-pr-comments-support.psm1`; focused fixtures and Pester coverage live in `tests/address-pr-comments/`.
 
-Azure DevOps API 7.1 thread statuses `active` and `pending` are unresolved. `fixed`, `wontFix`, `closed`, and `byDesign` are resolved. Queued Azure DevOps replies are posted from UTF-8-without-BOM JSON payload files, and progress is persisted after each response containing a comment ID.
+Azure DevOps API 7.1 thread status `unknown` is non-actionable; `active` and `pending` are unresolved; `fixed`, `wontFix`, `closed`, and `byDesign` are resolved. Provider timestamps are normalized to UTC without depending on the current culture. Queued Azure DevOps replies are posted from UTF-8-without-BOM JSON payload files, and progress is persisted after each response containing a comment ID.
 
 Status-less Azure DevOps threads are ignored only when all comments are system comments. Actionable threads require an explicit root comment with `parentCommentId: 0`. Remote URLs are credential-redacted before persistence or display, and PR source branches come from the upstream remote ref rather than the local branch name.
 

@@ -284,13 +284,14 @@ An actionable thread must contain an explicit root comment. If it has no comment
 
 Azure DevOps API 7.1 defines these thread statuses:
 
+- Non-actionable: `unknown`
 - Unresolved: `active`, `pending`
 - Resolved: `fixed`, `wontFix`, `closed`, `byDesign`
 
-The numeric equivalents are `1` through `6` in the same order:
-`active`, `fixed`, `wontFix`, `closed`, `byDesign`, `pending`.
+The numeric equivalents are `0` through `6` in the same order:
+`unknown`, `active`, `fixed`, `wontFix`, `closed`, `byDesign`, `pending`.
 
-Treat an unknown status as an API compatibility error. Never silently drop a thread with a status the command does not understand. See the official [CommentThreadStatus API documentation](https://learn.microsoft.com/rest/api/azure/devops/git/pull-request-threads/list?view=azure-devops-rest-7.1#commentthreadstatus).
+Treat any other status as an API compatibility error. Never silently drop a thread with a status the command does not understand. See the official [CommentThreadStatus API documentation](https://learn.microsoft.com/rest/api/azure/devops/git/pull-request-threads/list?view=azure-devops-rest-7.1#commentthreadstatus).
 
 ### Step 3: Reconcile Remote and Durable State
 
@@ -607,7 +608,7 @@ Cover these cases:
 - missing organization or project defaults when the remote cannot supply them
 - Azure DevOps repository or PR not found
 - Azure DevOps API failure
-- unknown Azure DevOps thread status
+- unrecognized Azure DevOps thread status
 - malformed API response
 - corrupt or unreadable progress state
 - progress persistence failure

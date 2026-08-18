@@ -146,6 +146,17 @@ Describe 'Azure DevOps thread normalization' {
             Should -BeFalse
     }
 
+    It 'treats the documented unknown status as non-actionable' {
+        Test-AddressPrThreadUnresolved `
+            -Provider azure-devops `
+            -Thread ([pscustomobject]@{ status = 'unknown' }) |
+            Should -BeFalse
+        Test-AddressPrThreadUnresolved `
+            -Provider azure-devops `
+            -Thread ([pscustomobject]@{ status = 0 }) |
+            Should -BeFalse
+    }
+
     It 'preserves GitHub unresolved-thread behavior' {
         Test-AddressPrThreadUnresolved `
             -Provider github `
@@ -200,6 +211,30 @@ Describe 'Azure DevOps thread normalization' {
         }
 
         $thread = ConvertFrom-AzureDevOpsThread -Thread $unordered
+
+        $thread.conversation[0].id | Should -Be '1'
+        $thread.conversation[1].id | Should -Be '2'
+    }
+
+    It 'orders DateTime timestamps independently of the current culture' {
+        $source = $ThreadFixture.value[0]
+        $unordered = [pscustomobject]@{
+            id = $source.id
+            status = $source.status
+            publishedDate = $source.publishedDate
+            threadContext = $source.threadContext
+            comments = @($source.comments[1], $source.comments[0])
+        }
+        $originalCulture = [Globalization.CultureInfo]::CurrentCulture
+
+        try {
+            [Globalization.CultureInfo]::CurrentCulture =
+                [Globalization.CultureInfo]::GetCultureInfo('en-GB')
+            $thread = ConvertFrom-AzureDevOpsThread -Thread $unordered
+        }
+        finally {
+            [Globalization.CultureInfo]::CurrentCulture = $originalCulture
+        }
 
         $thread.conversation[0].id | Should -Be '1'
         $thread.conversation[1].id | Should -Be '2'
@@ -375,6 +410,17 @@ Describe 'Progress schema and resume' {
             Should -Be 'address-pr-comments/mthalman-superpowers/pr-123.json'
         Get-AddressPrProgressRelativePath -Metadata $AzureMetadata |
             Should -Be 'address-pr-comments/azure-devops/dnceng-internal-build-duty/pr-731.json'
+    }
+
+    It 'persists PullRequestId metadata as the provider-neutral PR number' {
+        $metadata = ConvertFrom-AzureDevOpsPullRequestUrl `
+            -Url 'https://dev.azure.com/dnceng/internal/_git/build-duty/pullrequest/731'
+
+        $result = Merge-AddressPrProgress `
+            -Metadata $metadata `
+            -FreshComments @()
+
+        $result.pr_number | Should -Be 731
     }
 }
 

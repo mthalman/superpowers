@@ -18,18 +18,42 @@ function Get-AddressPrPropertyValue {
     return $Default
 }
 
-function ConvertTo-AddressPrIsoTimestamp {
+function ConvertTo-AddressPrDateTimeOffset {
     param([object] $Value)
 
     if ($null -eq $Value -or [string]::IsNullOrWhiteSpace([string] $Value)) {
         return $null
     }
 
-    return ([DateTimeOffset]::Parse(
+    if ($Value -is [DateTimeOffset]) {
+        return $Value.ToUniversalTime()
+    }
+
+    if ($Value -is [DateTime]) {
+        $dateTime = [DateTime] $Value
+        if ($dateTime.Kind -eq [DateTimeKind]::Unspecified) {
+            $dateTime = [DateTime]::SpecifyKind($dateTime, [DateTimeKind]::Utc)
+        }
+        return [DateTimeOffset] $dateTime.ToUniversalTime()
+    }
+
+    return [DateTimeOffset]::Parse(
         [string] $Value,
         [Globalization.CultureInfo]::InvariantCulture,
-        [Globalization.DateTimeStyles]::AssumeUniversal
-    )).UtcDateTime.ToString('o')
+        [Globalization.DateTimeStyles]::AssumeUniversal -bor
+            [Globalization.DateTimeStyles]::AdjustToUniversal
+    )
+}
+
+function ConvertTo-AddressPrIsoTimestamp {
+    param([object] $Value)
+
+    $timestamp = ConvertTo-AddressPrDateTimeOffset $Value
+    if ($null -eq $timestamp) {
+        return $null
+    }
+
+    return $timestamp.UtcDateTime.ToString('o')
 }
 
 function ConvertTo-AddressPrSafeKey {
@@ -209,18 +233,25 @@ function Test-AddressPrThreadUnresolved {
         $rawStatus -is [int16] -or
         $rawStatus -is [int32] -or
         $rawStatus -is [int64]) {
-        $rawStatus = @{
+        $numericStatus = [int] $rawStatus
+        $statusMap = @{
+            0 = 'unknown'
             1 = 'active'
             2 = 'fixed'
             3 = 'wontFix'
             4 = 'closed'
             5 = 'byDesign'
             6 = 'pending'
-        }[[int] $rawStatus]
+        }
+        if (-not $statusMap.ContainsKey($numericStatus)) {
+            throw "Unknown Azure DevOps thread status '$numericStatus'."
+        }
+        $rawStatus = $statusMap[$numericStatus]
     }
 
     $status = ([string] $rawStatus).ToLowerInvariant()
     switch ($status) {
+        'unknown' { return $false }
         'active' { return $true }
         'pending' { return $true }
         'fixed' { return $false }
@@ -239,7 +270,8 @@ function ConvertFrom-AzureDevOpsThread {
     $comments = @($comments | Sort-Object `
         @{ Expression = {
             $timestamp = Get-AddressPrPropertyValue -InputObject $_ -Names 'publishedDate', 'lastUpdatedDate'
-            if ($timestamp) { [DateTimeOffset]::Parse([string] $timestamp) }
+            $normalizedTimestamp = ConvertTo-AddressPrDateTimeOffset $timestamp
+            if ($null -ne $normalizedTimestamp) { $normalizedTimestamp }
             else { [DateTimeOffset]::MinValue }
         } }, `
         @{ Expression = { [int] (Get-AddressPrPropertyValue -InputObject $_ -Names 'id' -Default 0) } })
@@ -452,7 +484,11 @@ function Merge-AddressPrProgress {
             if ($_.Length -eq 0) { return }
             $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1)
         }) -join ''
-        $resultData[$field] = Get-AddressPrPropertyValue -InputObject $Metadata -Names $field, $pascalName
+        $candidateNames = @($field, $pascalName)
+        if ($field -eq 'pr_number') {
+            $candidateNames += 'PullRequestId'
+        }
+        $resultData[$field] = Get-AddressPrPropertyValue -InputObject $Metadata -Names $candidateNames
     }
     $resultData.provider = $provider
     $prUrl = Get-AddressPrPropertyValue -InputObject $Metadata -Names 'pr_url', 'PrUrl'
