@@ -4,7 +4,7 @@ description: Systematically address GitHub or Azure DevOps PR review comments on
 
 # Address Pull Request Comments
 
-Help the user address review threads on the pull request associated with the current branch. Support both GitHub and Azure DevOps without changing the existing GitHub behavior.
+Help the user address review threads on the pull request associated with the current branch. Support GitHub and Azure DevOps through a shared workflow with provider-specific adapters.
 
 Process one thread at a time, persist every decision, and never push or post a reply without explicit confirmation.
 
