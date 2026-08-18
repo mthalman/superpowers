@@ -1,385 +1,701 @@
 ---
-description: Systematically address GitHub PR review comments one at a time, with interactive guidance and resumable progress
+description: Systematically address GitHub or Azure DevOps PR review comments one at a time, with interactive guidance and resumable progress
 ---
 
-You are helping the user address review comments on a GitHub Pull Request, one comment at a time. Follow this workflow systematically.
+# Address Pull Request Comments
 
-## How this command works
+Help the user address review threads on the pull request associated with the current branch. Support both GitHub and Azure DevOps without changing the existing GitHub behavior.
 
-This command speaks in **actions**, not in a specific tool's vocabulary. Wherever it says:
+Process one thread at a time, persist every decision, and never push or post a reply without explicit confirmation.
 
-- **read a file** — use your native file-reading capability (it already shows line numbers).
-- **edit a file** — use your native edit/patch capability.
-- **run a command** — use your shell.
-- **ask the user** — use your native interactive question capability. When the user is choosing between fixed options, present them as a **single-select question**, not a block of text the user has to answer in prose. Never print a lettered `[A]/[B]/[C]` menu and parse the reply yourself.
-- **track progress with a todo list** — use your native task/todo list so the user can see, at a glance, which comments are done and which remain.
+## How This Command Works
 
-Render everything you show the user as clean **markdown** — headings, lists, blockquotes, fenced code blocks, and links. Do not hand-draw ASCII boxes or hand-align columns; let the rendering layer format it.
+This command speaks in **actions**, not in a specific tool's vocabulary:
 
-## Working File (Progress State)
+- **read a file** -- use the native file-reading capability.
+- **edit a file** -- use the native edit or patch capability.
+- **run a command** -- use the shell.
+- **ask the user** -- use the native interactive question capability. Present fixed options as a single-select question, never a hand-written lettered menu.
+- **track progress with a todo list** -- use the native task list as a live view. The progress file remains the durable source of truth.
 
-Progress is persisted to a JSON file so an interrupted or iterative review can resume exactly where it left off. This is the durable source of truth; the in-session todo list is just a live view of it.
+Render user-facing output as clean Markdown. Use provider-specific terminology only where it improves clarity: GitHub "review thread" and Azure DevOps "comment thread" are both called a **thread** in the shared workflow.
 
-**Where to store it:** your agent's working/scratch directory — *not* inside the repository, and never a tool-specific folder like `.claude/`. If your agent exposes a dedicated session or working-files directory, use that. Otherwise use the **system temporary directory** (`$env:TEMP` on Windows, `$TMPDIR` or `/tmp` on Unix).
+## Non-Negotiable Safety Rules
 
-**Path:** key it by repository and PR so multiple PRs and repos never collide:
+1. Detect the provider. Do not assume GitHub because `gh` is installed.
+2. Re-fetch remote thread state on every run and reconcile it with durable progress.
+3. Preserve prior decisions and queued replies when resuming.
+4. Make one commit per code fix.
+5. Post queued replies sequentially and persist after every successful post.
+6. Never clear a queued reply unless the API response contains a comment ID.
+7. Never assume the push remote is named `origin`.
+8. Show the exact push remote, push URL, and branch before requesting confirmation.
+9. Push and post only after an explicit confirmation. If the push fails, post nothing.
+10. Never delete the progress file.
 
+## Tested Support Helpers
+
+The repository includes `scripts/address-pr-comments-support.psm1`, a deterministic reference implementation for:
+
+- GitHub and Azure DevOps remote detection
+- Azure DevOps PR parsing and link generation
+- Azure DevOps thread normalization and status filtering
+- progress schema migration and reconciliation
+- provider-specific fixed-reply formatting
+- Azure DevOps UTF-8 reply payloads and `az devops invoke` arguments
+- sequential reply posting with per-success persistence
+
+Use these helpers when the module is available. Otherwise apply the same contracts directly. Do not replace provider-neutral workflow decisions with duplicated provider-specific flows.
+
+## Progress State
+
+Store progress in the agent's working or scratch directory, never in the repository or a tool-specific directory. If no dedicated directory exists, use the system temporary directory.
+
+Use these relative paths:
+
+- GitHub, retained for backward compatibility:
+  `address-pr-comments/{owner}-{repo}/pr-{pr_number}.json`
+- Azure DevOps:
+  `address-pr-comments/azure-devops/{organization}-{project}-{repository}/pr-{pr_number}.json`
+
+Sanitize path-key segments by replacing characters outside `[A-Za-z0-9._-]` with `-`.
+
+Read JSON with strict error handling. A missing file starts a new session; malformed or unreadable JSON is an error, not a reason to silently reset state.
+
+Persist atomically:
+
+1. Serialize the complete state to JSON.
+2. Write it to a sibling temporary file as UTF-8 without BOM.
+3. Replace the progress file with the temporary file.
+4. If persistence fails, stop before any further remote operation.
+
+## Phase 1: Detect the Provider and Pull Request
+
+### Step 1: Inspect the Branch and Remotes
+
+Run:
+
+```powershell
+$branch = git rev-parse --abbrev-ref HEAD
+$remoteNames = @(git remote)
+$remoteUrls = foreach ($remoteName in $remoteNames) {
+    $url = git remote get-url $remoteName
+    [pscustomobject]@{
+        name = $remoteName
+        url = $url -replace '^(https?://)[^/]+@', '$1'
+    }
+}
+git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
+git for-each-ref `
+  --format='%(upstream:remotename)%09%(upstream:remoteref)' `
+  "refs/heads/$branch"
 ```
-{working_dir}/address-pr-comments/{owner}-{repo}/pr-{pr_number}.json
+
+Prefer the current branch's upstream remote for provider detection. Persist the local branch separately from the upstream remote branch. The remote branch, without `refs/heads/`, is the PR `source_branch`; it can differ from the local branch name.
+
+If no upstream exists, inspect every fetch remote to identify the repository, but report that the branch is not pushed and stop before the review flow.
+
+Recognize these remote forms:
+
+- GitHub HTTPS: `https://github.com/{owner}/{repo}.git`
+- GitHub SSH: `git@github.com:{owner}/{repo}.git`
+- Azure DevOps HTTPS:
+  `https://{optional-user}@dev.azure.com/{organization}/{project}/_git/{repository}`
+- Azure DevOps legacy:
+  `https://{organization}.visualstudio.com/{project}/_git/{repository}`
+- Azure DevOps SSH:
+  `git@ssh.dev.azure.com:v3/{organization}/{project}/{repository}`
+
+Strip a trailing `.git`. Reject unsupported or ambiguous remotes with an actionable error.
+
+Capture remote commands into variables so raw URLs are never printed. If an HTTP(S) remote contains user information, strip everything between `://` and `@` before persisting, displaying, or including the URL in an error. Use the remote name for git operations so credentials never need to be copied into command arguments or progress state.
+
+### Step 2: Run Provider Prerequisite Checks
+
+#### GitHub
+
+1. Confirm `gh` is installed.
+2. Run `gh auth status`.
+3. If authentication fails, stop and tell the user to run `gh auth login`.
+
+#### Azure DevOps
+
+1. Confirm `az` is installed.
+2. Run `az version --output json`.
+3. Confirm the `azure-devops` extension is installed.
+4. Read optional defaults:
+
+   ```powershell
+   az devops configure --list --output json
+   ```
+
+5. Verify authentication by making a read-only request for the detected project or repository.
+
+Azure CLI 2.83 with `azure-devops` extension 1.0.2 is a known-working combination, not a required exact version.
+
+Use these actionable remedies:
+
+- Missing CLI: install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli).
+- Missing extension:
+  `az extension add --name azure-devops`
+- Unauthenticated CLI: run `az login`, or configure `AZURE_DEVOPS_EXT_PAT` according to the user's authentication policy.
+- Missing defaults: pass `--organization` and `--project` explicitly; do not depend on global defaults.
+
+### Step 3: Resolve Pull Request Metadata
+
+Persist provider-neutral metadata before fetching threads:
+
+- `schema_version`
+- `provider`: `github` or `azure-devops`
+- `organization`
+- `project`: `null` for GitHub
+- `repository`
+- `repository_id`: `null` for GitHub
+- `pr_number`
+- `pr_url`
+- `branch`
+- `source_branch`
+- `source_repository`
+- `source_repository_owner`
+- `remote_name`
+- `remote_url`: credential-redacted
+
+#### GitHub Adapter
+
+Run:
+
+```powershell
+gh pr view --json number,url,title,state,headRefName,headRepository,headRepositoryOwner
+gh repo view --json nameWithOwner -q .nameWithOwner
 ```
 
-See the [Progress File Schema](#progress-file-schema) section for the full structure.
+The PR must be associated with the current branch. Persist `headRepository.name` and `headRepositoryOwner.login` as the source repository identity so fork PRs can verify the push target. Preserve the current GitHub error behavior when no PR exists or the branch is not pushed.
 
-## Initial Setup
+#### Azure DevOps Adapter
 
-1. **Detect the PR:**
-   - Run `git rev-parse --abbrev-ref HEAD` to get the current branch.
-   - Run `gh pr view --json number,url,title,state` to find the associated PR.
-   - Resolve `owner/repo`: `gh repo view --json nameWithOwner -q .nameWithOwner`.
-   - If no PR is found or the branch isn't pushed, show a clear error and stop (see [Error Handling](#error-handling)).
+Use the remote URL as the primary source of organization, project, and repository name. Use `az devops configure --list` only as a fallback or consistency check.
 
-2. **Check for an existing progress file:**
-   - Look for the working file at the path above.
-   - If it exists, load it — this is a resumed session. Preserve the user's prior decisions (skips, completed items, pending replies) and reconcile them against freshly fetched GitHub data below.
+Resolve the repository ID:
 
-3. **Fetch all unresolved comments:**
+```powershell
+az repos show `
+  --organization "https://dev.azure.com/{organization}" `
+  --project "{project}" `
+  --repository "{repository}" `
+  --query id `
+  --output tsv `
+  --only-show-errors
+```
 
-   **Definition:** a comment is UNRESOLVED when both are true:
-   - its `position` field is not `null` (the comment still maps onto the current diff, i.e. it is not outdated), and
-   - its review thread is not marked **Resolved** (checked via GraphQL).
+Find the active PR whose source branch exactly matches the upstream remote branch, not necessarily the local branch:
 
-   **Fetch process:**
+```powershell
+az repos pr list `
+  --organization "https://dev.azure.com/{organization}" `
+  --project "{project}" `
+  --repository "{repository_id}" `
+  --source-branch "refs/heads/{source_branch}" `
+  --status active `
+  --output json `
+  --only-show-errors
+```
 
-   a. Fetch all review comments via REST (see [GitHub CLI Reference](#fetch-pr-review-comments)).
+Require exactly one match. If there are none, report that no active Azure DevOps PR was found for the upstream branch. If there are multiple matches, list their IDs and URLs and stop rather than guessing.
 
-   b. Fetch thread resolution status via GraphQL (see [GitHub CLI Reference](#get-review-thread-resolution-status-graphql)).
+Require the returned `sourceRefName` to equal the upstream remote ref. Persist `pullRequestId`, `sourceRefName`, repository name and ID, and this browser URL:
 
-   c. Filter the comments:
-   - Exclude any where `position == null` (outdated).
-   - Exclude any whose thread is `isResolved: true` in the GraphQL response.
-   - Cross-reference using the comment `databaseId` from GraphQL = comment `id` from REST.
+```text
+https://dev.azure.com/{organization}/{project}/_git/{repository}/pullrequest/{pullRequestId}
+```
 
-   **Edge cases:**
-   - **Outdated comments** (`position == null`): skip entirely.
-   - **Comments on deleted files:** check whether the file still exists with `git ls-files --error-unmatch {file_path}`. If it doesn't:
-     - Auto-mark the comment as skipped with `action: "file_deleted"` in the progress file.
-     - Queue a pending reply: "File was deleted in recent changes."
-     - Don't surface it in the interactive flow.
-     - Account for it in the final summary: "⊘ N comments auto-skipped (files deleted)".
-   - **Resolved with new activity:** if a thread's latest post is newer than `last_post_timestamp` in the progress file, re-surface it even if previously addressed.
+## Phase 2: Load and Reconcile Progress
 
-   **Processing:**
-   - Include the full conversation thread (root comment + all replies).
-   - Capture the timestamp of the most recent post in each thread.
-   - Group comments by file.
+### Step 1: Load Existing State
 
-4. **Create or update the progress file** at the working path with the reconciled state.
+If the progress file exists, upgrade it in memory to schema version 2.
 
-5. **Build a todo list for visible progress:** create one todo per unresolved comment (a short label like `src/auth.ts:42 — @reviewer`), in the order you'll process them. Mark the current comment **in progress** as you work it and **complete** when its decision is recorded. This gives the user a live overview alongside the persisted JSON. Comments auto-skipped for deleted files can be added as already-completed (or omitted) — don't make the user act on them.
+Legacy GitHub files have no `schema_version` or `provider`. Infer `provider: "github"` and add provider metadata without changing:
 
-6. **Detect new activity on resume:** for each thread, compare its latest post timestamp against `last_post_timestamp` in the progress file. If newer, re-prompt that comment even if it was previously addressed.
+- comment status
+- action
+- commit SHA
+- pending replies
+- last-post timestamp
 
-## Showing a Comment
+For a legacy GitHub comment, default `root_comment_id` and `thread_id` to its existing `id` when the richer values are unavailable.
 
-Process comments **one at a time**. For each pending comment, show the user a compact markdown block:
+### Step 2: Fetch Threads
 
-- A heading with the file path.
-- "Comment _n_ of _total_ in this file".
-- The line number and reviewer.
-- A markdown link to the comment (see URL rule below).
-- The thread, rendered as blockquotes — one quoted line per participant, in order.
-- The surrounding **code context** (see below).
+#### GitHub Adapter
 
-**URL rule:** wrap GitHub URLs in angle brackets (or use markdown link syntax) so underscores aren't interpreted as emphasis.
-- Comment: `<https://github.com/{owner}/{repo}/pull/{pr_number}#discussion_r{comment_id}>`
-- PR: `<https://github.com/{owner}/{repo}/pull/{pr_number}>`
+Fetch all review comments:
 
-### Showing code context
+```powershell
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" --paginate
+```
 
-Show the code around the commented line so the user understands it in place:
+Fetch review thread resolution through GraphQL. Paginate review threads beyond 100. Use the REST result to assemble the complete conversation and GraphQL `databaseId` values to map comments to `isResolved`.
 
-1. Identify the file, line, and `commit_id` from the comment metadata.
-2. Read the file **as of the comment's commit** when possible: `git show {commit_id}:{file_path}`. If that commit isn't available locally, read the current working-tree version instead and tell the user: "⚠️ Showing the current file; it may differ from when the comment was made."
-3. Show roughly **±5 lines** around the commented line.
-4. Render it as a **fenced code block** so it's syntax-highlighted, and clearly mark which line the comment is on — e.g. an arrow (`→`) on that line, or a one-line note ("comment is on line 42").
+A GitHub thread is unresolved when:
 
-Do **not** hand-align line numbers or build ASCII tables — read the file with your native tooling and let the code block format it.
+- the root comment's `position` is not `null`, and
+- GraphQL reports `isResolved: false`.
 
-## Processing a Comment
+Continue to exclude outdated comments (`position == null`) exactly as before.
 
-After showing the comment, **ask the user** — as a single-select question — how they want to handle it. Offer these options:
+#### Azure DevOps Adapter
 
-- **Fix it myself** — the user will make and commit the change, then continue.
-- **Auto-fix it** — you propose and apply the fix.
-- **Reply to the comment** — post a reply without a code change.
-- **Mark as done** — already fixed outside this command.
-- **Skip / defer** — leave it for a later pass.
+Fetch all PR threads:
 
-Then follow the matching flow below. (Comments on deleted files are handled automatically and never reach this step.)
+```powershell
+az devops invoke `
+  --organization "https://dev.azure.com/{organization}" `
+  --area git `
+  --resource pullRequestThreads `
+  --route-parameters `
+    project="{project}" `
+    repositoryId="{repository_id}" `
+    pullRequestId="{pr_number}" `
+  --api-version 7.1 `
+  --output json `
+  --only-show-errors
+```
 
-### Fix it myself
+The underlying route is:
 
-1. Record the current HEAD: `git rev-parse --short HEAD` → `before_sha`.
-2. Tell the user to make and commit their fix, and to let you know when they're ready to continue. Wait for them.
-3. When they return, check for uncommitted changes: `git status --porcelain`.
-   - If there are uncommitted changes, list them and **ask the user** (single-select):
-     - **Auto-commit with a semantic message** — analyze `git diff`, craft a semantic commit message, and commit. Then go to step 5 to record the commit.
-     - **I'll commit them myself** — wait until they confirm they've committed, then continue.
-     - **Continue without committing** — proceed without committing these changes.
-4. Check whether new commits exist: `git rev-parse --short HEAD` → `after_sha`. If `after_sha == before_sha`, **ask the user** whether to skip this comment (yes → mark skipped and move on; no → re-ask the handling question for this comment).
-5. Show the recent commits (`git log --oneline -10`) as a short markdown list, and **ask the user** which commit(s) address this comment. Accept a multi-select of the listed commits, explicit SHAs, or "none".
-6. Record in the progress file: mark the comment **completed**, store the selected commit SHA(s), and queue a pending reply: `"Fixed in <sha1>, <sha2>"` (or a single SHA). Mark its todo complete. Move on.
+```text
+{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads
+```
 
-### Auto-fix it
+Before status validation, skip a status-less thread only when it contains at least one comment and every `commentType` is `system` (or numeric value `3`). These are Azure DevOps event threads, not reviewer feedback. A status-less thread containing any non-system comment is an API compatibility error. Do not filter a user thread merely because it lacks file context.
 
-1. Analyze the comment together with the surrounding code.
-2. Propose the change and show it to the user — as a unified-diff fenced block, or by previewing the edit with your native tooling.
-3. **Ask the user** to approve (yes/no).
-   - **Approved:** edit the file, commit with a semantic message (describe *what* was fixed, not "from a PR comment"), record the commit SHA, queue a pending reply `"Fixed in <short_sha>"`, mark the comment completed and its todo complete, and move on.
-   - **Rejected:** leave the comment pending and **ask the user** again (single-select: Fix it myself / Mark as done / Skip), then follow that flow.
+Normalize one progress comment per remaining Azure DevOps thread:
 
-### Reply to the comment
+- `id` and `thread_id`: thread `id`
+- `root_comment_id`: the first root comment whose `parentCommentId` is `0`
+- `conversation`: every comment in chronological order, including IDs, parent IDs, author, content, type, deletion flag, and timestamps
+- `file`: `threadContext.filePath`, without a leading `/`, when present
+- `line`: prefer `rightFileStart.line`, then `leftFileStart.line`
+- `latest_post_timestamp`: newest comment `lastUpdatedDate` or `publishedDate`
+- `remote_unresolved`: whether the provider currently considers the thread actionable
+- `provider_metadata`: thread status, thread timestamps, and properties
 
-1. **Ask the user** for their reply text.
-2. Queue it in the comment's `pending_replies`.
-3. Mark the comment **replied** in the progress file. Move on.
+An actionable thread must contain an explicit root comment. If it has no comments or only replies with nonzero `parentCommentId`, stop with an actionable malformed-response error. Never substitute the first reply or `0` as the root ID.
 
-### Mark as done
+Azure DevOps API 7.1 defines these thread statuses:
 
-1. Mark the comment **completed** in the progress file (no pending reply — it was addressed outside this command).
-2. Mark its todo complete. Move on.
+- Unresolved: `active`, `pending`
+- Resolved: `fixed`, `wontFix`, `closed`, `byDesign`
 
-### Skip / defer
+The numeric equivalents are `1` through `6` in the same order:
+`active`, `fixed`, `wontFix`, `closed`, `byDesign`, `pending`.
 
-1. Mark the comment **pending** with `action: "deferred"` so it reappears next pass.
-2. Move on.
+Treat an unknown status as an API compatibility error. Never silently drop a thread with a status the command does not understand. See the official [CommentThreadStatus API documentation](https://learn.microsoft.com/rest/api/azure/devops/git/pull-request-threads/list?view=azure-devops-rest-7.1#commentthreadstatus).
 
-## Completion
+### Step 3: Reconcile Remote and Durable State
 
-When every comment has been processed, show a markdown summary:
+For each freshly fetched thread:
+
+1. Match GitHub state by root review-comment ID and Azure DevOps state by thread ID.
+2. Refresh remote metadata and the complete conversation.
+3. Preserve prior action, commit SHA, and queued replies.
+4. Compare the newest remote post with `last_post_timestamp`.
+5. If it is newer, set the item back to `pending` so it reappears, even when it was previously completed or the remote thread now has a resolved status.
+6. Retain progress entries absent from the fresh unresolved set so queued replies and history are not lost.
+
+Set `last_post_timestamp` to the latest observed remote post after reconciliation. A pending item still reappears after interruption even though its timestamp is current.
+
+### Step 4: Handle Deleted Files
+
+For a thread with file context, run:
+
+```powershell
+git ls-files --error-unmatch -- "{file_path}"
+```
+
+If the file no longer exists:
+
+- set `status: "skipped"` and `action: "file_deleted"`
+- queue `File was deleted in recent changes.`
+- do not present it in the interactive flow
+- count it separately in the final summary
+
+### Step 5: Persist and Build the Todo List
+
+Persist reconciled state before showing the first thread.
+
+Create one todo per actionable thread, such as
+`src/auth.ts:42 -- @reviewer`. Mark the current item in progress and complete it when its decision is durably recorded.
+
+## Phase 3: Show and Process One Thread at a Time
+
+### Showing a Thread
+
+For each pending thread, show:
+
+- file path
+- "Comment _n_ of _total_ in this file"
+- line and reviewer
+- provider-specific thread link
+- complete conversation as blockquotes
+- roughly five lines of code before and after the commented line
+
+Links:
+
+- GitHub thread:
+  `https://github.com/{owner}/{repo}/pull/{pr_number}#discussion_r{root_comment_id}`
+- Azure DevOps thread:
+  `https://dev.azure.com/{organization}/{project}/_git/{repository}/pullrequest/{pr_number}?discussionId={thread_id}`
+
+Use Markdown link syntax or angle brackets so special characters do not alter rendering.
+
+For code context, prefer the file at the comment's commit:
+
+```powershell
+git show "{commit_sha}:{file_path}"
+```
+
+If that commit is unavailable, show the current working-tree file and warn that it may differ from the commented version. Clearly identify the commented line in a syntax-highlighted code block.
+
+### Ask for a Decision
+
+Present a single-select question:
+
+- **Fix it myself**
+- **Auto-fix it**
+- **Reply to the comment**
+- **Mark as done**
+- **Skip / defer**
+
+### Fix It Myself
+
+1. Record `git rev-parse --short HEAD` as `before_sha`.
+2. Wait for the user to make the fix.
+3. On return, run `git status --porcelain`.
+4. If changes are uncommitted, ask whether to auto-commit with a semantic message, wait for the user to commit, or continue without committing.
+5. Compare HEAD with `before_sha`. If unchanged, ask whether to skip or choose another action.
+6. Show `git log --oneline -10` and let the user select the commit or commits that address the thread.
+7. Mark the item completed with `action: "fixed_by_user"` and persist.
+8. Queue the provider-specific fixed reply described below.
+
+### Auto-Fix It
+
+1. Analyze the full conversation and code context.
+2. Show the proposed diff.
+3. Ask for approval.
+4. If approved, apply the edit and make one semantic commit describing the code change.
+5. Record the commit, set `action: "auto_fixed"`, queue the fixed reply, persist, and complete the todo.
+6. If rejected, leave the item pending and ask the user to fix it, mark it done, or defer it.
+
+### Reply to the Comment
+
+1. Ask for reply text.
+2. Append it to `pending_replies`.
+3. Set `action: "replied"` and `status: "completed"`.
+4. Persist before moving on.
+
+### Mark as Done
+
+Set `status: "completed"` and `action: "marked_done"` without queuing a reply. Persist before moving on.
+
+### Skip or Defer
+
+Keep `status: "pending"` and set `action: "deferred"` so it reappears next time. Persist before moving on.
+
+### Provider-Specific Fixed Replies
+
+GitHub behavior remains:
+
+```text
+Fixed in abc1234
+```
+
+For Azure DevOps, resolve every selected short SHA locally:
+
+```powershell
+git rev-parse "abc1234^{commit}"
+```
+
+Require a full 40-character SHA, then queue a Markdown link:
+
+```text
+Fixed in [abc1234](https://dev.azure.com/{organization}/{project}/_git/{repository}/commit/{fullCommitSha})
+```
+
+For multiple commits, link each short SHA. Never construct an Azure DevOps commit URL from an unresolved short SHA.
+
+## Phase 4: Summarize and Request Confirmation
+
+After every thread has a recorded decision, determine the exact upstream push target:
+
+```powershell
+git for-each-ref `
+  --format='%(upstream:remotename)%09%(upstream:remoteref)' `
+  "refs/heads/{branch}"
+$pushUrl = git remote get-url --push "{remote_name}"
+$displayPushUrl = $pushUrl -replace '^(https?://)[^/]+@', '$1'
+```
+
+Verify the unredacted push URL in memory against `source_repository` and `source_repository_owner` for GitHub, or organization, project, and repository for Azure DevOps. Verify the upstream remote ref matches `source_branch`. Display and persist only `$displayPushUrl`. Do not substitute `origin`.
+
+Show:
 
 > **All comments processed**
 >
-> - ✓ N auto-fixed (M commits)
-> - ✓ N fixed by you (M commits)
-> - ✓ N marked done (no commits)
-> - ✓ N replies queued
-> - ⊘ N skipped/deferred
-> - ⊘ N auto-skipped (files deleted)
+> - Provider: GitHub or Azure DevOps
+> - Auto-fixed: N comments (M commits)
+> - Fixed by you: N comments (M commits)
+> - Marked done: N comments
+> - Replies queued: N
+> - Deferred: N
+> - Auto-skipped because files were deleted: N
+>
+> **Push target:** `{remote_name}/{remote_branch}`
+>
+> **Push URL:** `<exact push URL>`
 >
 > **Commits to push**
-> - `<sha>` — <message>
-> - …
+> - `<sha>` -- message
 >
 > **Replies to post:** N
 >
-> PR: <PR URL>
+> **PR:** <provider-specific PR URL>
 
-Then **ask the user** whether to push (yes/no).
+Ask one explicit confirmation: **Push these commits to the displayed remote and post the queued replies?**
 
-### If the user approves the push
+If declined, keep all state and remind the user that replies remain queued until a confirmed push through this command.
 
-1. Push: `git push`.
-2. For each comment with queued `pending_replies`, post each message as a reply (see [Post Reply to Comment](#post-reply-to-comment)). On success, remove that message from the array and save the progress file immediately. On failure, keep the message, log `"Failed to post reply to comment {comment_id}: {error}"`, and continue.
-3. Confirm in markdown:
+## Phase 5: Push and Post Queued Replies
 
-> ✓ Pushed N commits to `origin/<branch>`
-> ✓ Posted N replies _(✗ M failed — will retry next push, if any)_
->
-> PR #<number> is ready for re-review. Run this command again to pick up new comments.
+### Push
 
-### If the user declines
-
-- Keep the progress file (and all queued replies) intact so a later run can finish the job.
-- Remind the user: "Queued replies won't be posted until you push through this command."
-
-## Error Handling
-
-Fail fast with a clear, actionable message for:
-
-- No PR found for the current branch.
-- Branch not pushed to the remote.
-- `gh` not authenticated (`gh auth status`).
-- GitHub API failures (rate limit, network).
-- A corrupt or unreadable progress file.
-
-**Format:**
-
-> **Error:** <what went wrong>
->
-> <one concrete step to fix it>
-
-## Key Principles
-
-- **One comment at a time** — process sequentially, never batch.
-- **One commit per fix** — never bundle multiple fixes into a commit.
-- **Semantic commit messages** — describe what was fixed, not that it came from a PR comment.
-- **Minimal replies** — usually just "Fixed in <sha>".
-- **Resumable** — never delete the progress file; it powers cross-session resume and iterative reviews.
-- **Always re-fetch** — reconcile against current GitHub state on every run; re-prompt threads with new activity.
-- **Defer to the agent** — use your native question, todo, read, and edit capabilities rather than reinventing them in text.
-
-## PowerShell Text Safety
-
-**⚠️ Windows/PowerShell only.** Backticks (`` ` ``) in any text passed to `gh` are interpreted as PowerShell escape characters (`` `n ``, `` `r ``, …), silently mangling the posted text. This matters when posting reply bodies that contain user-provided text or code.
-
-When posting a reply via `gh api`, put the body in a PowerShell variable and pass it directly — **do not** use the `-f "body=@file"` syntax (PowerShell posts the literal file path):
+Use the displayed, verified target explicitly:
 
 ```powershell
-# ✅ GOOD
-$body = "Fixed in abc1234"
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" -f "body=$body" -F in_reply_to=$commentId
-
-# ⚠️ BAD — posts the literal path, not the file contents
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" -f "body=@$tempFile" -F in_reply_to=$commentId
+git push "{remote_name}" "HEAD:{remote_branch}"
 ```
 
-For `gh` subcommands that support `--body-file` (e.g. `gh pr comment`), writing the text to a UTF-8 temp file and passing `--body-file` is the safest route.
+If the push fails, stop. Do not post any replies.
 
----
+### Shared Posting Policy
 
-## GitHub CLI Reference
+Walk comments in stable order and replies in array order.
 
-### Fetch PR Review Comments
+For each reply:
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate
+1. Call the provider API.
+2. Parse the JSON response.
+3. Require a returned comment `id`.
+4. Remove only that successfully posted reply from `pending_replies`.
+5. Update `last_post_timestamp` from the response:
+   - GitHub: `created_at`
+   - Azure DevOps: `publishedDate`
+6. Persist progress immediately.
+7. Continue with the next reply.
+
+On API failure or a response without an ID:
+
+- keep the reply queued
+- report the thread and error
+- do not attempt later replies in the same thread, preserving their order
+- continue with the next thread
+
+If the remote post succeeds but progress persistence fails, stop immediately and clearly report that the reply may already exist remotely. Do not post anything else.
+
+### GitHub Posting Adapter
+
+Preserve the existing endpoint and behavior:
+
+```powershell
+$body = $reply
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" `
+  -X POST `
+  -f "body=$body" `
+  -F "in_reply_to={root_comment_id}"
 ```
 
-Use `--paginate` for PRs with 100+ comments.
+### Azure DevOps Posting Adapter
 
-**Key fields:** `id` (needed to post replies), `path`, `line`, `commit_id`, `body`, `created_at`, `position` (`null` ⇒ outdated), `user.login`, `in_reply_to_id`.
+The route is:
 
-Filter to comments still on the diff:
-
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate \
-  --jq '.[] | select(.position != null)'
+```text
+{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads/{threadId}/comments
 ```
 
-### Get Review Thread Resolution Status (GraphQL)
-
-```bash
-gh api graphql -F owner="{owner}" -F repo="{repo}" -F pr={pr_number} -F query=@- <<'EOF'
-query($owner: String!, $repo: String!, $pr: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
-        nodes {
-          id
-          isResolved
-          comments(first: 10) {
-            nodes {
-              databaseId
-              createdAt
-            }
-          }
-        }
-      }
-    }
-  }
-}
-EOF
-```
-
-- `databaseId` (GraphQL) corresponds to `id` (REST).
-- Exclude comments whose thread has `isResolved: true`.
-- For 100+ threads, page with the `after` cursor.
-
-### Post Reply to Comment
-
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  -X POST \
-  -f body="Fixed in abc123f" \
-  -F in_reply_to={comment_id}
-```
-
-On Windows, build `body` from a variable (see [PowerShell Text Safety](#powershell-text-safety)).
-
-### Get PR Details
-
-```bash
-gh pr view --json number,url,title,state
-```
-
----
-
-## Git Command Reference
-
-### Recent commits
-
-```bash
-git log --oneline -10
-```
-
-### Show a file at a specific commit
-
-```bash
-git show {commit_sha}:{file_path}
-```
-
-Returns the file contents as they existed in that commit — used to show code context that matches the comment.
-
-### Current branch
-
-```bash
-git rev-parse --abbrev-ref HEAD
-```
-
-### Current HEAD (short)
-
-```bash
-git rev-parse --short HEAD
-```
-
----
-
-## Progress File Schema
-
-The progress file (`{working_dir}/address-pr-comments/{owner}-{repo}/pr-{pr_number}.json`) tracks comment processing state across sessions.
+Create a unique temporary payload file containing:
 
 ```json
 {
-  "pr_number": 123,
-  "branch": "feature/add-auth",
-  "last_updated": "2025-11-08T14:30:00Z",
+  "content": "<reply>",
+  "parentCommentId": 1,
+  "commentType": 1
+}
+```
+
+Use the thread's actual `root_comment_id`, not the example value. Serialize with `ConvertTo-Json`, then write with .NET UTF-8 without BOM:
+
+```powershell
+$payload = [ordered]@{
+    content = $reply
+    parentCommentId = [int] $rootCommentId
+    commentType = 1
+} | ConvertTo-Json -Compress
+
+[IO.File]::WriteAllText(
+    $payloadPath,
+    $payload,
+    [Text.UTF8Encoding]::new($false)
+)
+```
+
+Post:
+
+```powershell
+az devops invoke `
+  --organization "https://dev.azure.com/{organization}" `
+  --area git `
+  --resource pullRequestThreadComments `
+  --route-parameters `
+    project="{project}" `
+    repositoryId="{repository_id}" `
+    pullRequestId="{pr_number}" `
+    threadId="{thread_id}" `
+  --api-version 7.1 `
+  --http-method POST `
+  --in-file "$payloadPath" `
+  --encoding utf-8 `
+  --output json `
+  --only-show-errors
+```
+
+Delete only the unique payload file after the call. Surface API and cleanup errors; do not silently continue.
+
+### Completion Message
+
+Report:
+
+> ✓ Pushed N commits to `{remote_name}/{remote_branch}`
+>
+> ✓ Posted N replies
+>
+> ✗ M replies failed and remain queued
+>
+> **Provider:** GitHub or Azure DevOps
+>
+> **PR:** <provider-specific PR URL>
+
+## Error Handling
+
+Fail fast with this format:
+
+> **Error:** What went wrong
+>
+> One concrete step to fix it
+
+Cover these cases:
+
+- unsupported or ambiguous remote
+- branch has no upstream or has not been pushed
+- no PR for the current branch
+- multiple Azure DevOps PR matches
+- missing `gh`
+- unauthenticated `gh`
+- GitHub REST or GraphQL failure
+- missing `az`
+- missing `azure-devops` extension
+- unauthenticated Azure CLI or PAT
+- missing organization or project defaults when the remote cannot supply them
+- Azure DevOps repository or PR not found
+- Azure DevOps API failure
+- unknown Azure DevOps thread status
+- malformed API response
+- corrupt or unreadable progress state
+- progress persistence failure
+- push remote or branch does not match the PR source
+
+Never turn an error into empty comments, an empty queue, or a success-shaped result.
+
+## PowerShell Text Safety
+
+### GitHub
+
+Backticks in inline arguments can be interpreted as PowerShell escapes. For the GitHub review-reply endpoint, keep the reply in a variable:
+
+```powershell
+$body = $reply
+gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments" `
+  -X POST `
+  -f "body=$body" `
+  -F "in_reply_to={root_comment_id}"
+```
+
+Do not use `-f "body=@$tempFile"`; it can post the literal path.
+
+For `gh` subcommands that support `--body-file`, a unique UTF-8 temporary file is safest.
+
+### Azure DevOps
+
+Never interpolate user-provided reply text into an `az devops invoke` command line. Serialize the JSON payload and pass it through `--in-file`.
+
+Use UTF-8 without BOM so Markdown, backticks, and non-ASCII text survive unchanged. Use a unique file inside the working directory or system temp directory and delete only that file.
+
+## Progress File Schema
+
+Schema version 2:
+
+```json
+{
+  "schema_version": 2,
+  "provider": "azure-devops",
+  "organization": "dnceng",
+  "project": "internal",
+  "repository": "build-duty",
+  "repository_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "pr_number": 731,
+  "pr_url": "https://dev.azure.com/dnceng/internal/_git/build-duty/pullrequest/731",
+  "branch": "feature/review-fixes",
+  "source_branch": "feature/review-fixes",
+  "source_repository": "build-duty",
+  "source_repository_owner": "dnceng",
+  "remote_name": "upstream",
+  "remote_url": "https://dev.azure.com/dnceng/internal/_git/build-duty",
+  "last_updated": "2026-08-18T15:00:00Z",
   "comments": [
     {
-      "id": "123456789",
-      "file": "src/auth.ts",
-      "line": 42,
+      "id": "41",
+      "provider": "azure-devops",
+      "thread_id": "41",
+      "root_comment_id": "1",
+      "file": "src/Widget.cs",
+      "line": 12,
       "status": "completed",
-      "commit_sha": "abc123f",
+      "remote_unresolved": true,
+      "commit_sha": "abc1234",
       "action": "auto_fixed",
-      "pending_replies": ["Fixed in abc123f"],
-      "last_post_timestamp": "2025-11-07T21:48:42Z"
-    },
-    {
-      "id": "234567890",
-      "file": "src/utils.ts",
-      "line": 15,
-      "status": "pending",
-      "commit_sha": null,
-      "action": null,
-      "pending_replies": [],
-      "last_post_timestamp": "2025-11-08T10:15:30Z"
+      "pending_replies": [
+        "Fixed in [abc1234](https://dev.azure.com/dnceng/internal/_git/build-duty/commit/abcdef0123456789abcdef0123456789abcdef01)"
+      ],
+      "last_post_timestamp": "2026-08-18T14:30:00Z",
+      "conversation": [
+        {
+          "id": "1",
+          "parent_comment_id": "0",
+          "author": "Reviewer",
+          "content": "Please validate this input.",
+          "published_date": "2026-08-18T14:30:00Z"
+        }
+      ],
+      "provider_metadata": {
+        "status": "active"
+      }
     }
   ]
 }
 ```
 
-**Field definitions:**
+Valid workflow values:
 
-- `pr_number` (number): PR number.
-- `branch` (string): git branch name.
-- `last_updated` (ISO 8601): when the file was last written.
-- `comments` (array):
-  - `id` (string): comment ID from the GitHub API.
-  - `file` (string): path relative to the repo root.
-  - `line` (number): line number in the file.
-  - `status` (enum): `"pending"` | `"completed"` | `"skipped"`.
-  - `commit_sha` (string | null): short SHA(s) of the commit(s) addressing the comment.
-  - `action` (enum | null): `"auto_fixed"` | `"fixed_by_user"` | `"marked_done"` | `"deferred"` | `"replied"` | `"file_deleted"`.
-  - `pending_replies` (array of strings): reply messages to post on the next push.
-  - `last_post_timestamp` (ISO 8601): timestamp of the most recent post in the thread (used to detect new activity).
+- `status`: `pending`, `completed`, `skipped`
+- `action`: `auto_fixed`, `fixed_by_user`, `marked_done`, `deferred`, `replied`, `file_deleted`, or `null`
+
+Provider identifiers are strings because GitHub uses review-comment IDs while Azure DevOps uses separate thread and comment IDs.

@@ -1,0 +1,19 @@
+{
+  "pr_number": 123,
+  "branch": "feature/add-auth",
+  "last_updated": "2025-11-08T14:30:00Z",
+  "comments": [
+    {
+      "id": "123456789",
+      "file": "src/auth.ts",
+      "line": 42,
+      "status": "completed",
+      "commit_sha": "abc123f",
+      "action": "auto_fixed",
+      "pending_replies": [
+        "Fixed in abc123f"
+      ],
+      "last_post_timestamp": "2025-11-07T21:48:42Z"
+    }
+  ]
+}

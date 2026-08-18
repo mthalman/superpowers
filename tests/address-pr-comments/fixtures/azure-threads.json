@@ -1,0 +1,72 @@
+{
+  "count": 3,
+  "value": [
+    {
+      "id": 41,
+      "status": "active",
+      "publishedDate": "2026-08-17T13:00:00Z",
+      "threadContext": {
+        "filePath": "/src/Widget.cs",
+        "rightFileStart": {
+          "line": 12,
+          "offset": 1
+        }
+      },
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": {
+            "displayName": "Reviewer"
+          },
+          "content": "Please validate this input.",
+          "publishedDate": "2026-08-17T12:00:00Z",
+          "commentType": "text"
+        },
+        {
+          "id": 2,
+          "parentCommentId": 1,
+          "author": {
+            "displayName": "Author"
+          },
+          "content": "I will update it.",
+          "publishedDate": "2026-08-17T13:00:00Z",
+          "commentType": "text"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "status": "fixed",
+      "publishedDate": "2026-08-16T10:00:00Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": {
+            "displayName": "Reviewer"
+          },
+          "content": "Already addressed.",
+          "publishedDate": "2026-08-16T10:00:00Z",
+          "commentType": "text"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "publishedDate": "2026-08-16T09:00:00Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": {
+            "displayName": "Azure DevOps"
+          },
+          "content": "The pull request was updated.",
+          "publishedDate": "2026-08-16T09:00:00Z",
+          "commentType": "system"
+        }
+      ]
+    }
+  ]
+}
