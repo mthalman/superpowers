@@ -35,7 +35,7 @@ Render user-facing output as clean Markdown. Use provider-specific terminology o
 
 ## Tested Support Helpers
 
-The repository includes `scripts/address-pr-comments-support.psm1`, a deterministic reference implementation for:
+The installed plugin includes the [support module](../scripts/address-pr-comments-support.psm1), a deterministic implementation for:
 
 - GitHub and Azure DevOps remote detection
 - Azure DevOps PR parsing and link generation
@@ -45,7 +45,26 @@ The repository includes `scripts/address-pr-comments-support.psm1`, a determinis
 - Azure DevOps UTF-8 reply payloads and `az devops invoke` arguments
 - sequential reply posting with per-success persistence
 
-Use these helpers when the module is available. Otherwise apply the same contracts directly. Do not replace provider-neutral workflow decisions with duplicated provider-specific flows.
+Resolve and import this module before starting the workflow. Never resolve the module relative to the user repository.
+
+In Claude Code, use its literal plugin-root substitution. Do not use `$env:CLAUDE_PLUGIN_ROOT`; Claude Code expands `${CLAUDE_PLUGIN_ROOT}` in plugin command Markdown without creating a shell environment variable:
+
+```powershell
+$modulePath = Join-Path '${CLAUDE_PLUGIN_ROOT}' 'scripts/address-pr-comments-support.psm1'
+```
+
+In another host, use the exact absolute path that the loaded command context supplies for the linked support module above. Bind that supplied path directly to `$modulePath`; do not infer it from the shell working directory.
+
+Require the resolved path to exist, then import it:
+
+```powershell
+if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
+    throw "Address PR comments support module was not found at '$modulePath'. Reinstall or update the superpowers plugin."
+}
+Import-Module $modulePath -Force
+```
+
+If the host does not expose the linked module as a related file, stop with an actionable error. Do not fall back to reimplementing the tested provider logic.
 
 ## Progress State
 
@@ -61,6 +80,8 @@ Use these relative paths:
 Sanitize path-key segments by replacing characters outside `[A-Za-z0-9._-]` with `-`.
 
 Read JSON with strict error handling. A missing file starts a new session; malformed or unreadable JSON is an error, not a reason to silently reset state.
+
+Normalize a JSON `null` comment collection or `pending_replies` value to an empty array. Never treat a null collection entry as a thread or reply, and never post an empty reply created from malformed state.
 
 Persist atomically:
 

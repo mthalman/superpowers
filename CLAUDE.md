@@ -38,6 +38,8 @@ Azure DevOps API 7.1 thread status `unknown` is non-actionable; `active` and `pe
 
 Status-less Azure DevOps threads are ignored only when all comments are system comments. Actionable threads require an explicit root comment with `parentCommentId: 0`. Remote URLs are credential-redacted before persistence or display, and PR source branches come from the upstream remote ref rather than the local branch name.
 
+The command imports its support module from the installed plugin root (literal `${CLAUDE_PLUGIN_ROOT}` substitution in Claude Code) or the absolute linked-module path supplied by another host, never from the user repository. Null comment or reply collections normalize to empty arrays, and successful reply responses add or update `last_post_timestamp` before progress is persisted.
+
 Run the focused suite:
 
 ```powershell

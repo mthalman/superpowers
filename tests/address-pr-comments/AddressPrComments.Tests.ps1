@@ -9,6 +9,7 @@
 BeforeAll {
     $script:RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:ModulePath = Join-Path $RepoRoot 'scripts' 'address-pr-comments-support.psm1'
+    $script:CommandPath = Join-Path $RepoRoot 'commands' 'address-pr-comments.md'
     $script:Fixtures = Join-Path $PSScriptRoot 'fixtures'
     Import-Module $ModulePath -Force
 }
@@ -422,6 +423,37 @@ Describe 'Progress schema and resume' {
 
         $result.pr_number | Should -Be 731
     }
+
+    It 'normalizes a null pending reply queue to an empty array' {
+        $existing = [pscustomobject]@{
+            comments = @(
+                [pscustomobject]@{
+                    id = '123456789'
+                    pending_replies = $null
+                }
+            )
+        }
+
+        $result = Merge-AddressPrProgress `
+            -Existing $existing `
+            -Metadata $GitHubMetadata `
+            -FreshComments @()
+
+        @($result.comments[0].pending_replies).Count | Should -Be 0
+    }
+
+    It 'treats null fresh and existing comment collections as empty' {
+        $freshResult = Merge-AddressPrProgress `
+            -Metadata $GitHubMetadata `
+            -FreshComments $null
+        $existingResult = Merge-AddressPrProgress `
+            -Existing ([pscustomobject]@{ comments = $null }) `
+            -Metadata $GitHubMetadata `
+            -FreshComments @()
+
+        @($freshResult.comments).Count | Should -Be 0
+        @($existingResult.comments).Count | Should -Be 0
+    }
 }
 
 Describe 'Commit reply formatting' {
@@ -489,6 +521,68 @@ Describe 'Azure DevOps reply invocation' {
 }
 
 Describe 'Invoke-AddressPrPendingReplies' {
+    It 'does not post a null pending reply' {
+        $progress = [pscustomobject]@{
+            comments = @(
+                [pscustomobject]@{
+                    id = '41'
+                    thread_id = '41'
+                    root_comment_id = '1'
+                    pending_replies = $null
+                }
+            )
+        }
+        $script:postCount = 0
+        $post = {
+            param($comment, $reply)
+            $script:postCount++
+            return [pscustomobject]@{ id = 100 }
+        }
+        $save = { param($state) }
+
+        $result = Invoke-AddressPrPendingReplies `
+            -Progress $progress `
+            -PostReply $post `
+            -SaveProgress $save
+
+        $postCount | Should -Be 0
+        $result.PostedCount | Should -Be 0
+        @($result.Failures).Count | Should -Be 0
+    }
+
+    It 'adds the post timestamp when the progress comment lacks that property' {
+        $progress = [pscustomobject]@{
+            comments = @(
+                [pscustomobject]@{
+                    id = '41'
+                    thread_id = '41'
+                    root_comment_id = '1'
+                    pending_replies = @('reply')
+                }
+            )
+        }
+        $post = {
+            param($comment, $reply)
+            return [pscustomobject]@{
+                id = 100
+                publishedDate = '2026-08-17T13:00:00Z'
+            }
+        }
+        $script:saveCount = 0
+        $save = { param($state) $script:saveCount++ }
+
+        $result = Invoke-AddressPrPendingReplies `
+            -Progress $progress `
+            -PostReply $post `
+            -SaveProgress $save
+
+        $result.PostedCount | Should -Be 1
+        $saveCount | Should -Be 1
+        @($progress.comments[0].pending_replies).Count | Should -Be 0
+        $progress.comments[0].last_post_timestamp |
+            Should -Be '2026-08-17T13:00:00.0000000Z'
+    }
+
     It 'persists immediately after each successful reply' {
         $progress = [pscustomobject]@{
             comments = @(
@@ -594,5 +688,51 @@ Describe 'Invoke-AddressPrPendingReplies' {
         $result.PostedCount | Should -Be 0
         @($result.Failures).Count | Should -Be 1
         $progress.comments[0].pending_replies | Should -Contain 'keep me'
+    }
+}
+
+Describe 'Command integration' {
+    It 'resolves and imports the support module from the installed plugin root' {
+        $content = Get-Content -LiteralPath $CommandPath -Raw
+
+        $assignmentMatch = [regex]::Match(
+            $content,
+            '(?ms)```powershell\s*(?<assignment>\$modulePath\s*=\s*' +
+                'Join-Path\s+''\$\{CLAUDE_PLUGIN_ROOT\}''\s+' +
+                '''scripts/address-pr-comments-support\.psm1'')\s*```'
+        )
+        $assignmentMatch.Success | Should -BeTrue
+        $assignment = $assignmentMatch.Groups['assignment'].Value.Replace(
+            '${CLAUDE_PLUGIN_ROOT}',
+            $RepoRoot.Replace("'", "''")
+        )
+
+        Push-Location $TestDrive
+        try {
+            $resolvedModulePath = & ([scriptblock]::Create(
+                "$assignment; `$modulePath"
+            ))
+            $module = Import-Module $resolvedModulePath -Force -PassThru
+        }
+        finally {
+            Pop-Location
+        }
+
+        $content | Should -Match 'Never resolve the module relative to the user repository'
+        $claudeModulePath = Join-Path $RepoRoot 'scripts/address-pr-comments-support.psm1'
+        $resolvedModulePath | Should -Be $claudeModulePath
+        Test-Path -LiteralPath $claudeModulePath -PathType Leaf | Should -BeTrue
+        $module.Name | Should -Be 'address-pr-comments-support'
+
+        $linkMatch = [regex]::Match(
+            $content,
+            '\[support module\]\((?<path>[^)]+)\)'
+        )
+        $linkMatch.Success | Should -BeTrue
+        $linkedModulePath = [IO.Path]::GetFullPath(
+            (Join-Path (Split-Path -Parent $CommandPath) $linkMatch.Groups['path'].Value)
+        )
+        $linkedModulePath | Should -Be $claudeModulePath
+        Test-Path -LiteralPath $linkedModulePath -PathType Leaf | Should -BeTrue
     }
 }

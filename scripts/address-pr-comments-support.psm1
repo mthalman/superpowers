@@ -62,6 +62,12 @@ function ConvertTo-AddressPrSafeKey {
     return [regex]::Replace($Value, '[^A-Za-z0-9._-]', '-')
 }
 
+function Get-AddressPrNonNullItems {
+    param([AllowNull()] [object] $Value)
+
+    return @($Value) | Where-Object { $null -ne $_ }
+}
+
 function Remove-AddressPrRemoteCredentials {
     param([Parameter(Mandatory)] [string] $RemoteUrl)
 
@@ -219,7 +225,9 @@ function Test-AddressPrThreadUnresolved {
 
     $rawStatus = Get-AddressPrPropertyValue -InputObject $Thread -Names 'status'
     if ($null -eq $rawStatus -or [string]::IsNullOrWhiteSpace([string] $rawStatus)) {
-        $comments = @(Get-AddressPrPropertyValue -InputObject $Thread -Names 'comments' -Default @())
+        $comments = @(Get-AddressPrNonNullItems (
+            Get-AddressPrPropertyValue -InputObject $Thread -Names 'comments' -Default @()
+        ))
         $nonSystemComments = @($comments | Where-Object {
             $commentType = Get-AddressPrPropertyValue -InputObject $_ -Names 'commentType'
             $commentType -ne 3 -and ([string] $commentType).ToLowerInvariant() -ne 'system'
@@ -422,7 +430,7 @@ function ConvertTo-AddressPrCommentState {
     if (-not $data.Contains('commit_sha')) { $data.commit_sha = $null }
     if (-not $data.Contains('action')) { $data.action = $null }
     $pendingReplies = Get-AddressPrPropertyValue -InputObject $Comment -Names 'pending_replies' -Default @()
-    $data.pending_replies = @($pendingReplies)
+    $data.pending_replies = @(Get-AddressPrNonNullItems $pendingReplies)
     if (-not $data.Contains('last_post_timestamp')) {
         $data.last_post_timestamp = ConvertTo-AddressPrIsoTimestamp (
             Get-AddressPrPropertyValue -InputObject $Comment -Names 'latest_post_timestamp'
@@ -501,7 +509,9 @@ function Merge-AddressPrProgress {
     $existingById = @{}
     $existingOrder = New-Object System.Collections.Generic.List[string]
     if ($null -ne $Existing) {
-        $existingComments = @(Get-AddressPrPropertyValue -InputObject $Existing -Names 'comments' -Default @())
+        $existingComments = @(Get-AddressPrNonNullItems (
+            Get-AddressPrPropertyValue -InputObject $Existing -Names 'comments' -Default @()
+        ))
         foreach ($comment in $existingComments) {
             $normalized = ConvertTo-AddressPrCommentState -Comment $comment -Provider $provider
             $key = Get-AddressPrCommentKey -Comment $normalized -Provider $provider
@@ -512,7 +522,7 @@ function Merge-AddressPrProgress {
 
     $mergedComments = New-Object System.Collections.Generic.List[object]
     $freshIds = @{}
-    foreach ($freshComment in @($FreshComments)) {
+    foreach ($freshComment in @(Get-AddressPrNonNullItems $FreshComments)) {
         $fresh = ConvertTo-AddressPrCommentState -Comment $freshComment -Provider $provider
         $key = Get-AddressPrCommentKey -Comment $fresh -Provider $provider
         $freshIds[$key] = $true
@@ -692,10 +702,14 @@ function Invoke-AddressPrPendingReplies {
 
     $postedCount = 0
     $failures = New-Object System.Collections.Generic.List[object]
-    $comments = @(Get-AddressPrPropertyValue -InputObject $Progress -Names 'comments' -Default @())
+    $comments = @(Get-AddressPrNonNullItems (
+        Get-AddressPrPropertyValue -InputObject $Progress -Names 'comments' -Default @()
+    ))
 
     foreach ($comment in $comments) {
-        $replies = @(Get-AddressPrPropertyValue -InputObject $comment -Names 'pending_replies' -Default @())
+        $replies = @(Get-AddressPrNonNullItems (
+            Get-AddressPrPropertyValue -InputObject $comment -Names 'pending_replies' -Default @()
+        ))
         foreach ($reply in $replies) {
             try {
                 $response = & $PostReply $comment $reply
@@ -719,7 +733,9 @@ function Invoke-AddressPrPendingReplies {
                 break
             }
 
-            $currentReplies = @(Get-AddressPrPropertyValue -InputObject $comment -Names 'pending_replies' -Default @())
+            $currentReplies = @(Get-AddressPrNonNullItems (
+                Get-AddressPrPropertyValue -InputObject $comment -Names 'pending_replies' -Default @()
+            ))
             if ($currentReplies.Count -le 1) {
                 $comment.pending_replies = @()
             }
@@ -731,7 +747,10 @@ function Invoke-AddressPrPendingReplies {
                 -InputObject $response `
                 -Names 'publishedDate', 'created_at', 'createdAt'
             if ($publishedDate) {
-                $comment.last_post_timestamp = ConvertTo-AddressPrIsoTimestamp $publishedDate
+                $comment | Add-Member `
+                    -NotePropertyName last_post_timestamp `
+                    -NotePropertyValue (ConvertTo-AddressPrIsoTimestamp $publishedDate) `
+                    -Force
             }
 
             try {
