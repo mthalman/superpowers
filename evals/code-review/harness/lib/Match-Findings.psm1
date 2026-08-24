@@ -148,6 +148,7 @@ function Get-VerdictRank {
     [CmdletBinding()]
     param([string] $Verdict)
     switch ($Verdict) {
+        'review_incomplete'  { return -1 }
         'lgtm'               { return 0 }
         'needs_human_review' { return 1 }
         'needs_changes'      { return 2 }
@@ -268,7 +269,9 @@ function Invoke-DetectionScore {
     # Verdict floor
     $verdictGateViolation = $false
     $verdictGateReason = $null
-    if ($Expected.PSObject.Properties.Name -contains 'expected_verdict_at_least' -and $Expected.expected_verdict_at_least) {
+    $expectedVerdictFloor = if ($Expected.PSObject.Properties.Name -contains 'expected_verdict_at_least') { $Expected.expected_verdict_at_least } else { $null }
+    $verdictGateScored = [bool]$expectedVerdictFloor
+    if ($expectedVerdictFloor) {
         $floor = Get-VerdictRank $Expected.expected_verdict_at_least
         $got   = Get-VerdictRank $Review.Verdict
         if ($got -lt $floor) {
@@ -319,7 +322,8 @@ function Invoke-DetectionScore {
         }
         Verdict = [PSCustomObject]@{
             Produced       = $Review.Verdict
-            ExpectedFloor  = if ($Expected.PSObject.Properties.Name -contains 'expected_verdict_at_least') { $Expected.expected_verdict_at_least } else { $null }
+            ExpectedFloor  = $expectedVerdictFloor
+            Scored         = $verdictGateScored
             Violation      = $verdictGateViolation
             Reason         = $verdictGateReason
         }

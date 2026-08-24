@@ -67,6 +67,234 @@ The `fetch` call at `src/fetch.ts:44` uses `req.query.url` without any host vali
         }
     }
 
+    Context 'review incomplete verdict' {
+        It 'parses Review Incomplete as a non-approval outcome' {
+            $md = "## Review`n**Summary**: ⏸️ Review Incomplete. Missing runtime evidence for the new retry path after attempting targeted tests."
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'review_incomplete'
+        }
+
+        It 'does not treat prose mention of Review Incomplete as the verdict' {
+            $md = "## Review`n**Summary**: Needs Changes. The parser must recognize Review Incomplete when it is the declared outcome."
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'needs_changes'
+        }
+
+        It 'does not classify line-leading prose as Review Incomplete when no Summary line is present' {
+            $md = @'
+## Review
+
+Review Incomplete is mentioned here as prose about the parser output contract, not as a declared verdict.
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'does not classify incidental prose as Review Incomplete when no Summary line is present' {
+            $md = @'
+## Review
+
+I attempted the targeted repro and saw a runtime timeout, but the rest of the review is only commentary about the patch. This is just incidental prose mentioning Review Incomplete in passing.
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+    }
+
+    Context 'explicit Summary/Verdict declarations' {
+        It 'parses legacy Verdict labels as a fallback when Summary is absent' {
+            $md = @'
+## Review
+
+**Verdict:** LGTM
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'lgtm'
+        }
+
+        It 'parses plain Summary labels outside code blocks' {
+            $md = @'
+## Review
+
+Summary: LGTM
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'lgtm'
+        }
+
+        It 'parses positive icon Summary labels outside code blocks' {
+            $md = @'
+## Review
+
+Summary: ✅ LGTM
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'lgtm'
+        }
+
+        It 'does not skip punctuation before a declared outcome' {
+            $md = @'
+## Review
+
+Summary: `LGTM` is only an example; Needs Changes is the outcome.
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations under Detailed Findings' {
+            $md = @'
+## Review
+
+### Detailed Findings
+
+#### 💡 Tests — Add coverage
+
+Summary: LGTM
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations inside backtick fenced code blocks' {
+            $md = @'
+## Review
+
+```text
+Summary: LGTM
+```
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations inside HTML comments' {
+            $md = @'
+## Review
+
+<!--
+Summary: LGTM
+-->
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations inside single-line HTML comments' {
+            $md = @'
+## Review
+
+<!-- Summary: LGTM -->
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations inside pre blocks' {
+            $md = @'
+## Review
+
+<pre>
+Summary: LGTM
+</pre>
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Summary declarations inside single-line pre blocks' {
+            $md = @'
+## Review
+
+<pre>Summary: LGTM</pre>
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'does not close a backtick fence on a marker with an info string' {
+            $md = @'
+## Review
+
+```
+```text
+Summary: Needs Changes
+```
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'does not close a backtick fence on a tab-indented marker' {
+            $fence = '```'
+            $md = "## Review`n`n${fence}text`n`t${fence}`nSummary: LGTM`n${fence}"
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores Verdict declarations inside tilde fenced code blocks' {
+            $md = @'
+## Review
+
+~~~markdown
+**Verdict:** Review Incomplete
+~~~
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'ignores indented Summary declarations as code' {
+            $md = @'
+## Review
+
+    Summary: Needs Changes
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'does not classify incidental Needs Changes prose when no Summary line is present' {
+            $md = @'
+## Review
+
+The harness documentation includes the phrase Needs Changes while explaining verdict examples, but this line is not a declaration.
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+
+        It 'does not classify a Summary whose declared value starts as prose before mentioning Needs Changes' {
+            $md = @'
+## Review
+
+Summary: I completed the parser audit and later mention Needs Changes only as an example outcome token.
+'@
+            $r = ConvertFrom-ReviewMarkdown -Markdown $md
+            $r.Parseable | Should -BeTrue
+            $r.Verdict | Should -Be 'unknown'
+        }
+    }
+
     Context 'severity icons stripped (text fallback)' {
         It 'still recognizes Error/Warning/Suggestion text' {
             $md = @'
@@ -236,6 +464,51 @@ The fetch at `src/fetch.ts:44` lacks SSRF protection.
         $r = ConvertFrom-ReviewMarkdown -Markdown $md
         $s = Invoke-DetectionScore -Review $r -Expected $exp
         $s.Verdict.Violation | Should -BeTrue
+    }
+
+    It 'ranks Review Incomplete below LGTM for verdict floors' {
+        (Get-VerdictRank 'review_incomplete') | Should -BeLessThan (Get-VerdictRank 'lgtm')
+    }
+
+    It 'flags valid Review Incomplete as a verdict floor violation' {
+        $exp = ($Expected | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+        $exp | Add-Member -NotePropertyName expected_verdict_at_least -NotePropertyValue 'needs_changes' -Force
+        $md = @'
+## 🤖 Code Review
+
+### Holistic Assessment
+
+**Motivation**: The fetch helper lacks enough runtime evidence to complete the security review.
+
+**Approach**: I traced the URL path and attempted the targeted SSRF regression test, but the test fixture could not run because the service dependency was unavailable.
+
+**Summary**: ⏸️ Review Incomplete. Missing material runtime evidence from the targeted SSRF regression test after attempting verification.
+
+### Detailed Findings
+'@
+        $r = ConvertFrom-ReviewMarkdown -Markdown $md
+        $r.Parseable | Should -BeTrue
+        $r.Verdict | Should -Be 'review_incomplete'
+        $s = Invoke-DetectionScore -Review $r -Expected $exp
+        $s.Verdict.Scored | Should -BeTrue
+        $s.Verdict.Violation | Should -BeTrue
+        $s.Verdict.Reason | Should -Be 'expected verdict >= needs_changes, got review_incomplete'
+    }
+
+    It 'flags bare Review Incomplete as a verdict floor violation' {
+        $exp = ($Expected | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+        $exp | Add-Member -NotePropertyName expected_verdict_at_least -NotePropertyValue 'needs_changes' -Force
+        $md = @'
+## Review
+
+**Summary**: Review Incomplete
+'@
+        $r = ConvertFrom-ReviewMarkdown -Markdown $md
+        $r.Verdict | Should -Be 'review_incomplete'
+        $s = Invoke-DetectionScore -Review $r -Expected $exp
+        $s.Verdict.Scored | Should -BeTrue
+        $s.Verdict.Violation | Should -BeTrue
+        $s.Verdict.Reason | Should -Be 'expected verdict >= needs_changes, got review_incomplete'
     }
 
     It 'does NOT count a location-overlapping finding with zero keyword overlap' {

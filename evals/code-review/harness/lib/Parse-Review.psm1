@@ -10,7 +10,7 @@
         Motivation     : string | $null
         Approach       : string | $null
         SummaryLine    : string | $null             # raw verdict line text
-        Verdict        : 'lgtm'|'needs_human_review'|'needs_changes'|'reject'|'unknown'
+        Verdict        : 'lgtm'|'needs_human_review'|'needs_changes'|'reject'|'review_incomplete'|'unknown'
         Findings       : Finding[]
         HasMultiModel  : bool                       # detected a 'Multi-Model' / 'Step 5' section
         MultiModelSkipDocumented : bool             # 'Multi-model review skipped: ...'
@@ -42,12 +42,35 @@ $ErrorActionPreference = 'Stop'
 
 function Get-VerdictFromSummary {
     [CmdletBinding()]
-    param([string] $SummaryLine)
+    param(
+        [string] $SummaryLine,
+        [switch] $DeclaredOutcomeOnly
+    )
 
     if (-not $SummaryLine) { return 'unknown' }
-    $t = $SummaryLine.ToLowerInvariant()
+    $text = $SummaryLine.Trim()
 
-    # Order matters: 'needs human review' must beat 'needs changes' before 'lgtm'
+    # Allow callers to pass either the raw declared value or a full
+    # Markdown Summary/Verdict line; in the latter case, strip the label first.
+    if ($text -match '^\s*(?:[-*+]\s*)?(?:\*\*)?(?:Summary|Verdict)(?:\*\*)?\s*[:\-]\s*(?:\*\*)?\s*(.*)$') {
+        $text = $matches[1].Trim()
+    }
+
+    $t = $text.ToLowerInvariant()
+
+    # Order matters: incomplete and human-review outcomes must beat other tokens.
+    if ($DeclaredOutcomeOnly) {
+        $declaredPrefix = '^\s*(?:(?:✅|⚠️?|❌|⏸️?)\s+)?'
+        if ($t -match "${declaredPrefix}(?:review[\s\-]?incomplete|incomplete[\s\-]?review)\b") { return 'review_incomplete' }
+        if ($t -match "${declaredPrefix}reject(?:ed|ion)?\b") { return 'reject' }
+        if ($t -match "${declaredPrefix}needs[\s\-]?human\b") { return 'needs_human_review' }
+        if ($t -match "${declaredPrefix}needs[\s\-]?changes\b") { return 'needs_changes' }
+        if ($t -match "${declaredPrefix}(?:lgtm|looks good to me|approved)\b") { return 'lgtm' }
+        return 'unknown'
+    }
+    if ($t -match 'review[\s\-]?incomplete|incomplete[\s\-]?review') {
+        return 'review_incomplete'
+    }
     if ($t -match 'reject')             { return 'reject' }
     if ($t -match 'needs[\s\-]?human')  { return 'needs_human_review' }
     if ($t -match 'needs[\s\-]?changes') { return 'needs_changes' }
@@ -137,6 +160,7 @@ function ConvertFrom-ReviewMarkdown {
     $motivation     = $null
     $approach       = $null
     $summaryLine    = $null
+    $verdictLine    = $null
     $findings       = New-Object System.Collections.Generic.List[object]
     $hasMultiModel  = $false
     $multiModelSkipDocumented = $false
@@ -147,6 +171,11 @@ function ConvertFrom-ReviewMarkdown {
     $section = 'preamble'
     $currentFindingHeading = $null
     $currentFindingBody    = New-Object System.Text.StringBuilder
+    $inFence = $false
+    $fenceChar = $null
+    $fenceLength = 0
+    $inHtmlComment = $false
+    $inPreBlock = $false
 
     function _FlushFinding {
         param($Heading, $Body, $List)
@@ -181,6 +210,94 @@ function ConvertFrom-ReviewMarkdown {
 
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
+        $isIndentedCode = $line -match '^(?: {4}|\t)'
+        if ($inFence) {
+            if ($section -eq 'findings' -and $currentFindingHeading) {
+                [void]$currentFindingBody.AppendLine($line)
+            }
+            elseif ($section -eq 'grill') {
+                [void]$grillContent.AppendLine($line)
+            }
+            $closingFencePattern = '^ {0,3}' + [regex]::Escape($fenceChar) + "{$fenceLength,}\s*$"
+            if ($line -match $closingFencePattern) {
+                $inFence = $false
+                $fenceChar = $null
+                $fenceLength = 0
+            }
+            continue
+        }
+
+        $fenceMatch = [regex]::Match($line, '^ {0,3}(?<marker>`{3,}|~{3,})(?<info>.*)$')
+        if ($fenceMatch.Success) {
+            $marker = $fenceMatch.Groups['marker'].Value
+            $fenceChar = $marker.Substring(0, 1)
+            $fenceLength = $marker.Length
+            $infoString = $fenceMatch.Groups['info'].Value
+            if ($fenceChar -eq '`' -and $infoString.Contains('`')) {
+                $fenceChar = $null
+                $fenceLength = 0
+            }
+            else {
+                if ($section -eq 'findings' -and $currentFindingHeading) {
+                    [void]$currentFindingBody.AppendLine($line)
+                }
+                elseif ($section -eq 'grill') {
+                    [void]$grillContent.AppendLine($line)
+                }
+
+                $inFence = $true
+                continue
+            }
+        }
+
+        $lineStartsHtmlComment = $line -match '(?i)<!--'
+        $lineEndsHtmlComment = $line -match '(?i)-->'
+        $lineStartsPreBlock = $line -match '(?i)<pre\b[^>]*>'
+        $lineEndsPreBlock = $line -match '(?i)</pre\s*>'
+
+        if ($inHtmlComment -or $inPreBlock) {
+            if ($section -eq 'findings' -and $currentFindingHeading) {
+                [void]$currentFindingBody.AppendLine($line)
+            }
+            elseif ($section -eq 'grill') {
+                [void]$grillContent.AppendLine($line)
+            }
+
+            if ($inHtmlComment -and $lineEndsHtmlComment) {
+                $inHtmlComment = $false
+            }
+            if ($inPreBlock -and $lineEndsPreBlock) {
+                $inPreBlock = $false
+            }
+            continue
+        }
+
+        if ($lineStartsHtmlComment -or $lineStartsPreBlock) {
+            if ($section -eq 'findings' -and $currentFindingHeading) {
+                [void]$currentFindingBody.AppendLine($line)
+            }
+            elseif ($section -eq 'grill') {
+                [void]$grillContent.AppendLine($line)
+            }
+
+            if ($lineStartsHtmlComment -and -not $lineEndsHtmlComment) {
+                $inHtmlComment = $true
+            }
+            if ($lineStartsPreBlock -and -not $lineEndsPreBlock) {
+                $inPreBlock = $true
+            }
+            continue
+        }
+
+        if ($section -in @('preamble','holistic') -and -not $isIndentedCode -and $line -match '^\s*(?:[-*+]\s*)?(?:\*\*)?(Summary|Verdict)(?:\*\*)?\s*[:\-]\s*(?:\*\*)?\s*(.*)$') {
+            $declaredValue = $matches[2].Trim()
+            if ($matches[1] -eq 'Summary') {
+                if (-not $summaryLine) { $summaryLine = $declaredValue }
+            }
+            else {
+                if (-not $verdictLine) { $verdictLine = $declaredValue }
+            }
+        }
 
         # Detect H2 'Code Review' title
         if ($line -match '^##\s+(?:🤖\s*)?(.+?)\s*$' -and -not $title) {
@@ -230,7 +347,7 @@ function ConvertFrom-ReviewMarkdown {
             continue
         }
 
-        # Within holistic / preamble, capture Motivation / Approach / Summary lines
+        # Within holistic / preamble, capture Motivation / Approach lines
         if ($section -in @('holistic','preamble','independent','reconcile','other')) {
             if ($line -match '^\s*\*\*Motivation\*\*\s*[:\-]\s*(.*)$') {
                 $motivation = $matches[1].Trim()
@@ -238,10 +355,6 @@ function ConvertFrom-ReviewMarkdown {
             }
             if ($line -match '^\s*\*\*Approach\*\*\s*[:\-]\s*(.*)$') {
                 $approach = $matches[1].Trim()
-                continue
-            }
-            if ($line -match '^\s*\*\*Summary\*\*\s*[:\-]\s*(.*)$') {
-                $summaryLine = $matches[1].Trim()
                 continue
             }
         }
@@ -263,17 +376,10 @@ function ConvertFrom-ReviewMarkdown {
         _FlushFinding -Heading $currentFindingHeading -Body $currentFindingBody -List $findings
     }
 
-    # If no explicit Summary line was found, scan whole text for verdict tokens.
     if (-not $summaryLine) {
-        $verdictMatch = [regex]::Match($Markdown, '(?im)^[\s\*]*Summary[\s\*]*[:\-]\s*(.+)$')
-        if ($verdictMatch.Success) { $summaryLine = $verdictMatch.Groups[1].Value.Trim() }
+        $summaryLine = $verdictLine
     }
-    $verdict = Get-VerdictFromSummary -SummaryLine $summaryLine
-
-    # If still unknown, fall back: search markdown for a verdict token.
-    if ($verdict -eq 'unknown') {
-        $verdict = Get-VerdictFromSummary -SummaryLine $Markdown
-    }
+    $verdict = Get-VerdictFromSummary -SummaryLine $summaryLine -DeclaredOutcomeOnly
 
     $grillText = $grillContent.ToString()
     $grillWords = if ($grillText.Trim()) { ($grillText -split '\s+' | Where-Object { $_ }).Count } else { 0 }

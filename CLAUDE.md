@@ -34,11 +34,26 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 
 Lives at `evals/code-review/`. Five evaluation dimensions are documented under `design/`; only **detection quality** has a runnable harness in v1.
 
-**Run the Pester unit tests** (24 tests cover parser, matcher, schema):
+### Evidence-based finding policy
+
+Build a broad evidence model before generating hypotheses; deepen research in
+high-risk areas; derive candidates from gaps or contradictions with verified
+contracts/invariants; then verify candidates again before output. Unresolved
+concerns may be non-material questions, but are not findings and cannot affect
+severity or verdict. Material evidence gaps make the review incomplete rather
+than an approval.
+
+**Run the Pester unit tests** (parser, matcher, schema):
 
 ```powershell
 cd evals/code-review/harness/tests
 Invoke-Pester -Path . -Output Detailed
+```
+
+**Run the targeted skill-guidance policy tests:**
+
+```powershell
+Invoke-Pester -Path evals/code-review/harness/tests/SkillGuidance.Tests.ps1 -Output Detailed
 ```
 
 **Run the detection eval end-to-end** against the bundled smoke adapter and worked fixtures:
@@ -231,4 +246,3 @@ Invoke-Pester -Path tests/dashboard/, tests/skill-eval/Dashboard.Tests.ps1 -Outp
 **Local smoke test the dashboard against fake data:** see the recipe in
 `dashboard/README.md`. Requires a real static server — `file://` won't
 work because browsers block local `fetch()`.
-

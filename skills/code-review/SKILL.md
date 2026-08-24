@@ -7,7 +7,7 @@ description: Use when analyzing code changes for correctness, performance, safet
 
 Review code changes for correctness, performance, safety, and consistency with established patterns. This skill provides the analytical framework — what to look for, how to evaluate it, and how to report findings.
 
-**Reviewer mindset:** Be polite but skeptical. Treat PR descriptions and linked issues as claims to verify, not facts to accept. Question stated direction, probe edge cases, and flag concerns even when unsure. A false approval is far worse than an unnecessary question.
+**Reviewer mindset:** Be polite, skeptical, and evidence-first. Build an evidence model before generating hypotheses: establish the relevant contracts, invariants, data flows, execution context, repository conventions, and documented behavior. Use discrepancies between that model and the change to discover potential issues, then verify each candidate. A concern becomes a finding only when evidence establishes both the behavior and its impact.
 
 ## Review Process
 
@@ -27,7 +27,7 @@ This phase is about **orientation, not analysis**. Resist the urge to start flag
    - Its place in the data and control flow — where does it sit in the pipeline?
 4. **Make connections explicit.** As you encounter each file, connect it to what you already understand. If file B implements an interface defined in file A, note that link. If file C consumes data produced by file D, trace the flow. If a change requires knowing about surrounding code that did not change, learn that context too.
 
-Only after you can articulate what this area of the codebase does and how the touched files fit together should you proceed to Step 1.
+Build this broad orientation before looking for bugs. It is the evidence base that will determine where risk exists and which hypotheses are worth generating; it is not merely background used to validate findings chosen later.
 
 ### Step 1: Gather Code Context
 
@@ -41,17 +41,23 @@ With a mental model of the codebase in place, collect the specific data points n
 6. **Git history**: Check recent commits to changed files (`git log --oneline -20 -- <file>`). Look for related changes, reverts, or prior fix attempts. This reveals whether the area is actively churning or whether a similar fix was tried and reverted.
 7. **Execution context**: If the changed code is invoked by CI/CD pipelines, build systems, or orchestration frameworks, find and read the invocation definitions (pipeline YAML, build scripts, task runners). Determine what runs before and after this code, what preconditions hold at the point this code executes, what data has been produced or transformed by prior steps, and what external state exists (registries, databases, caches) at invocation time.
 8. **Data producers**: For any data the changed code consumes, trace it back to its source. Don't assume properties of the data — verify by reading the producer code. Ask: who creates this data? What does it contain? What filtering or transformation has been applied before it reaches this code?
+9. **Reference documentation**: Identify authoritative reference documentation governing the language, framework, platform, protocol, and dependency behavior relevant to the changed paths. Establish version-specific and environment-specific contracts before generating hypotheses; do not wait for a suspected issue or rely on memory or training data.
+10. **Tests and runtime behavior**: Read the tests that define expected behavior and inspect existing logs, benchmarks, or runtime observations relevant to the changed paths. When the static model remains incomplete, run the smallest diagnostic command needed to establish the baseline behavior.
+11. **Risk-directed research**: From the broad evidence model, identify contract changes, context shifts, trust boundaries, concurrency, error paths, and undocumented assumptions. This is the risk map Step 2 consumes. Research those areas more deeply before generating candidate findings, with depth proportional to change risk, materiality, and uncertainty. Stop deepening when the relevant contracts and invariants are established with enough confidence to derive and test specific hypotheses.
 
-### Step 2: Form Independent Assessment
+### Step 2: Form an Evidence-Informed Independent Assessment
 
-Based **only** on code context (without PR description):
+Based only on the evidence model built in Steps 0-1 (without the PR description):
 
-1. **What does this change actually do?** Describe the behavioral change in your own words. What was the old behavior? What is the new behavior?
-2. **Why might it be needed?** Infer motivation from the code itself. What bug, gap, or improvement does it appear to address?
-3. **Is this the right approach?** Would a simpler alternative be more consistent with the codebase? Could existing functionality achieve the goal?
-4. **What problems do you see?** Identify bugs, edge cases, missing validation, safety issues, performance concerns, test gaps, and anything else that concerns you.
+1. **What does this change actually do?** Describe the old and new behavior using the traced control flow, data flow, tests, and documented contracts.
+2. **What contracts and invariants govern it?** Record the relevant caller expectations, producer guarantees, execution preconditions, repository conventions, and authoritative documented behavior.
+3. **Where is risk concentrated?** Consume the risk map from Step 1: changed contracts, context shifts, trust boundaries, concurrency, error paths, and assumptions that are not guaranteed by evidence. Use it to prioritize analysis; do not restart a second deepening pass.
+4. **Why is the change needed?** Identify the verified problem, gap, or user need that motivates the change. Distinguish evidence from inference: tests, logs, documentation, and observed behavior are evidence; inferred intent or inferred gaps are lower-confidence claims. If the need cannot be verified without the PR narrative, record that explicitly for Step 3 reconciliation.
+5. **Does the approach fit the verified need?** Assess whether the change addresses the problem at the right layer, is consistent with established contracts and repository patterns, and avoids simpler existing alternatives or APIs that already solve the need.
+6. **Generate hypotheses from discrepancies.** Compare the change against the verified contracts and invariants. Candidate bugs, edge cases, missing validation, safety issues, performance concerns, and test gaps should arise from concrete contradictions, gaps, or unsafe interactions—not generic bug-pattern matching.
+7. **Verify each hypothesis.** State what would prove or disprove it, gather that evidence, and follow confirmed behavior into callers and related paths to discover its full scope and any additional findings.
 
-Write down your independent assessment before proceeding.
+Keep a concise internal evidence ledger with the evidence model, risk-directed research, derived hypotheses, and verification results before proceeding. This ledger is working material, not a mandatory review-output section. Do not promote a hypothesis to a finding unless both its behavior and impact are verified.
 
 ### Step 3: Incorporate PR Narrative and Reconcile
 
@@ -64,34 +70,36 @@ Now read the PR description, linked issues, existing review comments, and author
 ### Step 4: Detailed Analysis
 
 1. **Focus on what matters.** Prioritize bugs, performance regressions, safety issues, race conditions, resource management, incorrect assumptions, and design problems. Do not comment on trivial style issues unless they violate an explicit project convention.
-2. **Consider collateral damage.** For every changed code path: what other scenarios, callers, or inputs flow through this code? Could any break or behave differently after this change? Surface plausible risks even if you can't fully confirm them — the tradeoff is the author's decision, your job is to make it visible.
-3. **Be specific and actionable.** Every comment should say exactly what to change and why. Include evidence of verification (e.g., "checked all callers — none validate this parameter").
+2. **Discover collateral damage from the evidence model.** For every changed code path, compare actual scenarios, callers, inputs, and downstream effects against the contracts and invariants established in Steps 0-2. Generate hypotheses from concrete discrepancies, then verify them. Follow verified effects to additional affected paths and findings.
+3. **Be specific, actionable, and traceable.** Every finding must say exactly what to change and why, and cite the evidence that verifies its causal claim and impact (for example, "checked all callers — none validate this parameter").
 4. **Don't pile on.** If the same issue appears many times, flag it once on the primary location with a note listing all affected files.
 5. **Respect existing style.** When modifying existing files, the file's current style takes precedence over general guidelines.
 6. **Don't flag what CI catches.** Skip issues that linters, compilers, formatters, or CI will catch automatically.
-7. **Avoid false positives.** Before flagging any issue:
-   - Verify the concern actually applies given the full context, not just the diff. Confirm the issue isn't already handled by a caller, callee, or wrapper layer.
+7. **Prevent false positives.** Before retaining any finding:
+   - Verify that the concern applies in full context, not just the diff. Confirm it is not handled by a caller, callee, wrapper, configuration, or documented platform guarantee.
    - Skip theoretical concerns with negligible real-world probability.
-   - If unsure, surface it as a low-confidence question rather than a firm claim. Every comment should be worth the reader's time.
-   - Trust the author's codebase knowledge. If a pattern seems odd but is consistent with the repo, assume it's intentional.
-   - Never assert that something "does not exist" or "is deprecated" based on training data alone. When uncertain, ask rather than assert.
+   - If available evidence cannot resolve the hypothesis, keep it out of findings. If the missing evidence is material to whether the change is correct or safe, the review is not ready for output: continue investigating. If the evidence cannot be obtained, explicitly state that the review is incomplete and do not issue an approval verdict; do not disguise the gap as a finding or use it to set severity. Only non-material gaps may become clearly labeled unresolved questions that state what is unknown and what evidence would resolve it.
+   - Treat repository consistency as evidence of intent, not proof of correctness. Investigate the pattern's contract before deciding.
+   - Never assert that something does not exist, is deprecated, or behaves a particular way based on training data alone. Verify it through authoritative documentation or repository/runtime evidence.
 8. **Ensure code suggestions are valid.** Any code you suggest must be syntactically correct and complete.
 9. **Label in-scope vs. follow-up.** Distinguish between issues the PR should fix and out-of-scope improvements that belong in a follow-up.
 10. **Context-shift analysis.** When code is moved from one execution context to another (e.g., from one pipeline stage to another, from sync to async, from one service to another), do not assume behavioral equivalence. Explicitly enumerate what changes: what steps have or haven't run before this code now, what external state (registries, databases, file system) differs, what data preconditions that held in the old context no longer hold, and whether the same code pattern produces different outcomes in the new context. Treat "same code, different context" as a high-risk area. The claim "this pattern already existed" is insufficient — verify that the pattern is still correct in the new execution environment.
 
 ### Step 5: Multi-Model Critique
 
-Run an adversarial review across multiple model families. Different models catch different classes of issues.
+Run an adversarial review across multiple model families when the review is merge-bound or high-risk. Different models catch different classes of issues.
 
-If you skip multi-model review for any reason — environment limitation, cost, time, or judgment — you MUST state this fact in the review output along with the reason (e.g., *"Multi-model review skipped: only one model family available in this environment."* or *"Multi-model review skipped: review is for exploratory draft code per author's request."*). Silent skips are not permitted.
+Step 5 is required for merge-bound reviews and high-risk changes, including security, data integrity, public APIs, concurrency, production infrastructure, migrations, build/release behavior, or broad blast-radius changes. It is optional only for low-risk standalone reviews or explicitly exploratory non-merge-bound code.
+
+Any skip must be disclosed in the review output with the reason (e.g., *"Multi-model review skipped: only one model family available in this environment."* or *"Multi-model review skipped: review is for exploratory draft code per author's request."*). Environment limitation is valid when required review cannot run; cost/time alone is not a valid exception for required cases. Silent skips are not permitted.
 
 **A confirmed finding does not justify skipping this step.** Confirming one bug tells you that bug is real; it tells you nothing about what else you missed. Coverage and finding-confidence are independent properties — do not conflate them.
 
 1. **Select models**: Pick one model from each distinct family (e.g., one Anthropic, one Google, one OpenAI). Use 2-4 models. Pick from models explicitly listed as available — highest capability tier, never "mini" or "fast." Don't select your own model.
 2. **Launch in parallel**: Give each agent the same review prompt (diff, review rules, severity format) and your independent assessment from Step 2.
-3. **Synthesize**: Deduplicate shared findings, elevate issues flagged by multiple models (higher confidence), include unique findings that meet the confidence bar. When models **disagree on severity**, use the higher severity but note the disagreement — the reviewer can downgrade with context the models lack. When models **contradict** each other (one says it's a bug, another says it's correct), present both perspectives and mark the finding as needing human judgment.
+3. **Synthesize**: Treat model outputs as candidate hypotheses. Agreement is a discovery/prioritization signal, not verification. Verify every shared or unique candidate independently using applicable code/data-flow, tests/runtime behavior, repository evidence, and authoritative reference docs. Contradictory or unsupported claims remain hypotheses; only non-material gaps may become unresolved questions. Do not use higher severity merely because models disagree.
 4. **Timeout handling**: If a sub-agent hasn't completed after 10 minutes and you have other results, proceed. Note which models contributed.
-5. **Carry into Step 6**: Step 6 (Grill) now operates on the synthesized findings, not your single-model findings alone. Note which findings came from which model so the grill can challenge each source.
+5. **Carry into Step 6**: Step 6 (Grill) now operates on the synthesized candidate set and verified findings, not your single-model assessment alone. Note which candidates came from which model so the grill can challenge each source.
 
 ### Step 6: Grill Your Assessment
 
@@ -100,7 +108,7 @@ Before producing the review output, interrogate your own assessment relentlessly
 Walk down each branch of your reasoning one question at a time, resolving each before moving to the next. **If a question can be answered by exploring the codebase, explore it instead of speculating.** Do not skim through these questions as a checklist — each one is meant to genuinely challenge what you've concluded.
 
 **Grill each finding:**
-- Have I actually verified this is a problem, or am I pattern-matching on what a bug usually looks like? What is the concrete evidence?
+- Have I actually verified the causal claim and stated impact, or am I pattern-matching on suspicious-looking code? What is the concrete evidence?
 - Could the author have a reason for this that I haven't considered? Is there context elsewhere in the codebase (a caller, a wrapper, a convention) that would justify it?
 - If this finding turned out to be wrong, what is the most likely reason? Have I ruled that reason out?
 - Is the severity honest, or am I inflating or deflating it to fit a desired verdict?
@@ -118,7 +126,7 @@ Walk down each branch of your reasoning one question at a time, resolving each b
 - Am I leaning toward "Needs Changes" to appear thorough, rather than because the findings warrant it?
 - Would I defend this verdict if every ⚠️/❌ finding turned out to be wrong? Would I defend it if a real bug surfaced post-merge in code I called clean?
 
-Resolve each question — do not just list them. If a question reveals a real gap, update the findings or verdict. If a question reveals overconfidence, downgrade severity or convert the finding to a question. If a question reveals you skipped a check, go do it now.
+Resolve each question in the internal evidence ledger — do not just list them. If a question reveals an evidence gap, investigate it using code/data-flow, tests/runtime behavior, repository evidence, or authoritative reference docs before producing output. If the gap is material to correctness, safety, or the independently supported verdict and the evidence cannot be obtained, explicitly state that the review is incomplete and do not issue an approval verdict. Candidates that remain unsupported after investigation must be removed from findings and may be recorded as unresolved questions only when they are non-material to the verdict and state a concrete verification path. Questions must not affect severity or verdict. If a question reveals you skipped a check, go do it now. The grill answers are working notes, not mandatory review-output sections.
 
 ---
 
@@ -128,10 +136,14 @@ Patterns that reliably produce bad reviews. If you catch yourself doing any of t
 
 - **Coverage-via-confirmation**: Finding one concrete bug and concluding the review is solid. Confirming a single issue says nothing about what you missed. Multi-model critique (Step 5) exists to address this; do not skip it on the strength of one finding.
 - **Self-grill substitution**: Treating Step 6 (your own interrogation) as a substitute for Step 5 (independent models). They serve different purposes — introspection cannot surface what you don't know you don't know.
-- **Effort-cost rationalization**: Skipping Step 5 because it would be slower, take more context, or cost more tokens. The skill requires it for merge-bound code; cost is not an approved exception. The only approved exceptions are environment limitation (no second model available) and explicitly-exploratory non-merge-bound code.
+- **Effort-cost rationalization**: Skipping Step 5 for required merge-bound or high-risk reviews because it would be slower, take more context, or cost more tokens. Environment limitation is valid when required review cannot run; cost/time alone is not a valid exception for required cases.
 - **Narrative anchoring**: Reading the PR description, issue, or author comments before Step 2 and then "independently" reaching the same conclusions. Once you've seen the framing, you cannot un-see it.
 - **Cleanliness bias**: Concluding LGTM because the diff is short, well-formatted, or matches familiar patterns — without verifying correctness against actual call sites, data flow, or edge cases.
 - **Findings-inflation to look thorough**: Inventing or stretching findings to justify a "Needs Changes" verdict. Every finding must be actionable; padding dilutes the signal.
+- **Late-only verification**: Checking evidence only before output rather than building and deepening the evidence model first and using it to generate hypotheses.
+- **Validation-first research**: Waiting for a hypothesis before researching contracts, docs, data flows, or runtime behavior.
+- **Consensus-as-proof**: Treating agreement across reviewers or models as verification instead of independently proving the causal claim and impact.
+- **Evidence-free escalation**: Letting an unresolved concern affect severity or verdict.
 
 ---
 
@@ -139,11 +151,13 @@ Patterns that reliably produce bad reviews. If you catch yourself doing any of t
 
 | Severity | When to use | Examples |
 |----------|-------------|---------|
-| ❌ **Error** | Must fix before merge | Bugs, security vulnerabilities, data corruption, missing error handling on critical paths |
-| ⚠️ **Warning** | Should fix or needs human judgment | Performance regressions, missing validation, inconsistency with established patterns |
-| 💡 **Suggestion** | Consider changing | Readability improvements, minor optimizations, naming clarity |
+| ❌ **Error** | Verified merge-blocking defect with severe impact | Bugs, security vulnerabilities, data corruption, missing error handling on critical paths |
+| ⚠️ **Warning** | Verified merge-blocking issue, or verified issue whose blocking status requires human policy/product/intent judgment | Performance regressions, missing validation, inconsistency with established patterns |
+| 💡 **Suggestion** | Non-blocking advisory concern or improvement | Readability improvements, minor optimizations, naming clarity |
 
-If unsure between two levels, choose the higher one.
+For verified findings only, if the evidence supports an issue and its impact falls between two severity levels, choose the higher supported level.
+
+A non-blocking advisory concern should be a suggestion, not a warning or error.
 
 **Only surface actionable findings.** Do not include positive confirmations, "looks good" notes, or commentary praising correct code. A finding earns its place in the review only if the reader can act on it — fix it, decide on it, or push back on it. If you have nothing actionable to report, the review can be empty findings with a clean verdict.
 
@@ -151,11 +165,13 @@ If unsure between two levels, choose the higher one.
 
 ## Pre-Output Checklist
 
-Before producing the review, confirm each item — do not write the output until all four are true. If any item is false, return to the corresponding step and complete it.
+Before producing the review, confirm each item — do not write the output until all are true. If any item is false, return to the corresponding step and complete it.
 
-- [ ] **Multi-model critique** (Step 5) was completed, OR the skip and its reason are documented in the review output itself.
-- [ ] **Every grill question** in Step 6 has a written, reasoned answer — not just a thought. If a question revealed a gap, the findings or verdict have been updated.
-- [ ] **Every finding cites concrete evidence** — file:line reference, observed behavior, test outcome, or quoted code. No findings based purely on pattern-matching or speculation.
+- [ ] **Evidence sufficiency gate**: every question material to correctness, safety, or the independently supported verdict has been answered with evidence. If material evidence cannot be obtained, the review states that it is incomplete and does not issue an approval verdict.
+- [ ] **Multi-model critique** (Step 5) was completed when required, OR any skip and its reason are documented in the review output itself.
+- [ ] **Every grill question** in Step 6 has a written, reasoned answer in the internal evidence ledger — not just a thought. If a question revealed a gap, investigation has been completed and the findings, eligible unresolved questions, or verdict have been updated according to the evidence.
+- [ ] **Every finding is verified and traceable** — evidence establishes the causal claim and impact and is cited with file:line references, observed behavior, test outcomes, quoted code, repository evidence, or authoritative documentation. Pattern matching, model consensus, or plausibility alone is insufficient.
+- [ ] **Every unresolved concern** is non-material to the independently supported verdict, separated under `Unresolved Questions`, states what is unknown and the concrete verification path, and must not affect severity or verdict.
 - [ ] **The verdict is justified independently** of how "clean" the diff looks, the author's reputation, or how much you trust the PR description. Re-read the verdict with the question: would I defend this if a bug surfaced in code I called clean?
 
 ---
@@ -163,6 +179,10 @@ Before producing the review, confirm each item — do not write the output until
 ## Review Output Format
 
 ### Structure
+
+The final output surfaces only the holistic assessment, verified findings with evidence, and unresolved questions that are non-material to the independently supported verdict. Do not include the Step 2 evidence ledger, model synthesis notes, or Step 6 grill answers as mandatory output sections.
+
+If material evidence cannot be obtained after investigation, use the non-approval outcome `⏸️ Review Incomplete` (or clear text `Review Incomplete` fallback) with the missing evidence and the attempted verification path. This is not a finding severity. Do not issue LGTM or otherwise imply approval, and do not convert the gap into a finding or Needs Human Review verdict.
 
 ```
 ## 🤖 Code Review
@@ -173,7 +193,7 @@ Before producing the review, confirm each item — do not write the output until
 
 **Approach**: <1-2 sentences on whether the approach is sound>
 
-**Summary**: <✅ LGTM / ⚠️ Needs Human Review / ⚠️ Needs Changes / ❌ Reject>. <2-3 sentence verdict with key points. If "Needs Human Review," state which findings you are uncertain about and what a human reviewer should focus on.>
+**Summary**: <✅ LGTM / ⚠️ Needs Human Review / ⚠️ Needs Changes / ❌ Reject / ⏸️ Review Incomplete>. <2-3 sentence outcome based only on verified findings and evidence sufficiency. If "Needs Human Review," refer only to verified issues requiring a human policy/product/intent decision, not uncertainty about whether an issue exists. If "Review Incomplete," state the missing material evidence and attempted verification path; do not imply approval.>
 
 ---
 
@@ -184,14 +204,34 @@ Before producing the review, confirm each item — do not write the output until
 <Explanation with specifics. Reference code, line numbers, evidence.>
 
 (Repeat for each finding. Group related findings under a single heading.)
+
+### Unresolved Questions
+
+Questions are not findings and must not affect severity or verdict. Include questions only when they are non-material to the independently supported verdict. If a missing answer is material to correctness, safety, or approval, continue investigating; if evidence cannot be obtained, state that the review is incomplete instead of listing the gap as a question.
+
+#### Question
+<What remains unknown?>
+
+#### Why it matters
+<Why resolving it could matter if the concern is real.>
+
+#### How to verify
+<Concrete code/data-flow, test/runtime, repository evidence, or authoritative-doc path that would resolve it.>
+
+(Omit this section when there are no unresolved questions.)
 ```
 
 ### Verdict Rules
 
-1. **The verdict must reflect your most severe finding.** If you have any ⚠️ findings, the verdict cannot be LGTM. Only use LGTM when there are no ❌ or ⚠️ findings and you are confident the change is correct and complete.
-2. **When uncertain, always escalate.** If you are unsure whether a concern is valid, the verdict must be "Needs Human Review" — not LGTM. A false LGTM is far worse than an unnecessary escalation.
-3. **Separate correctness from completeness.** A change can be correct code that is an incomplete approach. If the code is right for what it does but the approach is insufficient (e.g., treats symptoms without root cause, masks errors, fixes one instance but not others), the verdict must reflect the gap.
-4. **Classify each ⚠️/❌ finding as merge-blocking or advisory.** Before writing your summary, decide for each: "Would I be comfortable if this merged as-is?" Any "no" → Needs Changes. Any "unsure" → Needs Human Review.
+1. **Base the verdict only on verified findings.** Summary and verdict must be derived from evidence that verifies both behavior and impact. Unresolved hypotheses, model disagreement, missing evidence, or speculative concern cannot change severity or verdict. If missing evidence is material and cannot be obtained after attempted investigation, use `Review Incomplete` instead of approval or severity escalation.
+2. **LGTM**: Use only when there are no verified warning or error findings; any unresolved questions are non-material; and independent evidence is sufficient to support approval.
+3. **Needs Changes**: Use when one or more verified merge-blocking warning or error findings require incremental correction before merge.
+4. **Needs Human Review**: Use when evidence verifies a real issue, but whether it blocks depends on repository policy, product intent, risk acceptance, or another human decision outside technical evidence. Do not use it for uncertainty about whether an issue exists.
+5. **Reject**: Use when a verified fundamental defect makes the approach unsafe or nonviable and requires replacement, not incremental correction.
+6. **Review Incomplete**: Use only when material evidence required to determine correctness, safety, or approval cannot be obtained after attempted investigation. It must state the missing material evidence and attempted verification path, may include any verified findings already established, and must not imply approval. It is caused by evidence insufficiency, not by a speculative finding.
+7. **Suggestions are non-blocking.** A non-blocking advisory concern should be a 💡 suggestion, not a warning or error, and must not drive the verdict. `Needs Changes` with only suggestions is invalid.
+8. **Unresolved questions are limited.** Questions may appear only when they are non-material to the independently supported verdict. If missing evidence is material to whether the change is correct or safe, continue investigating. If evidence cannot be obtained, explicitly state that the review is incomplete and do not issue an approval verdict; do not disguise the gap as a finding or use it to set severity.
+9. **Separate correctness from completeness.** A change can be correct code that is an incomplete approach. If the code is right for what it does but the approach is insufficient (e.g., treats symptoms without root cause, masks errors, fixes one instance but not others), the verdict must reflect the verified gap.
 
 ### Re-Review (Iteration)
 
