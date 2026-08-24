@@ -1,6 +1,6 @@
 # Dimension 3 — Process Compliance
 
-> **Question:** Did the agent actually follow the 7-step process in
+> **Question:** Did the agent actually follow the 6-step process in
 > `SKILL.md`, or did it shortcut to "produce a review" and skip the
 > calibration steps?
 
@@ -26,8 +26,7 @@ when adapters also emit process events with stable IDs:
 {"t": 9.0,  "kind": "risk_deepening", "risk_id": "risk-ssrf", "tool_refs": ["tool-3"], "evidence_refs": ["file:src/routes.ts:10-30", "file:src/fetch.ts:40-55"], "summary": "Checked callers and found no host allowlist before fetch."}
 {"t": 12.0, "kind": "hypothesis_generated", "candidate_id": "cand-ssrf", "source": "internal", "basis": "Risk map shows untrusted URL crossing network boundary without validation.", "basis_refs": ["risk:risk-ssrf", "file:src/routes.ts:10-30", "file:src/fetch.ts:40-55"]}
 {"t": 18.0, "kind": "verification", "candidate_id": "cand-ssrf", "outcome": "verified", "evidence_refs": ["file:src/routes.ts:10-30", "file:src/fetch.ts:44", "doc:fetch-security-guidance"], "summary": "Confirmed no caller validates host and fetch accepts attacker URL."}
-{"t": 32.0, "kind": "subagent_launch", "subagent_id": "model-critique-1", "purpose": "external-model critique"}
-{"t": 49.0, "kind": "internal_grill_complete", "candidate_ids": ["cand-ssrf"], "question_count": 8, "material_gaps": [], "ledger_ref": "internal-ledger:step6"}
+{"t": 49.0, "kind": "internal_grill_complete", "candidate_ids": ["cand-ssrf"], "question_count": 8, "material_gaps": [], "ledger_ref": "internal-ledger:step5"}
 {"t": 67.0, "kind": "final_review", "text": "## 🤖 Code Review\n..."}
 ```
 
@@ -65,8 +64,8 @@ substitute for evidence-driven discovery.
 1. **Narrative anchoring** — in PR mode, `pr.md` or equivalent PR narrative is
    read before any independent evidence orientation or assessment. Reading the
    description first violates Step 2 when the chronology is observable.
-2. **Hypothesis-first research** — `hypothesis_generated` events, candidate
-   finding lists, or model-generated concerns appear before broad
+2. **Hypothesis-first research** — `hypothesis_generated` events or candidate
+   finding lists appear before broad
    `evidence_orientation` and risk-directed `risk_map` / `risk_deepening`
    events across the relevant contracts, data/control flow, tests, execution
    context, repository history/conventions, and authoritative docs. This is a
@@ -78,16 +77,10 @@ substitute for evidence-driven discovery.
    events or equally strong chronology prove the order; otherwise
    manual/unscorable.
 4. **Unsupported candidate survives synthesis** — a final finding is traceable
-   to a speculative candidate, including a model-generated concern from Step 5,
-   and no `verification` event with outcome `verified` and concrete
+   to a speculative candidate and no `verification` event with outcome `verified` and concrete
    `evidence_refs` exists before final synthesis. This is hard only when the
    candidate/finding link and missing verification are observable.
-5. **Multi-model critique skipped without disclosure** — transcript events or
-   adapter metadata show Step 5 was required and skipped, but the final output
-   does not document the skip and reason (for example, "Multi-model review
-   skipped: ..."). Silent skips are not permitted. Do not require a
-   `Multi-Model` section when the critique actually ran.
-6. **Required internal grill not completed** — a structured event contract for
+5. **Required internal grill not completed** — a structured event contract for
    the run requires `internal_grill_complete`, but no such event exists before
    final synthesis, or the event records material gaps that are neither resolved
    nor reflected as `Review Incomplete`. Without structured events or an
@@ -95,13 +88,12 @@ substitute for evidence-driven discovery.
 
 ### Soft signals (lower confidence)
 
-7. **No surrounding-file reads** — the transcript shows reads of the diff and
+6. **No surrounding-file reads** — the transcript shows reads of the diff and
    changed files but no reads of callers, helpers, tests, contracts, or docs.
    Often correlates with diff-only review.
-8. **Coverage-via-confirmation** — output contains one confirmed bug and little
-   other evidence of risk-directed exploration, especially when Step 5 was
-   skipped with disclosure.
-9. **Cleanliness bias** — LGTM verdict with no recorded reads beyond the diff
+7. **Coverage-via-confirmation** — output contains one confirmed bug and little
+   other evidence of risk-directed exploration.
+8. **Cleanliness bias** — LGTM verdict with no recorded reads beyond the diff
    itself.
 
 Soft signals are not proof of process failure. If evidence orientation/order,
@@ -128,16 +120,14 @@ final-output rubric.
 
 When no transcript or structured event stream is available, process compliance
 has no reliable temporal signal. Do not require final-output sections for
-Independent Assessment, Multi-Model Critique, Grill/Self-Critique, or PR
-narrative reconciliation; `SKILL.md` treats those as internal ledger content or
-process steps, not mandatory review-output sections.
+Independent Assessment, Grill/Self-Critique, or PR narrative reconciliation;
+`SKILL.md` treats those as internal ledger content or process steps, not
+mandatory review-output sections.
 
 Output fallback delegates required final structure, evidence traceability,
 unresolved questions, verdict consistency, and incomplete-outcome validity to
-Dimension 2. The only process/output observable is skip disclosure: if the
-adapter output or metadata says the required multi-model critique was skipped,
-the final review must disclose the skip and reason. Without evidence that a skip
-occurred, absence of a `Multi-Model` section is not a violation.
+Dimension 2. Without process events, the internal review workflow is
+manual/unscorable rather than inferred from final-output sections.
 
 ## Fixtures
 
@@ -151,17 +141,14 @@ fixtures/process/<case-id>/
 ```
 
 Initial corpus targets:
-
 - `narrative-anchoring-pr-first/` — PR narrative read before independent
   evidence orientation.
 - `hypothesis-first-before-orientation/` — candidate findings generated before
   broad evidence orientation and risk-directed deepening.
 - `late-only-verification/` — evidence gathered only after a candidate list,
   solely to validate those candidates.
-- `unsupported-model-concern-survives/` — Step 5 concern appears as a final
-  finding without independent verification.
-- `multi-model-silent-skip/` — structured transcript or adapter metadata shows
-  required Step 5 was skipped, but final output gives no skip reason.
+- `unsupported-candidate-survives/` — a candidate appears as a final finding
+  without independent verification.
 - `internal-grill-not-completed/` — structured event contract lacks
   `internal_grill_complete` before final synthesis.
 - `clean-baseline/` — all observable process steps respected.

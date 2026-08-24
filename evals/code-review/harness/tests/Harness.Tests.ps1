@@ -26,11 +26,7 @@ Describe 'ConvertFrom-ReviewMarkdown' {
 
 **Summary**: ⚠️ Needs Changes. The diff introduces an SSRF vulnerability.
 
-### Multi-Model Critique
-
-Two additional models agreed.
-
-### Grill
+### Step 5: Grill Your Assessment
 
 - Have I verified this is a problem? Yes — I traced the URL parameter from `parseRequest` at line 12 to the fetch call at line 44 with no validation in between.
 - Could the author have a reason? No callers validate either.
@@ -48,7 +44,6 @@ The `fetch` call at `src/fetch.ts:44` uses `req.query.url` without any host vali
         It 'detects the verdict' { $Review.Verdict | Should -Be 'needs_changes' }
         It 'captures Motivation' { $Review.Motivation | Should -Match 'host validation' }
         It 'captures Approach' { $Review.Approach | Should -Match 'fetch wrapper' }
-        It 'sees the multi-model section' { $Review.HasMultiModel | Should -BeTrue }
         It 'sees the grill section' { $Review.HasGrillSection | Should -BeTrue }
         It 'extracts one finding' { $Review.Findings.Count | Should -Be 1 }
         It 'finding severity is error' { $Review.Findings[0].Severity | Should -Be 'error' }
@@ -306,21 +301,6 @@ The loop in `src/scan.go:100` is quadratic.
 '@
             $r = ConvertFrom-ReviewMarkdown -Markdown $md
             $r.Findings[0].Severity | Should -Be 'warning'
-        }
-    }
-
-    Context 'documented multi-model skip' {
-        It 'sets MultiModelSkipDocumented' {
-            $md = @'
-## Review
-**Summary**: LGTM
-
-*Multi-model review skipped: only one model family available in this environment.*
-
-### Detailed Findings
-'@
-            $r = ConvertFrom-ReviewMarkdown -Markdown $md
-            $r.MultiModelSkipDocumented | Should -BeTrue
         }
     }
 

@@ -166,7 +166,7 @@ Misfiled resources (a script pasted inline as prose, a reference that should be 
 
 ## 10. Repo and convention consistency — *Minor to Important*
 
-- Directory name and `name` follow the repo's style (e.g., gerund names like `writing-plans`, or noun names like `code-review`, `adr-generator`).
+- Directory name and `name` follow the repo's style (e.g., gerund names like `using-git-worktrees`, or noun names like `code-review`, `threat-modeling`).
 - File layout matches siblings (`SKILL.md`, `references/`, `assets/`, `scripts/`).
 - Terminology and tool references match how the rest of the repo describes them.
 - Reviewer/prompt-template patterns, if the repo has them, are followed rather than reinvented.

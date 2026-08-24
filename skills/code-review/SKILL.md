@@ -85,23 +85,7 @@ Now read the PR description, linked issues, existing review comments, and author
 9. **Label in-scope vs. follow-up.** Distinguish between issues the PR should fix and out-of-scope improvements that belong in a follow-up.
 10. **Context-shift analysis.** When code is moved from one execution context to another (e.g., from one pipeline stage to another, from sync to async, from one service to another), do not assume behavioral equivalence. Explicitly enumerate what changes: what steps have or haven't run before this code now, what external state (registries, databases, file system) differs, what data preconditions that held in the old context no longer hold, and whether the same code pattern produces different outcomes in the new context. Treat "same code, different context" as a high-risk area. The claim "this pattern already existed" is insufficient — verify that the pattern is still correct in the new execution environment.
 
-### Step 5: Multi-Model Critique
-
-Run an adversarial review across multiple model families when the review is merge-bound or high-risk. Different models catch different classes of issues.
-
-Step 5 is required for merge-bound reviews and high-risk changes, including security, data integrity, public APIs, concurrency, production infrastructure, migrations, build/release behavior, or broad blast-radius changes. It is optional only for low-risk standalone reviews or explicitly exploratory non-merge-bound code.
-
-Any skip must be disclosed in the review output with the reason (e.g., *"Multi-model review skipped: only one model family available in this environment."* or *"Multi-model review skipped: review is for exploratory draft code per author's request."*). Environment limitation is valid when required review cannot run; cost/time alone is not a valid exception for required cases. Silent skips are not permitted.
-
-**A confirmed finding does not justify skipping this step.** Confirming one bug tells you that bug is real; it tells you nothing about what else you missed. Coverage and finding-confidence are independent properties — do not conflate them.
-
-1. **Select models**: Pick one model from each distinct family (e.g., one Anthropic, one Google, one OpenAI). Use 2-4 models. Pick from models explicitly listed as available — highest capability tier, never "mini" or "fast." Don't select your own model.
-2. **Launch in parallel**: Give each agent the same review prompt (diff, review rules, severity format) and your independent assessment from Step 2.
-3. **Synthesize**: Treat model outputs as candidate hypotheses. Agreement is a discovery/prioritization signal, not verification. Verify every shared or unique candidate independently using applicable code/data-flow, tests/runtime behavior, repository evidence, and authoritative reference docs. Contradictory or unsupported claims remain hypotheses; only non-material gaps may become unresolved questions. Do not use higher severity merely because models disagree.
-4. **Timeout handling**: If a sub-agent hasn't completed after 10 minutes and you have other results, proceed. Note which models contributed.
-5. **Carry into Step 6**: Step 6 (Grill) now operates on the synthesized candidate set and verified findings, not your single-model assessment alone. Note which candidates came from which model so the grill can challenge each source.
-
-### Step 6: Grill Your Assessment
+### Step 5: Grill Your Assessment
 
 Before producing the review output, interrogate your own assessment relentlessly. The biggest review failure modes are missed issues, overconfident findings, and verdicts shaped by hope rather than evidence — this step exists to catch them.
 
@@ -118,7 +102,7 @@ Walk down each branch of your reasoning one question at a time, resolving each b
 - Which assumption did I make about surrounding code that I never actually verified?
 - Which class of issue (concurrency, error handling, input validation, resource leaks, off-by-one, security, performance under load) did I not deliberately consider for this change?
 - If this change interacts with code I didn't read, what could go wrong at that interaction point?
-- Did I treat a single confirmed finding as proof the review is complete? A verified bug demonstrates one issue exists; it says nothing about coverage. If I leaned on "this finding feels concrete enough" to justify skipping rigorous validation (including Step 5), that is a coverage failure dressed up as confidence — re-open the question and complete the skipped work.
+- Did I treat a single confirmed finding as proof the review is complete? A verified bug demonstrates one issue exists; it says nothing about coverage. If I leaned on "this finding feels concrete enough" to stop investigating, that is a coverage failure dressed up as confidence — re-open the question and complete the skipped work.
 
 **Grill the verdict:**
 - If this merges and causes a production incident, what is the most likely failure mode? Did I flag it?
@@ -134,15 +118,13 @@ Resolve each question in the internal evidence ledger — do not just list them.
 
 Patterns that reliably produce bad reviews. If you catch yourself doing any of these, restart the corresponding step rather than rationalizing past it.
 
-- **Coverage-via-confirmation**: Finding one concrete bug and concluding the review is solid. Confirming a single issue says nothing about what you missed. Multi-model critique (Step 5) exists to address this; do not skip it on the strength of one finding.
-- **Self-grill substitution**: Treating Step 6 (your own interrogation) as a substitute for Step 5 (independent models). They serve different purposes — introspection cannot surface what you don't know you don't know.
-- **Effort-cost rationalization**: Skipping Step 5 for required merge-bound or high-risk reviews because it would be slower, take more context, or cost more tokens. Environment limitation is valid when required review cannot run; cost/time alone is not a valid exception for required cases.
+- **Coverage-via-confirmation**: Finding one concrete bug and concluding the review is solid. Confirming a single issue says nothing about what you missed; continue tracing callers, data flow, and unexamined issue classes.
 - **Narrative anchoring**: Reading the PR description, issue, or author comments before Step 2 and then "independently" reaching the same conclusions. Once you've seen the framing, you cannot un-see it.
 - **Cleanliness bias**: Concluding LGTM because the diff is short, well-formatted, or matches familiar patterns — without verifying correctness against actual call sites, data flow, or edge cases.
 - **Findings-inflation to look thorough**: Inventing or stretching findings to justify a "Needs Changes" verdict. Every finding must be actionable; padding dilutes the signal.
 - **Late-only verification**: Checking evidence only before output rather than building and deepening the evidence model first and using it to generate hypotheses.
 - **Validation-first research**: Waiting for a hypothesis before researching contracts, docs, data flows, or runtime behavior.
-- **Consensus-as-proof**: Treating agreement across reviewers or models as verification instead of independently proving the causal claim and impact.
+- **Consensus-as-proof**: Treating agreement from other reviewers as verification instead of independently proving the causal claim and impact.
 - **Evidence-free escalation**: Letting an unresolved concern affect severity or verdict.
 
 ---
@@ -168,9 +150,8 @@ A non-blocking advisory concern should be a suggestion, not a warning or error.
 Before producing the review, confirm each item — do not write the output until all are true. If any item is false, return to the corresponding step and complete it.
 
 - [ ] **Evidence sufficiency gate**: every question material to correctness, safety, or the independently supported verdict has been answered with evidence. If material evidence cannot be obtained, the review states that it is incomplete and does not issue an approval verdict.
-- [ ] **Multi-model critique** (Step 5) was completed when required, OR any skip and its reason are documented in the review output itself.
-- [ ] **Every grill question** in Step 6 has a written, reasoned answer in the internal evidence ledger — not just a thought. If a question revealed a gap, investigation has been completed and the findings, eligible unresolved questions, or verdict have been updated according to the evidence.
-- [ ] **Every finding is verified and traceable** — evidence establishes the causal claim and impact and is cited with file:line references, observed behavior, test outcomes, quoted code, repository evidence, or authoritative documentation. Pattern matching, model consensus, or plausibility alone is insufficient.
+- [ ] **Every grill question** in Step 5 has a written, reasoned answer in the internal evidence ledger — not just a thought. If a question revealed a gap, investigation has been completed and the findings, eligible unresolved questions, or verdict have been updated according to the evidence.
+- [ ] **Every finding is verified and traceable** — evidence establishes the causal claim and impact and is cited with file:line references, observed behavior, test outcomes, quoted code, repository evidence, or authoritative documentation. Pattern matching, reviewer consensus, or plausibility alone is insufficient.
 - [ ] **Every unresolved concern** is non-material to the independently supported verdict, separated under `Unresolved Questions`, states what is unknown and the concrete verification path, and must not affect severity or verdict.
 - [ ] **The verdict is justified independently** of how "clean" the diff looks, the author's reputation, or how much you trust the PR description. Re-read the verdict with the question: would I defend this if a bug surfaced in code I called clean?
 
@@ -180,7 +161,7 @@ Before producing the review, confirm each item — do not write the output until
 
 ### Structure
 
-The final output surfaces only the holistic assessment, verified findings with evidence, and unresolved questions that are non-material to the independently supported verdict. Do not include the Step 2 evidence ledger, model synthesis notes, or Step 6 grill answers as mandatory output sections.
+The final output surfaces only the holistic assessment, verified findings with evidence, and unresolved questions that are non-material to the independently supported verdict. Do not include the Step 2 evidence ledger or Step 5 grill answers as mandatory output sections.
 
 If material evidence cannot be obtained after investigation, use the non-approval outcome `⏸️ Review Incomplete` (or clear text `Review Incomplete` fallback) with the missing evidence and the attempted verification path. This is not a finding severity. Do not issue LGTM or otherwise imply approval, and do not convert the gap into a finding or Needs Human Review verdict.
 
@@ -223,7 +204,7 @@ Questions are not findings and must not affect severity or verdict. Include ques
 
 ### Verdict Rules
 
-1. **Base the verdict only on verified findings.** Summary and verdict must be derived from evidence that verifies both behavior and impact. Unresolved hypotheses, model disagreement, missing evidence, or speculative concern cannot change severity or verdict. If missing evidence is material and cannot be obtained after attempted investigation, use `Review Incomplete` instead of approval or severity escalation.
+1. **Base the verdict only on verified findings.** Summary and verdict must be derived from evidence that verifies both behavior and impact. Unresolved hypotheses, reviewer disagreement, missing evidence, or speculative concern cannot change severity or verdict. If missing evidence is material and cannot be obtained after attempted investigation, use `Review Incomplete` instead of approval or severity escalation.
 2. **LGTM**: Use only when there are no verified warning or error findings; any unresolved questions are non-material; and independent evidence is sufficient to support approval.
 3. **Needs Changes**: Use when one or more verified merge-blocking warning or error findings require incremental correction before merge.
 4. **Needs Human Review**: Use when evidence verifies a real issue, but whether it blocks depends on repository policy, product intent, risk acceptance, or another human decision outside technical evidence. Do not use it for uncertainty about whether an issue exists.

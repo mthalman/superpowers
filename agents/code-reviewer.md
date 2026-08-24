@@ -40,7 +40,7 @@ When reviewing completed work, you will:
      - Third-party service integrations
      - API design patterns or versioning strategies
      - Caching or state management strategies
-   - If significant architectural decisions were made but not documented, recommend creating ADRs using superpowers:adr-generator
+   - If significant architectural decisions were made but not documented, recommend creating ADRs
 
 5. **Issue Identification and Recommendations**:
    - Clearly categorize issues as: Critical (must fix), Important (should fix), or Suggestions (nice to have)

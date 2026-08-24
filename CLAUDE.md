@@ -2,6 +2,8 @@
 
 Each time you complete a task or learn important information about the project, you should update the `CLAUDE.md` file in the repo to reflect any new information that you've learned or changes that require updates to the instruction file.
 
+The repository no longer includes the `adr-generator`, `brainstorming`, `writing-plans`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `test-driven-development`, `using-superpowers`, or `verification-before-completion` skills. Active skills must not depend on those workflows.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding
@@ -28,6 +30,22 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 - A function that returns an empty array via `return $errors.ToArray()` is unwrapped by the caller to `$null` unless the call site wraps it: `$x = @(Get-Foo)`.
 - String interpolation: `"$var:rest"` is parsed as drive-qualified; use `"${var}:rest"`.
 
+## Address PR Comments Command
+
+`commands/address-pr-comments.md` supports both GitHub and Azure DevOps PRs through a shared provider-neutral workflow. Deterministic provider helpers live in `scripts/address-pr-comments-support.psm1`; focused fixtures and Pester coverage live in `tests/address-pr-comments/`.
+
+Azure DevOps API 7.1 thread status `unknown` is non-actionable; `active` and `pending` are unresolved; `fixed`, `wontFix`, `closed`, and `byDesign` are resolved. Provider timestamps are normalized to UTC without depending on the current culture. Queued Azure DevOps replies are posted from UTF-8-without-BOM JSON payload files, and progress is persisted after each response containing a comment ID.
+
+Status-less Azure DevOps threads are ignored only when all comments are system comments. Actionable threads require an explicit root comment with `parentCommentId: 0`. Remote URLs are credential-redacted before persistence or display, and PR source branches come from the upstream remote ref rather than the local branch name.
+
+The command imports its support module from the installed plugin root (literal `${CLAUDE_PLUGIN_ROOT}` substitution in Claude Code) or the absolute linked-module path supplied by another host, never from the user repository. Null comment or reply collections normalize to empty arrays, and successful reply responses add or update `last_post_timestamp` before progress is persisted.
+
+Run the focused suite:
+
+```powershell
+Invoke-Pester -Path tests/address-pr-comments/AddressPrComments.Tests.ps1 -Output Detailed
+```
+
 ## Skill Evals
 
 ### code-review skill — detection-quality harness
@@ -42,6 +60,8 @@ contracts/invariants; then verify candidates again before output. Unresolved
 concerns may be non-material questions, but are not findings and cannot affect
 severity or verdict. Material evidence gaps make the review incomplete rather
 than an approval.
+
+The code-review process is single-model. Step 5 is the final self-critique ("Grill Your Assessment"); the skill and eval harness do not delegate critique to additional model families.
 
 **Run the Pester unit tests** (parser, matcher, schema):
 
