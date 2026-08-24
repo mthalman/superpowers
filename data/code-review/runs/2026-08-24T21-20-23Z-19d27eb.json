@@ -1,0 +1,660 @@
+{
+  "schema_version": 1,
+  "skill": "code-review",
+  "pattern": "A",
+  "commit": "19d27eb9b8fd3316de2469e3519ca1ab266719b6",
+  "short_sha": "19d27eb",
+  "commit_message": "Merge origin/main into main",
+  "commit_author": "Matt Thalman <mthalman@microsoft.com>",
+  "timestamp": "2026-08-24T21:20:23Z",
+  "workflow_run_url": "https://github.com/mthalman/superpowers/actions/runs/32777121495",
+  "adapter": "copilot",
+  "trials": 3,
+  "headline_score": 87.5,
+  "metrics": {
+    "tp": 7,
+    "fn": 1,
+    "fp_distractor": 2,
+    "fp_unmatched": 0,
+    "case_count": 7,
+    "required_bug_count": 8,
+    "optional_caught": 3,
+    "optional_total": 4,
+    "trials_total": 21,
+    "trials_ok": 21
+  },
+  "detail": {
+    "adapter": "copilot",
+    "trials": 3,
+    "cases": [
+      {
+        "case_id": "add-refund-event-handler",
+        "mode": "pr",
+        "required_count": 2,
+        "required_caught": 1,
+        "optional_count": 1,
+        "optional_caught": 0,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "currency-unit-100x-error",
+            "expectation": "required",
+            "caught": true
+          },
+          {
+            "id": "missing-observability-metric",
+            "expectation": "optional",
+            "caught": false
+          },
+          {
+            "id": "missing-ack-violates-contract",
+            "expectation": "required",
+            "caught": false
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 45208,
+            "detection": {
+              "tp": 1,
+              "fn": 1,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-ack-violates-contract",
+                "expectation": "required",
+                "caught": false
+              },
+              {
+                "id": "currency-unit-100x-error",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "missing-observability-metric",
+                "expectation": "optional",
+                "caught": false
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 50281,
+            "detection": {
+              "tp": 1,
+              "fn": 1,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-ack-violates-contract",
+                "expectation": "required",
+                "caught": false
+              },
+              {
+                "id": "currency-unit-100x-error",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "missing-observability-metric",
+                "expectation": "optional",
+                "caught": false
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 56247,
+            "detection": {
+              "tp": 1,
+              "fn": 1,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-ack-violates-contract",
+                "expectation": "required",
+                "caught": false
+              },
+              {
+                "id": "currency-unit-100x-error",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "missing-observability-metric",
+                "expectation": "optional",
+                "caught": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "distractor-exec-array-args",
+        "mode": "standalone",
+        "required_count": 0,
+        "required_caught": 0,
+        "optional_count": 0,
+        "optional_caught": 0,
+        "fp_distractor": 2,
+        "fp_unmatched": 0,
+        "caught_in_any": [],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 57467,
+            "detection": {
+              "tp": 0,
+              "fn": 0,
+              "fp_distractor": 1,
+              "fp_unmatched": 0
+            },
+            "bugs": []
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 44196,
+            "detection": {
+              "tp": 0,
+              "fn": 0,
+              "fp_distractor": 1,
+              "fp_unmatched": 0
+            },
+            "bugs": []
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 80123,
+            "detection": {
+              "tp": 0,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": []
+          }
+        ]
+      },
+      {
+        "case_id": "leak-file-handle-on-error",
+        "mode": "standalone",
+        "required_count": 1,
+        "required_caught": 1,
+        "optional_count": 0,
+        "optional_caught": 0,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "missing-close-on-error",
+            "expectation": "required",
+            "caught": true
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 34630,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-close-on-error",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 37253,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-close-on-error",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 42450,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-close-on-error",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "off-by-one-pagination",
+        "mode": "standalone",
+        "required_count": 2,
+        "required_caught": 2,
+        "optional_count": 0,
+        "optional_caught": 0,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "no-regression-test-for-page-contents",
+            "expectation": "required",
+            "caught": true
+          },
+          {
+            "id": "slice-end-off-by-one",
+            "expectation": "required",
+            "caught": true
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 26019,
+            "detection": {
+              "tp": 2,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "slice-end-off-by-one",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "no-regression-test-for-page-contents",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 29920,
+            "detection": {
+              "tp": 2,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "slice-end-off-by-one",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "no-regression-test-for-page-contents",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 30657,
+            "detection": {
+              "tp": 2,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "slice-end-off-by-one",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "no-regression-test-for-page-contents",
+                "expectation": "required",
+                "caught": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "perf-on2-membership-check",
+        "mode": "standalone",
+        "required_count": 1,
+        "required_caught": 1,
+        "optional_count": 1,
+        "optional_caught": 1,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "false-justification-for-perf-regression",
+            "expectation": "optional",
+            "caught": true
+          },
+          {
+            "id": "on2-membership-check",
+            "expectation": "required",
+            "caught": true
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 26334,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "on2-membership-check",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "false-justification-for-perf-regression",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 29531,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "on2-membership-check",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "false-justification-for-perf-regression",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 30391,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "on2-membership-check",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "false-justification-for-perf-regression",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "race-double-checked-cache",
+        "mode": "standalone",
+        "required_count": 1,
+        "required_caught": 1,
+        "optional_count": 1,
+        "optional_caught": 1,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "bogus-perf-motivation",
+            "expectation": "optional",
+            "caught": true
+          },
+          {
+            "id": "concurrent-first-access-race",
+            "expectation": "required",
+            "caught": true
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 147865,
+            "detection": {
+              "tp": 0,
+              "fn": 1,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "concurrent-first-access-race",
+                "expectation": "required",
+                "caught": false
+              },
+              {
+                "id": "bogus-perf-motivation",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 87055,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "concurrent-first-access-race",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "bogus-perf-motivation",
+                "expectation": "optional",
+                "caught": false
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 177330,
+            "detection": {
+              "tp": 0,
+              "fn": 1,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "concurrent-first-access-race",
+                "expectation": "required",
+                "caught": false
+              },
+              {
+                "id": "bogus-perf-motivation",
+                "expectation": "optional",
+                "caught": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "ssrf-fetch-no-allowlist",
+        "mode": "pr",
+        "required_count": 1,
+        "required_caught": 1,
+        "optional_count": 1,
+        "optional_caught": 1,
+        "fp_distractor": 0,
+        "fp_unmatched": 0,
+        "caught_in_any": [
+          {
+            "id": "weakened-justification",
+            "expectation": "optional",
+            "caught": true
+          },
+          {
+            "id": "missing-host-allowlist",
+            "expectation": "required",
+            "caught": true
+          }
+        ],
+        "trials": [
+          {
+            "trial": 1,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 36207,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-host-allowlist",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "weakened-justification",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 2,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 41602,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-host-allowlist",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "weakened-justification",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          },
+          {
+            "trial": 3,
+            "status": "ok",
+            "error": null,
+            "duration_ms": 35743,
+            "detection": {
+              "tp": 1,
+              "fn": 0,
+              "fp_distractor": 0,
+              "fp_unmatched": 0
+            },
+            "bugs": [
+              {
+                "id": "missing-host-allowlist",
+                "expectation": "required",
+                "caught": true
+              },
+              {
+                "id": "weakened-justification",
+                "expectation": "optional",
+                "caught": true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
