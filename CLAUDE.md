@@ -15,8 +15,10 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
 - `blast-radius` is an explicitly invoked change-impact investigation that
   grades safety facts from assertion through live reproduction.
 - `technical-writing` owns document mode, information structure, terminology,
-  and sentence clarity. `markdown-toolkit` owns GFM mechanics. `unslop` is an
-  explicitly invoked final prose cleanup.
+  and sentence clarity. `draft-pr` owns ready-to-paste PR title and body
+  drafts without creating or updating the PR, and honors the target GitHub
+  repository's PR template when one exists. `markdown-toolkit` owns GFM
+  mechanics. `unslop` is an explicitly invoked final prose cleanup.
 - `unslop` removes every em dash from editable prose. It preserves verbatim
   quotations, code, identifiers, evidence, technical precision, and
   uncertainty while rewriting with periods or commas.

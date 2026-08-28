@@ -1,7 +1,7 @@
 {
   "name": "superpowers",
   "description": "Core skills library for Claude Code: debugging, collaboration patterns, and proven techniques",
-  "version": "4.14.1",
+  "version": "4.14.2",
   "author": {
     "name": "Matt Thalman",
     "email": "mthalman@microsoft.com"
