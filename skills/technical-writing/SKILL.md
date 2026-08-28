@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: Use when authoring or substantively reviewing the content of technical documentation, READMEs, RFCs, design explanations, tutorials, how-to guides, reference material, PR descriptions, or other engineering prose. Helps choose the document mode, organize information for the reader, write direct instructions, maintain precise terminology, and remove ambiguity. Do not use for GFM syntax, Markdown formatting, links, tables, or structural validation alone; use markdown-toolkit for those mechanics.
+description: Use when authoring or substantively reviewing the content of technical documentation, READMEs, RFCs, design explanations, tutorials, how-to guides, reference material, or other engineering prose. Helps choose the document mode, organize information for the reader, write direct instructions, maintain precise terminology, and remove ambiguity. Do not use for PR title and description or body drafts; use draft-pr. Do not use for GFM syntax, Markdown formatting, links, tables, or structural validation alone; use markdown-toolkit for those mechanics.
 ---
 
 # Technical Writing
