@@ -1,26 +1,33 @@
 ---
 name: markdown-toolkit
-description: Use when generating structured markdown documents (READMEs, API docs, changelogs) or validating existing markdown for syntax errors, broken links, and style compliance. Provides GitHub Flavored Markdown (GFM) validation, comprehensive style guidelines, and document generation workflows.
+description: Use when generating or validating GitHub Flavored Markdown structure and mechanics, including headings, links, tables, lists, code fences, anchors, templates, and markdownlint compliance. Use technical-writing instead for substantive document mode, information architecture, terminology, instructional clarity, or prose review.
+compatibility: Validation helper requires Bash, Node.js with npm, and markdownlint-cli.
 ---
 
 # Markdown Toolkit
 
 ## Overview
 
-This skill provides comprehensive support for generating and validating GitHub Flavored Markdown (GFM) documents. Use it when creating structured documentation, validating existing markdown files, or enforcing consistent style guidelines across a project.
+This skill provides support for generating and validating GitHub Flavored
+Markdown (GFM) structure. It owns Markdown mechanics and repository formatting.
+Use `technical-writing` for substantive content organization and prose quality.
 
 ## When to Use This Skill
 
 Use this skill for:
 
-- **Document Generation:** Creating READMEs, API documentation, changelogs, user guides, or technical documentation
+- **Document Structure:** Applying GFM templates and element structure to README, API, changelog, and guide content
 - **Validation:** Checking markdown files for syntax errors, broken internal links, or structural issues
 - **Style Enforcement:** Ensuring consistent formatting and adherence to GFM best practices
-- **Documentation Review:** Auditing existing markdown for quality and compliance
+- **Markdown Review:** Auditing GFM mechanics and repository formatting
+
+Do not use this skill to decide whether content should be a tutorial, how-to,
+reference, or explanation, or to rewrite substantive prose. Use
+`technical-writing` for those tasks.
 
 ## Workflow Decision Tree
 
-```
+```text
 User request related to markdown?
 │
 ├─ Generating new document
@@ -49,7 +56,7 @@ Identify what type of document is needed:
 
 Before generating content, consult the GFM style guide for the appropriate document structure:
 
-```
+```text
 Read references/gfm-style-guide.md
 ```
 
@@ -100,7 +107,8 @@ Follow these principles when generating markdown:
 After generating the document, always validate it:
 
 ```bash
-bash scripts/validate_markdown.sh path/to/generated/file.md
+SKILL_ROOT="<loaded markdown-toolkit directory>"
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" path/to/generated/file.md
 ```
 
 If validation fails, review errors and regenerate with corrections.
@@ -112,19 +120,20 @@ If validation fails, review errors and regenerate with corrections.
 Execute the bundled validation script on the target file or directory:
 
 ```bash
-bash scripts/validate_markdown.sh <file_or_directory>
+SKILL_ROOT="<loaded markdown-toolkit directory>"
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" <file_or_directory>
 ```
 
 **Examples:**
 ```bash
 # Validate single file
-bash scripts/validate_markdown.sh README.md
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" README.md
 
 # Validate all markdown in directory
-bash scripts/validate_markdown.sh docs/
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" docs/
 
 # Validate and auto-fix issues
-bash scripts/validate_markdown.sh README.md --fix
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" README.md --fix
 ```
 
 ### Step 2: Interpret Validation Results
@@ -149,7 +158,7 @@ For each error reported:
 Many issues can be auto-fixed:
 
 ```bash
-bash scripts/validate_markdown.sh README.md --fix
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" README.md --fix
 ```
 
 ### Step 4: Address Structural Issues
@@ -169,21 +178,23 @@ Beyond syntax, check for:
 
 **Purpose:** Validates markdown using markdownlint-cli with GFM-specific configuration.
 
-**Prerequisites:**
-```bash
-npm install -g markdownlint-cli
-```
+**Prerequisites:** Bash, Node.js with npm, and either a `markdownlint` command
+on `PATH` or a project-local `markdownlint-cli` dependency.
+
+Do not install a global or project dependency without user approval. If
+markdownlint is unavailable, perform the structural checks manually and report
+that automated validation did not run.
 
 **Usage:**
 ```bash
 # Basic validation
-bash scripts/validate_markdown.sh file.md
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" file.md
 
 # Auto-fix issues
-bash scripts/validate_markdown.sh file.md --fix
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" file.md --fix
 
 # Validate directory
-bash scripts/validate_markdown.sh docs/
+bash "$SKILL_ROOT/scripts/validate_markdown.sh" docs/
 ```
 
 **Configuration:** Rules are defined in `scripts/markdownlint-config.json`:
@@ -213,7 +224,7 @@ bash scripts/validate_markdown.sh docs/
 - Anti-patterns and common mistakes
 
 **How to Use:**
-```
+```text
 Read references/gfm-style-guide.md
 ```
 
@@ -248,21 +259,22 @@ Then search for the relevant section (e.g., "Tables", "Code Blocks", "README.md 
 
 ### markdownlint-cli Not Installed
 
-If validation script reports markdownlint is not found:
+If the validation script reports that markdownlint is not found, ask before
+changing dependencies. Prefer the target repository's existing dependency
+policy. Common options are:
 
 ```bash
-# Install globally
-npm install -g markdownlint-cli
-
-# Or install locally in project
 npm install --save-dev markdownlint-cli
+# Or, when the user explicitly prefers a global tool:
+npm install -g markdownlint-cli
 ```
 
 ### Validation Fails with Many Errors
 
 For documents with numerous issues:
 
-1. Start with auto-fix: `bash scripts/validate_markdown.sh file.md --fix`
+1. Start with auto-fix:
+   `bash "$SKILL_ROOT/scripts/validate_markdown.sh" file.md --fix`
 2. Address remaining errors by category (all heading errors, then list errors, etc.)
 3. Consult style guide for examples of correct formatting
 4. Consider using `--fix` multiple times as some fixes enable other fixes
@@ -279,7 +291,7 @@ The bundled validation script checks markdown syntax but may not catch all broke
 
 To customize validation rules, edit `scripts/markdownlint-config.json`:
 
-```json
+```jsonc
 {
   "default": true,
   "MD013": false,  // Disable line length rule

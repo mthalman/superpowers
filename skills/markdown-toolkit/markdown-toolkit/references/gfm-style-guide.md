@@ -15,6 +15,10 @@ This reference provides comprehensive guidelines for writing high-quality GitHub
 - [Blockquotes](#blockquotes)
 - [Task Lists](#task-lists)
 - [Common Document Templates](#common-document-templates)
+- [GFM-Specific Features](#gfm-specific-features)
+- [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+- [Validation and Linting](#validation-and-linting)
+- [Additional Resources](#additional-resources)
 
 ## Document Structure
 
@@ -350,7 +354,7 @@ GFM supports interactive checkboxes:
 
 ### README.md Structure
 
-```markdown
+````markdown
 # Project Name
 
 Brief description of what the project does.
@@ -386,11 +390,11 @@ Guidelines for contributing.
 ## License
 
 MIT License
-```
+````
 
 ### API Documentation Structure
 
-```markdown
+````markdown
 # API Documentation
 
 ## Overview
@@ -427,11 +431,11 @@ Description of endpoint.
 ```bash
 curl https://api.example.com/resource?id=123
 ```
-```
+````
 
 ### Changelog Structure
 
-```markdown
+````markdown
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -453,7 +457,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Bug fix for issue #123
-```
+````
 
 ## GFM-Specific Features
 

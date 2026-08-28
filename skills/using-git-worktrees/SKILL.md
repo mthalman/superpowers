@@ -1,6 +1,7 @@
 ---
 name: using-git-worktrees
-description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback
+description: Use when starting feature work that needs isolation from the current workspace, before executing implementation plans, or when auditing linked worktrees for active, unpublished, merged, or potentially removable work. Prefers host-native isolation, falls back to Git worktrees, and provides a conservative read-only PowerShell audit.
+compatibility: Requires Git. Audit mode requires PowerShell 7 or later; GitHub PR enrichment optionally uses gh.
 ---
 
 # Using Git Worktrees
@@ -17,18 +18,14 @@ Ensure work happens in an isolated workspace. Prefer your platform's native work
 
 **Before creating anything, check if you are already in an isolated workspace.**
 
-```bash
-GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
-GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
-BRANCH=$(git branch --show-current)
-```
+Use `git rev-parse --git-dir`, `git rev-parse --git-common-dir`, and
+`git branch --show-current` through the host's shell. Resolve both Git
+directories to absolute paths before comparing them.
 
 **Submodule guard:** `GIT_DIR != GIT_COMMON` is also true inside git submodules. Before concluding "already in a worktree," verify you are not in a submodule:
 
-```bash
-# If this returns a path, you're in a submodule, not a worktree — treat as normal repo
-git rev-parse --show-superproject-working-tree 2>/dev/null
-```
+Run `git rev-parse --show-superproject-working-tree`. If it returns a path, the
+checkout is a submodule rather than an isolated worktree.
 
 **If `GIT_DIR != GIT_COMMON` (and not a submodule):** You are already in a linked worktree. Skip to Step 2 (Project Setup). Do NOT create another worktree.
 
@@ -43,6 +40,8 @@ Has the user already indicated their worktree preference in your instructions? I
 > "Would you like me to set up an isolated worktree? It protects your current branch from changes."
 
 Honor any existing declared preference without asking. If the user declines consent, work in place and skip to Step 2.
+If the host cannot ask interactively, work in place without changing repository
+configuration.
 
 ## Step 1: Create Isolated Workspace
 
@@ -66,11 +65,8 @@ Follow this priority order. Explicit user preference always beats observed files
 
 1. **Check your instructions for a declared worktree directory preference.** If the user has already specified one, use it without asking.
 
-2. **Check for an existing project-local worktree directory:**
-   ```bash
-   ls -d .worktrees 2>/dev/null     # Preferred (hidden)
-   ls -d worktrees 2>/dev/null      # Alternative
-   ```
+2. **Check for an existing project-local worktree directory.** Prefer
+   `.worktrees`; otherwise use `worktrees`.
    If found, use it. If both exist, `.worktrees` wins.
 
 3. **If there is no other guidance available**, default to `.worktrees/` at the project root.
@@ -79,53 +75,43 @@ Follow this priority order. Explicit user preference always beats observed files
 
 **MUST verify directory is ignored before creating worktree:**
 
-```bash
-git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
-```
+Run `git check-ignore -q "$LOCATION/"` for the selected directory only. The
+trailing separator tests directory rules even before the directory exists.
 
-**If NOT ignored:** Add to .gitignore, commit the change, then proceed.
+**If NOT ignored:** Ask before changing `.gitignore`. If the user approves,
+add the selected directory rule. Do not commit that change without separate
+commit approval.
+
+If the user declines the `.gitignore` change, ask whether to use an external
+worktree path or continue in the current workspace. Do not create an unignored
+project-local worktree.
+
+If the host cannot ask interactively, do not change `.gitignore` or create the
+project-local worktree. Work in place.
 
 **Why critical:** Prevents accidentally committing worktree contents to repository.
 
 #### Create the Worktree
 
-```bash
-# Determine path based on chosen location
-path="$LOCATION/$BRANCH_NAME"
-
-git worktree add "$path" -b "$BRANCH_NAME"
-cd "$path"
-```
+Create the path under the selected location, then run
+`git worktree add <path> -b <branch-name>` and move the working directory to
+the new worktree.
 
 **Sandbox fallback:** If `git worktree add` fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
 
 ## Step 2: Project Setup
 
-Auto-detect and run appropriate setup:
-
-```bash
-# Node.js
-if [ -f package.json ]; then npm install; fi
-
-# Rust
-if [ -f Cargo.toml ]; then cargo build; fi
-
-# Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
-
-# Go
-if [ -f go.mod ]; then go mod download; fi
-```
+Auto-detect the project and use its documented setup command. Common signals
+include `package.json`, `Cargo.toml`, `requirements.txt`, `pyproject.toml`, and
+`go.mod`. Prefer lockfile-aware package-manager commands and existing
+repository scripts over generic installation commands.
 
 ## Step 3: Verify Clean Baseline
 
 Run tests to ensure workspace starts clean:
 
-```bash
-# Use project-appropriate command
-npm test / cargo test / pytest / go test ./...
-```
+Use the smallest existing test command that establishes a clean baseline for
+the planned work.
 
 **If tests fail:** Report failures, ask whether to proceed or investigate.
 
@@ -139,6 +125,72 @@ Tests passing (<N> tests, 0 failures)
 Ready to implement <feature-name>
 ```
 
+## Audit Existing Worktrees
+
+When the user asks which worktrees are active, abandoned, or safe to inspect
+for removal, run the bundled read-only audit:
+
+Resolve this skill's installed directory, then run its bundled script. Do not
+resolve `scripts/` relative to the user's repository:
+
+```powershell
+$audit = Join-Path <skill-root> 'scripts' 'Get-WorktreeAudit.ps1'
+pwsh -File $audit -RepoPath <repo>
+```
+
+The audit combines:
+
+- tracked and untracked changes;
+- `assume-unchanged` and `skip-worktree` index flags that can hide edits;
+- local merge reachability from the base branch;
+- ahead, behind, diverged, detached, or unpushed branch state;
+- GitHub pull request state when a GitHub remote is available;
+- optional activity timestamps supplied by the host;
+- optional directory size.
+
+When size collection is requested, `SizeComplete` reports whether every file
+was readable. Do not treat an incomplete size as exact.
+
+The script does not delete worktrees. Treat `safe-merged` as a recommendation
+to inspect, not permission to remove. Require explicit approval before any
+cleanup.
+
+The script detects the upstream remote and its default branch. Pass
+`-RemoteName` or `-BaseBranch` when detection is ambiguous. It never fetches or
+updates remote-tracking refs. Refresh them separately only with user approval.
+
+Useful options:
+
+```powershell
+# Include directory sizes
+pwsh -File $audit -RepoPath <repo> -IncludeSize
+
+# Emit structured JSON
+pwsh -File $audit -RepoPath <repo> -AsJson
+
+# Supply host activity as { "<absolute-path>": "<ISO-8601 timestamp>" }
+pwsh -File $audit `
+  -RepoPath <repo> `
+  -ActivityDataPath <activity.json>
+```
+
+The buckets are conservative:
+
+| Bucket | Meaning |
+|---|---|
+| `hold-wip` | Tracked edits exist |
+| `hold-open-pr` | An open PR exists |
+| `hold-locked` | Git marks the worktree as locked |
+| `verify-recent-activity` | The host reports recent worktree activity |
+| `review-prunable` | Git reports a missing or prunable worktree |
+| `review-index-flags` | Index flags can hide working-tree changes |
+| `review-pr-unknown` | GitHub PR lookup failed unexpectedly |
+| `review-scratch` | Untracked files require inspection |
+| `review-closed-pr` | A PR closed without verified merge evidence |
+| `review-unpublished` | Detached, unpushed, ahead, diverged, or remote-unknown state |
+| `review` | No signal proves the worktree disposable |
+| `safe-merged` | The exact HEAD is reachable from base or covered by a merged PR |
+
 ## Quick Reference
 
 | Situation | Action |
@@ -151,10 +203,11 @@ Ready to implement <feature-name>
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
 | Neither exists | Check instruction file, then default `.worktrees/` |
-| Directory not ignored | Add to .gitignore + commit |
+| Directory not ignored | Ask before editing `.gitignore`; commit only with separate approval |
 | Permission error on create | Sandbox fallback, work in place |
 | Tests fail during baseline | Report failures + ask |
-| No package.json/Cargo.toml | Skip dependency install |
+| No recognized setup instructions or manifest | Skip dependency installation |
+| Need worktree cleanup | Run the audit; never delete without approval |
 
 ## Common Mistakes
 

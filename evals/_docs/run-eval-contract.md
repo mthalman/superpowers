@@ -97,6 +97,21 @@ What goes in it is up to the pattern's sub-doc, but it should:
   `-OutDir <runner.temp>/eval-out`. Scripts should not rely on the current
   working directory beyond that.
 
+## Real-model evaluation blinding
+
+Adapters that invoke a real model should isolate fixture truth, rubrics,
+variant identity, adapter identity, and scoring artifacts from the candidate.
+Candidate prompts should look like organic user requests and should not ask the
+candidate to report which skills or rules it followed.
+
+Comparative judges should receive randomized neutral labels and score all
+variants in one pass when possible. Transcript and tool-use verification is
+adapter-dependent and must not assume one host's private storage layout.
+
+See [`blinding.md`](blinding.md) for the complete protocol and required
+limitations report. Deterministic smoke adapters are exempt from behavioral
+blinding.
+
 ## CI environment
 
 The workflow exposes secrets and repo variables to the eval step via

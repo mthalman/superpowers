@@ -4,6 +4,30 @@ Each time you complete a task or learn important information about the project, 
 
 The repository no longer includes the `adr-generator`, `brainstorming`, `writing-plans`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `test-driven-development`, `using-superpowers`, or `verification-before-completion` skills. Active skills must not depend on those workflows.
 
+## Skill relationships
+
+- `arena` replaces `design-an-interface`. It compares at least three
+  structurally distinct interface or module designs against a rubric written
+  before dispatch, selects one base, grafts compatible ideas, and records
+  rejected alternatives. It remains a design-only workflow.
+- `dispatching-parallel-agents` owns partition, race, and mixed execution
+  shapes. Interface and module design competitions route to `arena`.
+- `blast-radius` is an explicitly invoked change-impact investigation that
+  grades safety facts from assertion through live reproduction.
+- `technical-writing` owns document mode, information structure, terminology,
+  and sentence clarity. `markdown-toolkit` owns GFM mechanics. `unslop` is an
+  explicitly invoked final prose cleanup.
+- `unslop` removes every em dash from editable prose. It preserves verbatim
+  quotations, code, identifiers, evidence, technical precision, and
+  uncertainty while rewriting with periods or commas.
+- `bro` explicitly restates the preceding assistant response in plain language.
+- `why` investigates historical rationale and separates direct evidence,
+  inference, competing hypotheses, and unknowns.
+- `show-me-your-work` keeps optional decision trails for long-running work. Its
+  logs are session artifacts by default and are never committed without
+  approval.
+- `code-commenting` includes a comment-audit mode with `KEEP`, `DELETE`,
+  `REWRITE`, `ENCODE`, and `INVESTIGATE` classifications.
 ## Python Script Execution
 
 ### UTF-8 Encoding
@@ -30,6 +54,38 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 - A function that returns an empty array via `return $errors.ToArray()` is unwrapped by the caller to `$null` unless the call site wraps it: `$x = @(Get-Foo)`.
 - String interpolation: `"$var:rest"` is parsed as drive-qualified; use `"${var}:rest"`.
 
+### Worktree and decision-log utilities
+
+`skills/using-git-worktrees/scripts/Get-WorktreeAudit.ps1` performs a
+conservative read-only audit of linked worktrees. It never fetches or removes
+worktrees. Run its focused tests with:
+
+```powershell
+Invoke-Pester -Path tests/using-git-worktrees/WorktreeAudit.Tests.ps1 -Output Detailed
+```
+
+`skills/show-me-your-work/scripts/Add-DecisionLogEntry.ps1` appends normalized
+UTF-8 TSV rows, retries concurrent writers, and neutralizes spreadsheet
+formulas. Run its focused tests with:
+
+```powershell
+Invoke-Pester -Path tests/show-me-your-work/DecisionLog.Tests.ps1 -Output Detailed
+```
+
+### Markdown Toolkit
+
+`skills/markdown-toolkit/markdown-toolkit/scripts/validate_markdown.sh` must be
+resolved from the loaded skill root, not the user's repository. It uses a
+`markdownlint` command on `PATH`, a target-repository
+`node_modules/.bin/markdownlint`, or `npx --no-install` without installing
+dependencies automatically.
+
+Run its focused tests with:
+
+```powershell
+Invoke-Pester -Path tests/markdown-toolkit/MarkdownToolkit.Tests.ps1 -Output Detailed
+```
+
 ## Address PR Comments Command
 
 `commands/address-pr-comments.md` supports both GitHub and Azure DevOps PRs through a shared provider-neutral workflow. Deterministic provider helpers live in `scripts/address-pr-comments-support.psm1`; focused fixtures and Pester coverage live in `tests/address-pr-comments/`.
@@ -47,6 +103,12 @@ Invoke-Pester -Path tests/address-pr-comments/AddressPrComments.Tests.ps1 -Outpu
 ```
 
 ## Skill Evals
+
+Real-model evals follow `evals/_docs/blinding.md`: candidates receive organic
+prompts and sanitized project-shaped environments; fixture truth and rubrics
+remain outside candidate visibility; comparative judges see randomized neutral
+labels and score variants in one pass when possible. Smoke adapters are exempt
+from behavioral blinding.
 
 ### code-review skill — detection-quality harness
 

@@ -13,15 +13,21 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/markdownlint-config.json"
 
-# Check if markdownlint is installed
-if ! command -v markdownlint &> /dev/null; then
+MARKDOWNLINT=()
+if command -v markdownlint &> /dev/null; then
+    MARKDOWNLINT=(markdownlint)
+elif [ -x "./node_modules/.bin/markdownlint" ]; then
+    MARKDOWNLINT=("./node_modules/.bin/markdownlint")
+elif command -v npx &> /dev/null && npx --no-install markdownlint --version &> /dev/null; then
+    MARKDOWNLINT=(npx --no-install markdownlint)
+else
     echo "❌ markdownlint-cli is not installed"
     echo ""
-    echo "To install globally:"
-    echo "  npm install -g markdownlint-cli"
-    echo ""
-    echo "Or install locally in your project:"
+    echo "To install in the target project after approval:"
     echo "  npm install --save-dev markdownlint-cli"
+    echo ""
+    echo "Or install globally after approval:"
+    echo "  npm install -g markdownlint-cli"
     echo ""
     exit 1
 fi
@@ -50,7 +56,7 @@ fi
 echo "🔍 Validating markdown: $TARGET"
 echo ""
 
-if markdownlint --config "$CONFIG_FILE" $FIX_FLAG "$TARGET"; then
+if "${MARKDOWNLINT[@]}" --config "$CONFIG_FILE" $FIX_FLAG "$TARGET"; then
     echo ""
     echo "✅ All markdown files are valid!"
     exit 0

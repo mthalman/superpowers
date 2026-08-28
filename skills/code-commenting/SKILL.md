@@ -1,6 +1,6 @@
 ---
 name: code-commenting
-description: Use proactively whenever writing code comments, or when user requests code documentation. Enforces effective commenting principles (explain "why" over "what", document non-obvious behavior, avoid redundancy, keep comments fresh) and provides systematic workflow for documenting existing code.
+description: Use proactively whenever writing or auditing inline code comments, doc comments, or docstrings. Explains why over what, preserves non-obvious contracts and rationale, removes narration and stale comments, evaluates suppressions, and prefers types, tests, naming, or structure when they can encode a constraint more reliably. Use technical-writing, not this skill, for standalone READMEs, guides, API pages, or other documentation.
 ---
 
 # Code Commenting
@@ -13,8 +13,12 @@ Enforce effective code commenting principles and provide a systematic workflow f
 
 Use this skill:
 - **Proactively** whenever writing a comment in code
-- When user asks to "document this code/file/function"
+- When the user asks to add or review inline comments, doc comments, or
+  docstrings in code
 - When adding comments to existing uncommented code
+
+Use `technical-writing` for standalone documentation such as README files,
+guides, RFCs, and API pages.
 
 ## Core Principles
 
@@ -48,7 +52,7 @@ total = sum(item.price for item in items if item.status != 'canceled')
 
 ```typescript
 // Returns null when market is closed (weekends, holidays)
-// Callers must handle null or risk NullPointerException
+// Callers must handle null before dereferencing the result
 function getCurrentPrice(): number | null { ... }
 ```
 
@@ -95,6 +99,82 @@ Apply principles to each area:
 ### 4. Validate
 
 Check each comment against principles before moving on.
+
+## Comment Audit Mode
+
+Use this mode when the user asks to review, remove, clean up, or reduce
+comments. Stay within the requested files or diff.
+
+Classify each material comment:
+
+| Classification | Meaning |
+|---|---|
+| `KEEP` | Preserves information code cannot express reliably |
+| `DELETE` | Narration, decoration, dead code, stale text, or redundant type information |
+| `REWRITE` | Important information expressed inaccurately or excessively |
+| `ENCODE` | A type, test, assertion, lint rule, name, or API can enforce the claim |
+| `INVESTIGATE` | The comment may encode a real constraint, but evidence is missing |
+
+### Keep
+
+Preserve:
+
+- legal and license headers;
+- public API contracts;
+- externally imposed platform, protocol, or compatibility behavior;
+- concise rationale for non-obvious algorithms, concurrency, performance, or
+  safety decisions;
+- issue or decision-record links that preserve relevant history;
+- tool suppressions whose necessity has been verified.
+
+### Delete
+
+Remove:
+
+- comments that restate the next line;
+- decorative banners that add no navigation value;
+- commented-out code recoverable from source control;
+- stale descriptions and obsolete warnings;
+- TODOs already completed or no longer actionable;
+- long workaround defenses after the workaround is gone.
+
+### Encode or refactor
+
+Prefer an enforceable mechanism when it communicates the constraint better:
+
+- a type instead of a nullable-value warning;
+- a regression test instead of "do not change this";
+- an assertion instead of an undocumented precondition;
+- a descriptive symbol instead of a narration comment;
+- a lint rule instead of a repeated style warning.
+
+Recommend application-code changes separately. Do not expand a comment-only
+request into refactoring without user approval.
+
+### Investigate uncertainty
+
+Read nearby code, history, tests, dependency documentation, and callers before
+deleting a possible constraint. If the evidence remains incomplete, preserve
+the comment and report what must be verified. Uncertainty is not evidence that
+the comment is safe to delete.
+
+### Review suppressions
+
+For `eslint-disable`, `@ts-ignore`, analyzer suppressions, and similar comments:
+
+1. Identify the exact rule.
+2. Determine whether it protects correctness, safety, compatibility, generated
+   code, or only style.
+3. Verify whether the underlying issue can be fixed in scope.
+4. Keep, narrow, replace, or remove the suppression based on that evidence.
+
+Do not treat every suppression as either harmless or defective.
+
+### Audit output
+
+Report counts by classification, then list every non-`KEEP` item with its
+location, classification, rationale, and evidence. Apply deletions or rewrites
+only when the user asked for edits.
 
 ## When NOT to Comment
 
