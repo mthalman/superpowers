@@ -28,6 +28,10 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
   approval.
 - `code-commenting` includes a comment-audit mode with `KEEP`, `DELETE`,
   `REWRITE`, `ENCODE`, and `INVESTIGATE` classifications.
+- `over-engineering-review` is a read-only, evidence-based assessment of
+  unnecessary complexity. It owns proportionality and simpler-counterfactual
+  analysis; `code-review` remains the broad correctness review, and
+  `code-refactorer` implements an approved simplification.
 - `defend-the-diff` is an explicitly invoked, read-only-first explainability panel. An isolated questioner asks as many independently tracked material questions as each semantic change unit requires, a defender answers with evidence and self-assessment, and an independent judge verifies the response. Panel roles use persistent agent contexts for follow-up turns when supported; fresh isolated agents receiving the complete accumulated packet are the non-blocking fallback. Callers may identify semantic units explicitly; the skill preserves those boundaries and inventories uncovered changes separately. It proposes code or documentation changes and waits for user approval before editing.
 
 ## Python Script Execution

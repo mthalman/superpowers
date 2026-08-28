@@ -1,0 +1,41 @@
+{
+  "skill_name": "over-engineering-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this TypeScript design specifically for over-engineering. A CLI currently writes reports in JSON only. ReportWriter is an interface with one JsonReportWriter implementation. ReportWriterFactory reads REPORT_FORMAT, but rejects every value except json. WriterRegistry stores the JSON writer under one key. ReportService asks the factory for a writer and calls write(). There are no plugins, tests use the concrete JSON writer, and the roadmap has no other formats. Do not edit code.",
+      "expected_output": "An evidence-based assessment that identifies the interface/factory/registry stack as speculative variation and proposes direct construction or injection of the JSON writer, while preserving the CLI's environment validation and write behavior.",
+      "files": [],
+      "expectations": [
+        "The assessment identifies the interface, factory, and registry as one related speculative-variation finding rather than three independent style complaints.",
+        "The evidence cites the single implementation, single accepted configuration value, lack of plugin consumers, and absence of a committed second format.",
+        "The simpler design preserves report writing and explicit rejection of unsupported format values.",
+        "The response is read-only and includes a confidence level."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Evaluate this payment module for over-engineering, not general bugs. It has a PaymentGateway interface with StripeGateway, AdyenGateway, and FakeGateway implementations. Merchant configuration selects Stripe or Adyen at runtime. A GatewayFactory validates configuration and constructs the selected adapter. The interface isolates each vendor SDK and FakeGateway is used in contract tests. The module also uses an idempotency store because webhook retries are documented by both providers. Do not change anything.",
+      "expected_output": "A concise proportionate verdict with no manufactured findings. It should explain that runtime variation, vendor isolation, contract testing, and retry idempotency justify the mechanisms.",
+      "files": [],
+      "expectations": [
+        "The verdict is Proportionate and does not report the interface, factory, fake, or idempotency store as over-engineering.",
+        "The rationale ties each mechanism to verified variation, an external boundary, testing, or documented retry behavior.",
+        "The response does not substitute a generic correctness review or recommend unrelated cleanup.",
+        "The response is read-only and includes a confidence level."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Assess this in-memory cache design for over-engineering. A single-process service caches user profiles. CacheCoordinator delegates to CacheProviderFactory, which always creates MemoryCacheProvider. The provider accepts an IEvictionPolicy, but the only policy is FixedTtlPolicy and the configured TTL is the same in every environment. PolicyRegistry and CachePluginLoader have no other registrations or callers. The cache's per-key lock prevents duplicate concurrent loads, and a test proves only one backend request occurs under concurrency. Suggest simplification but do not edit.",
+      "expected_output": "A mixed assessment that consolidates the unused provider/policy/plugin extensibility into a material finding and proposes a direct memory cache with fixed TTL, while explicitly retaining the tested per-key concurrency lock.",
+      "files": [],
+      "expectations": [
+        "The assessment identifies the factory, policy, registry, and plugin loader as related speculative extensibility supported by concrete usage evidence.",
+        "The simpler design uses the direct memory cache and fixed TTL rather than preserving unused configuration.",
+        "The recommendation explicitly preserves the per-key lock and its one-load concurrency guarantee.",
+        "The response does not confuse necessary concurrency complexity with over-engineering and includes a confidence level."
+      ]
+    }
+  ]
+}
