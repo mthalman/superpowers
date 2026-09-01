@@ -14,6 +14,11 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
   shapes. Interface and module design competitions route to `arena`.
 - `blast-radius` is an explicitly invoked change-impact investigation that
   grades safety facts from assertion through live reproduction.
+- `validation-scenarios` turns proposed or completed changes into a
+  proportional set of risk-based automated, manual, or hybrid validation
+  scenarios. It plans observable assurance coverage rather than implementing
+  test cases, issuing a code-review verdict, or proving blast-radius safety
+  facts.
 - `technical-writing` owns document mode, information structure, terminology,
   and sentence clarity. `draft-pr` owns ready-to-paste PR title and body
   drafts without creating or updating the PR, and honors the target GitHub

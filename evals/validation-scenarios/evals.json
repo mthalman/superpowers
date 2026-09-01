@@ -1,0 +1,60 @@
+{
+  "skill_name": "validation-scenarios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Generate a validation plan for the supplied pagination change. I need scenarios that can guide both automated regression coverage and a short manual API check; do not write test code.",
+      "expected_output": "A risk-based scenario set covering exact page contents and metadata at pagination boundaries, with specific observations, traceability to assurance claims, and a distinction between automated and manual validation.",
+      "files": [
+        "evals/code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch",
+        "evals/code-review/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py",
+        "evals/code-review/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py"
+      ],
+      "expectations": [
+        "The plan models pagination behavior rather than treating files or diff hunks as the units of coverage.",
+        "The scenarios validate returned item identities and order, not only item counts or next-page metadata.",
+        "The plan covers an exact full page boundary.",
+        "The plan covers a partial final page.",
+        "The plan covers the transition from the final populated page to no remaining records.",
+        "Each scenario has specific setup, action, expected observations, priority, validation mode, and coverage classification.",
+        "The report maps every scenario to one or more falsifiable assurance claims.",
+        "The report identifies that existing tests need extension.",
+        "The report does not write test code."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We changed an order worker from one attempt to up to three attempts with exponential backoff. A successful charge must happen once, permanent card errors must not retry, transient gateway failures may retry, duplicate queue delivery is possible, and operators rely on attempt and terminal-outcome metrics. Produce the validation scenarios we should run before release. Some checks can be automated, but include the manual staging workflow where it adds confidence.",
+      "expected_output": "A proportional validation plan covering success, transient recovery, permanent failure, retry exhaustion, duplicate delivery, backoff, metrics, and a production-like staging observation without collapsing these into test implementation details.",
+      "files": [],
+      "expectations": [
+        "The plan states a falsifiable assurance claim for at-most-once charging.",
+        "The plan states falsifiable assurance claims for retry classification and the three-attempt bound.",
+        "The plan states a falsifiable assurance claim for attempt and terminal-outcome observability.",
+        "Scenarios cover immediate success, transient failure followed by success, permanent failure without retry, and retry exhaustion.",
+        "At least one scenario covers duplicate queue delivery and checks that it cannot create a second successful charge.",
+        "Expected observations include exact charge counts and terminal states.",
+        "Expected observations include retry timing or backoff and both attempt and terminal-outcome metrics.",
+        "The plan uses a hybrid or manual staging scenario for production-like worker, queue, gateway, and metrics integration.",
+        "The scenario set avoids a full Cartesian product of all conditions.",
+        "The report explains residual assurance gaps."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Create validation scenarios for a documentation-only change that fixes two command examples and one broken relative link in a Markdown deployment guide. The prose does not describe a new product behavior. Keep the plan proportionate and don't invent application testing.",
+      "expected_output": "A restrained plan limited to rendering, link resolution, command accuracy, and preserved documentation scope, with no irrelevant runtime, performance, or end-to-end application scenarios.",
+      "files": [],
+      "expectations": [
+        "The change model recognizes that the change is documentation-only.",
+        "The change model does not claim altered application behavior.",
+        "A must-priority scenario verifies that the relative link resolves to the intended document and fragment.",
+        "A must-priority scenario verifies that both corrected commands are syntactically and contextually accurate.",
+        "The plan includes a rendered-document or preview check when Markdown rendering could affect usability.",
+        "The plan does not propose unrelated unit, integration, performance, security, or application runtime testing.",
+        "The validation scenarios are traceable to explicit assurance claims.",
+        "The report states the confidence limits or unresolved evidence appropriate to documentation validation."
+      ]
+    }
+  ]
+}
