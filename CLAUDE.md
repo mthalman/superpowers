@@ -19,6 +19,11 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
   scenarios. It plans observable assurance coverage rather than implementing
   test cases, issuing a code-review verdict, or proving blast-radius safety
   facts.
+- `tdd` applies the initial red phase of test-driven development to an
+  approved design: it creates compile-valid public contract stubs and
+  behaviorally failing tests, then stops before implementation. Unresolved
+  interface competitions route to `arena`; requests for validation planning
+  without test code route to `validation-scenarios`.
 - `technical-writing` owns document mode, information structure, terminology,
   and sentence clarity. `draft-pr` owns ready-to-paste PR title and body
   drafts without creating or updating the PR, and honors the target GitHub

@@ -1,0 +1,37 @@
+{
+  "skill_name": "tdd",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We approved a TypeScript design for a ReservationPolicy with reserve(request): ReservationResult. It accepts inventoryId, quantity, and requestId; rejects non-positive quantities; returns InsufficientInventory without changing inventory when stock is too low; and repeated requestIds return the original result without decrementing twice. Stub the designed API in this repo and write the tests first. Do not implement the policy.",
+      "expected_output": "Compile-valid TypeScript contract stubs and behaviorally failing tests for validation, insufficient inventory, successful reservation, and idempotency, with no policy implementation.",
+      "files": [],
+      "assertions": [
+        "The production scaffold exposes the designed ReservationPolicy input and result contracts without implementing reservation behavior.",
+        "Tests exercise observable validation, insufficient-inventory, success, and duplicate-request behavior through the public API.",
+        "The scaffold compiles or type-checks, and test failures are caused by deliberately unimplemented behavior rather than broken setup."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Here is the accepted Python design for a document converter: a Converter protocol exposes convert(source: Document, target: Format) -> Conversion, unsupported format pairs raise UnsupportedConversion, and the result records content plus warnings. Two implementations will eventually share the contract. Please create only the interfaces and a reusable contract-test suite that implementers can run later.",
+      "expected_output": "Python protocols or abstract contracts plus a parameterized reusable contract suite, with an explicit placeholder subject that remains red and no conversion implementation.",
+      "files": [],
+      "assertions": [
+        "The scaffold represents the accepted Converter, Document, Format, Conversion, warning, and UnsupportedConversion contracts.",
+        "Shared behavior is expressed as reusable contract tests parameterized by an implementation factory.",
+        "Placeholder execution fails explicitly and does not return success-shaped default conversion data."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Design me three possible APIs for a rate limiter and write tests for the best one.",
+      "expected_output": "The tdd skill should not own this request yet because interface selection is unresolved; route design competition to arena before scaffolding tests.",
+      "files": [],
+      "assertions": [
+        "The response does not prematurely scaffold one API while the user is still asking for competing designs.",
+        "The response routes interface comparison to the arena workflow and defers test-driven scaffolding until a design is selected."
+      ]
+    }
+  ]
+}
