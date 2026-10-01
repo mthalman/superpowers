@@ -30,8 +30,8 @@ $ErrorActionPreference = 'Stop'
 
 $req = [Console]::In.ReadToEnd() | ConvertFrom-Json
 
-$skillPath = Join-Path $PSScriptRoot '..' '..' 'SKILL.md' | Resolve-Path
-$skill = Get-Content -LiteralPath $skillPath -Raw
+$skillPath = Join-Path $PSScriptRoot '..' '..' '..' 'skills' 'code-review' 'SKILL.md' | Resolve-Path
+$referencesDir = Join-Path (Split-Path -Parent $skillPath) 'references'
 $diff  = Get-Content -LiteralPath $req.diffPath -Raw -ErrorAction SilentlyContinue
 $prText = ''
 if ($req.prDescriptionPath -and (Test-Path -LiteralPath $req.prDescriptionPath)) {
@@ -57,6 +57,7 @@ if ($req.prDescriptionPath) {
 [Console]::Error.WriteLine($contextListing)
 [Console]::Error.WriteLine("")
 [Console]::Error.WriteLine("SKILL.md is at: $skillPath")
+[Console]::Error.WriteLine("References:     $referencesDir (give the reviewer access to these too)")
 [Console]::Error.WriteLine("")
 [Console]::Error.WriteLine("Run a reviewer (e.g., open Claude / Copilot CLI with the SKILL prompt + diff)")
 [Console]::Error.WriteLine("and paste the resulting review markdown here. Finish with Ctrl-Z + Enter on Windows.")

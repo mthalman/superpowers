@@ -67,7 +67,8 @@ $prSection
 
 INSTRUCTIONS:
   1. Read the skill spec end-to-end and follow its multi-step process and
-     output format exactly.
+     output format exactly. When the spec says to open a file under its
+     references/ directory, read that file before continuing.
   2. Read the diff file end-to-end.
   3. Read whole files under the context directory whenever you need them.
      Do NOT rely on diff hunks alone — the skill explicitly requires

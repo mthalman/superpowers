@@ -46,6 +46,30 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
   `code-refactorer` implements an approved simplification.
 - `defend-the-diff` is an explicitly invoked, read-only-first explainability panel. An isolated questioner asks as many independently tracked material questions as each semantic change unit requires, a defender answers with evidence and self-assessment, and an independent judge verifies the response. Panel roles use persistent agent contexts for follow-up turns when supported; fresh isolated agents receiving the complete accumulated packet are the non-blocking fallback. Callers may identify semantic units explicitly; the skill preserves those boundaries and inventories uncovered changes separately. It proposes code or documentation changes and waits for user approval before editing.
 
+## Skill layout: progressive disclosure
+
+A skill's whole `SKILL.md` body loads on every activation, and Codex CLI
+truncates it at 8 KB. Files under `references/` load only when the agent opens
+them. Keep `SKILL.md` to frontmatter, when-to-use guidance, the workflow steps
+and gates, the output contract, and non-negotiable rules, with a target of
+8 KB or less. Put catalogs, long examples, rubrics, templates, and deep detail
+in `references/*.md`. Link each reference with a sentence saying when to open
+it, for example "Open `references/review-checklist.md` when ...". Bundled
+helpers live in `scripts/`; templates and static files live in `assets/`.
+
+`tests/skills/SkillReferences.Tests.ps1` checks that every backticked
+`references/`, `scripts/`, or `assets/` path and every relative Markdown link
+in a skill's `.md` files exists. Fenced code blocks are ignored. Intentional
+illustrative paths are allowlisted in the test. Run it with:
+
+```powershell
+Invoke-Pester -Path tests/skills/ -Output Detailed
+```
+
+The code-review eval adapters expose `skills/code-review/references/` to the
+reviewer: `copilot.ps1` through `--add-dir`, and `template.ps1` by inlining the
+files.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding
