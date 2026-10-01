@@ -19,6 +19,10 @@ Detailed before/after examples for common refactorings. Each entry shows the sme
 13. [Unify Near-Duplicate Code](#unify-near-duplicate-code)
 14. [Cross-File Pattern Consolidation](#cross-file-pattern-consolidation)
 15. [Apply OOP Design Patterns](#apply-oop-design-patterns)
+16. [Smell catalog and contraindications](#smell-catalog-and-contraindications)
+17. [Guidelines Per Refactoring Category](#guidelines-per-refactoring-category)
+18. [OOP Design Pattern Opportunities](#oop-design-pattern-opportunities)
+19. [Language-Specific Notes](#language-specific-notes)
 
 ---
 
@@ -1052,3 +1056,112 @@ public class Document {
 - **Only 2 variants exist and growth is unlikely.** A simple if/else or switch is fine. Wait for a third before extracting.
 - **The code is in a scripting or functional context** where classes add ceremony. Prefer higher-order functions, closures, or module-level organization.
 - **The "data class" is a DTO crossing a system boundary** (API request/response, serialization format). Don't add behavior to boundary objects.
+---
+
+## Smell catalog and contraindications
+
+Scan for these common smells to determine what refactoring is needed:
+
+| Smell | Symptom | Typical Refactoring | Contraindication |
+|---|---|---|---|
+| Long Method | Function > ~20 lines or does multiple things | Extract Method | Hot path with high call volume — function call overhead matters. Behavioral coupling — ordering may be intentional. |
+| Large Class | Class has too many responsibilities | Extract Class, Move Method | Many external dependents — use strangler fig instead. |
+| Duplicated Code | Same logic in 2+ places | Extract Method/Function, Pull Up | Hot path — inlining may be deliberate for performance. |
+| Near-Duplicate Code | Structurally similar blocks with minor variations | Parameterize differences, extract shared template | Blocks may diverge in the future (different domains). Only 2 instances + short — wait for a third (Rule of Three). |
+| Feature Envy | Method uses another class's data more than its own | Move Method | Many callers depend on current location. |
+| Data Clumps | Same group of fields/params appear together | Extract Class/Record | — |
+| Primitive Obsession | Overuse of primitives instead of small objects | Replace Primitive with Object | — |
+| Long Parameter List | Function takes > 3-4 parameters | Introduce Parameter Object | Many callers + no tests — add new overload with deprecation instead of changing signature. |
+| Divergent Change | One class modified for unrelated reasons | Extract Class | — |
+| Shotgun Surgery | One change requires edits across many classes | Move Method, Inline Class | — |
+| Switch Statements | Repeated switch/if-else on same type field | Replace Conditional with Polymorphism | Fewer than 3 branches or pattern doesn't repeat. |
+| Speculative Generality | Unused abstractions "for the future" | Collapse Hierarchy, Inline Class | — |
+| Dead Code | Unreachable or unused code | Remove Dead Code | Verify via grep/search that code is truly unreachable — feature flags or reflection may use it. |
+| Comments as Deodorant | Comments explaining confusing code | Rename, Extract Method (make code self-documenting) | Comments may explain *why* (business rules, edge cases) — preserve those. Only remove comments that explain *what* when the code is made self-explanatory. |
+| Cross-File Duplication | Same logic pattern repeated across multiple files with only entity/field names varying | Extract shared base class, factory function, decorator, or utility module (see Cross-File Pattern Discovery) | Instances in different bounded contexts — coupling is worse than duplication. Pattern still evolving — premature abstraction. Only 2 short instances — Rule of Three. |
+| Missing OOP Structure | Procedural patterns in OO code: switch/map dispatch instead of polymorphism, data+functions not co-located, cross-cutting concerns copy-pasted, complex conditionals on state fields | Apply appropriate design pattern (see OOP Design Pattern Opportunities below) | Code is in a scripting/functional context where OOP adds ceremony without benefit. Pattern has fewer than 3 instances — wait for a third. |
+
+## Guidelines Per Refactoring Category
+
+### Extraction Refactorings
+
+- Name extracted methods/functions after *what* they do, not *how*
+- Prefer pure functions (no side effects) when extracting
+- Keep extracted units at a single level of abstraction
+- Pass only the data the extracted unit needs—avoid passing entire objects when only one field is used
+
+### Simplification Refactorings
+
+- Replace nested if/else with guard clauses (early returns) when possible
+- Decompose compound boolean expressions: `if (isValid(x) && isAuthorized(user))` over `if (x != null && x.status == 1 && user.role == "admin")`
+- Prefer polymorphism over repeated type-checking switches only when there are 3+ branches and the pattern repeats
+
+### Moving Refactorings
+
+- Move a method to the class whose data it primarily uses
+- Group related functions into modules/namespaces by cohesion
+- When moving, update all callers and re-run tests
+
+### Naming Refactorings
+
+- Use domain language from the codebase's ubiquitous language
+- Variables: describe the *value* (`remainingRetries` not `r` or `count`)
+- Functions: describe the *action and result* (`calculateTotalPrice` not `process`)
+- Booleans: use `is/has/can/should` prefix (`isValid`, `hasPermission`)
+
+## OOP Design Pattern Opportunities
+
+When asked to make code "more object-oriented" or when you detect procedural patterns in OO code, systematically scan for these design pattern opportunities. Each entry describes the code smell that indicates the pattern, how to detect it, the pattern to apply, and when not to apply it.
+
+### General Principles
+
+- **Patterns are tools, not goals.** Only apply a pattern when it solves a concrete structural problem. If the current code is clear and easy to change, a pattern adds complexity for no benefit.
+- **Prefer composition over inheritance** unless the relationship is genuinely "is-a" and the base class is stable.
+- **Introduce patterns incrementally.** Don't refactor three things into three patterns at once. Apply one, verify tests pass, then assess whether the next is still needed.
+- **Each new type should earn its existence.** If a class would have only 5 lines of unique logic, it may not justify the indirection.
+
+### Pattern Detection Guide
+
+| Code Smell | Detection Signal | Candidate Pattern | Contraindication |
+|---|---|---|---|
+| **Switch/map dispatch on type or name** to select behavior | A switch, dictionary lookup, or if-else chain maps keys to different code paths. Adding a new variant requires editing the switch. | **Strategy** — Extract each branch into a class implementing a shared interface. Dispatcher becomes a thin router. | Fewer than 4 branches, or branches share significant mutable state across a single call. |
+| **Similar algorithms with varying steps** | Multiple methods/classes follow the same high-level sequence (validate → process → format) but differ in specific steps. Copy-paste with tweaks. | **Template Method** — Extract the shared skeleton into an abstract base class. Varying steps become abstract/virtual methods overridden by subclasses. | Steps will diverge significantly across variants. Only 2 instances exist (Rule of Three). Composition via callbacks/lambdas would be simpler. |
+| **Tight notification coupling** | Class A directly calls methods on classes B, C, D to notify them of changes. Adding a new listener requires editing class A. | **Observer / Event** — A publishes events; B, C, D subscribe independently. New listeners require zero changes to A. | Only 1-2 listeners that are unlikely to grow. Event-driven indirection makes debugging harder when the notification chain is short and stable. |
+| **Complex object construction scattered or duplicated** | Object creation logic (with conditional configuration, defaults, validation) is repeated across multiple call sites. Callers assemble objects step-by-step. | **Factory / Builder** — Centralize creation logic. Factory for single-step creation with variants; Builder for multi-step assembly with optional parts. | Object construction is trivial (just `new Foo(a, b)`). Only one call site exists. |
+| **Cross-cutting concerns copy-pasted** | The same pre/post logic (logging, auth checks, caching, retry, timing) is wrapped around multiple operations. Each wrapper is copy-pasted with minor variations. | **Decorator / Middleware** — Wrap behavior in composable layers that share an interface with the thing they wrap. Stack them via DI or explicit composition. | Each "copy" actually has meaningfully different behavior (different retry strategies, different auth rules). Fewer than 3 instances. |
+| **Complex conditionals on state fields** | Code checks `if (status == "pending") ... else if (status == "approved") ... else if (status == "shipped")` with different behavior per state. State transitions are validated in multiple places. | **State** — Each state becomes a class implementing a shared interface. The context object delegates to its current state. Transitions are enforced by the state objects. | Fewer than 3 states. State transitions are simple and centralized. The state-dependent behavior is trivial (just setting a field). |
+| **Data and behavior separated** | A "data" class/struct holds fields while separate "service" functions operate on it. The service repeatedly reaches into the data's internals. (Feature Envy at scale.) | **Encapsulation** — Move behavior onto the data class as methods. The data object becomes a rich domain object that protects its own invariants. | The "data" class is a DTO crossing a boundary (API, serialization). Behavior genuinely belongs at a different layer. |
+| **Parallel hierarchies with shared boilerplate** | Multiple classes follow the same structure (constructor pattern, shared helper calls, common error handling) but each has unique logic. Adding a new variant means copying an existing class and tweaking it. | **Abstract Base Class + Template** or **Strategy with shared base** — Extract the shared boilerplate into a base class. Each variant overrides only what's unique. Optionally use a second-tier base for subgroups with additional shared logic. | Variants are in different bounded contexts. The "shared" part is evolving rapidly. Composition would avoid the fragile base class problem. |
+
+### Detection Workflow
+
+When scanning for OOP opportunities:
+
+1. **Search for dispatch patterns.** Look for switch statements, type-checking conditionals, and dictionary lookups that route to different behavior. Count the branches — 4+ is a strong signal.
+2. **Audit constructor dependency counts.** Classes with 6+ injected dependencies often mix responsibilities. Check whether each method uses all dependencies or only a subset — disjoint subsets indicate decomposition candidates.
+3. **Search for repeated structural patterns.** Look for classes/functions that follow the same skeleton with different details plugged in. Template Method or Strategy often fits.
+4. **Search for copy-pasted wrappers.** `try/catch` blocks, auth checks, caching logic, or timing code duplicated around multiple operations → Decorator/Middleware.
+5. **Search for state-dependent branching.** Repeated conditionals on the same status/state/phase field across multiple methods → State pattern.
+6. **Search for data + separate functions.** Classes that are just bags of fields, with separate service classes reaching into them → Encapsulation.
+
+### Applying the Pattern
+
+Once you've identified a candidate:
+
+1. **Verify test coverage exists** for the code being restructured. If not, write characterization tests first.
+2. **Define the interface/contract first.** What's the minimal abstraction that all variants share?
+3. **Extract shared infrastructure** into a base class or utility (if 3+ variants share helpers totaling 30+ lines).
+4. **Migrate one variant at a time.** Start with the simplest case as proof-of-concept. Verify tests after each migration.
+5. **Update the wiring** (DI registration, factory methods, event subscriptions).
+6. **Update tests.** Individual variant tests should only need that variant's dependencies, not the full original dependency set.
+7. **Remove the old code** only after all variants are migrated and tests pass.
+
+## Language-Specific Notes
+
+Adapt refactoring to language idioms:
+
+- **Python**: Prefer list comprehensions over map/filter chains; use `@property` when extracting computed attributes; leverage `dataclass` or `NamedTuple` for data clumps
+- **JavaScript/TypeScript**: Prefer destructuring for parameter objects; use optional chaining to simplify null checks; extract custom hooks in React
+- **Java/C#**: Leverage interfaces for dependency inversion; use records/data classes for data clumps; prefer streams/LINQ for collection transformations
+- **Go**: Extract functions over methods when no state is needed; use interfaces implicitly; keep packages focused on one responsibility
+- **Rust**: Extract traits for shared behavior; use `impl` blocks to group related methods; leverage pattern matching over if-else chains

@@ -1,5 +1,7 @@
 # Defense-in-Depth Validation
 
+This reference covers layered validation after a root cause is known.
+
 ## Overview
 
 When you fix a bug caused by invalid data, adding validation at one place feels sufficient. But that single check can be bypassed by different code paths, refactoring, or mocks.

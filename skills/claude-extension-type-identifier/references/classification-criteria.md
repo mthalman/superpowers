@@ -308,3 +308,156 @@ When classifying, ask these questions:
 - Ask clarifying questions about invocation, complexity, and context needs
 - Consider team workflow preferences
 - Remember some functionality can legitimately be multiple types
+
+## Detailed Workflow Support
+
+This section preserves the expanded guidance that the short `SKILL.md` points to during classification.
+
+### Validate Against Existing Implementations
+
+Before finalizing your classification, check if similar functionality already exists:
+
+**How to validate:**
+1. Search the codebase for existing commands, skills, or agents with similar purposes
+2. Examine how they're implemented (Command, Skill, or Agent)
+3. If your classification differs from existing patterns, reconsider your reasoning
+
+**Why this matters:**
+- Real implementations reveal practical constraints theory might miss
+- Existing patterns show what works in practice
+- Inconsistency might indicate a misunderstanding
+
+**Example:**
+- Theory: "Systematic debugging needs deep expertise → Agent"
+- Reality check: `systematic-debugging` exists as a Skill in this codebase
+- Reconsider: Why is it a Skill? Because debugging requires ongoing collaboration - developer and Claude work together through hypothesis testing
+
+**Red flag:** Your theoretical classification contradicts existing implementation without clear justification
+
+**If no similar functionality exists:** Proceed with your classification, but note this is a new pattern
+
+### Clarifying Questions
+
+If the classification is unclear, identify what additional information would help:
+- How should this be triggered? (explicit vs automatic)
+- How complex is the workflow? (steps, decision points)
+- Does this need separate context? (to prevent pollution)
+- Should tool access be restricted? (security, focus)
+- How frequently used? (one-off vs repeated)
+
+When ambiguous, use the AskUserQuestion tool to gather missing information:
+
+**Question patterns:**
+- "How should this functionality be invoked?" (Options: User types a command, Claude detects and activates automatically)
+- "How complex is the workflow?" (Options: Simple one-step prompt, Multi-step process with guidance, Deep specialized expertise)
+- "Should this operate in separate context?" (Options: Yes - needs isolation, No - can share main context)
+
+**Example clarification:**
+
+```text
+User: "Help me write git commit messages"
+
+Ambiguity: Could be a command (explicit /commit) or skill (auto-activates when committing)
+
+Ask: "How should this be triggered?"
+- Option 1: "I type /commit when ready" → Command
+- Option 2: "Claude detects when I need commits" → Skill
+```
+
+### Output Format and Implementation Guidance
+
+Once determined, provide:
+1. **Classification**: Command, Skill, or Agent (or multiple if applicable)
+2. **Reasoning**: Explain why based on characteristics
+3. **Key factors**: List 2-3 decisive criteria
+4. **Trade-offs** (when multiple options exist): Systematically present pros/cons
+5. **Alternative considerations**: Mention edge cases if relevant
+6. **Implementation guidance**: Concrete suggestions for how to build it
+
+**Output format:**
+
+```text
+Classification: [Command/Skill/Agent]
+
+Reasoning: [Explanation based on invocation, complexity, context, etc.]
+
+Key factors:
+- [Factor 1]
+- [Factor 2]
+- [Factor 3]
+
+[Optional: Alternative considerations or edge cases]
+```
+
+**When multiple valid options exist, add trade-offs:**
+
+```markdown
+Trade-offs:
+
+| Approach | Pros | Cons | Best When |
+|----------|------|------|-----------|
+| [Option 1] | [Benefits] | [Costs] | [Context where appropriate] |
+| [Option 2] | [Benefits] | [Costs] | [Context where appropriate] |
+| [Option 3] | [Benefits] | [Costs] | [Context where appropriate] |
+```
+
+**For Commands:**
+- Suggested command name (e.g., `/commit`, `/review`)
+- Example usage pattern
+- Storage location (`.claude/commands/` vs `~/.claude/commands/`)
+
+**For Skills:**
+- Trigger patterns (what should activate it)
+- Behavioral mode (light-touch vs structured workflow)
+- Resource needs (templates, references, scripts)
+
+**For Agents:**
+- Delegation pattern (when Claude should invoke it)
+- Tool restrictions (if any)
+- Result format (what it returns)
+
+**For Hybrid (Skill + Command):**
+
+```text
+skill: [name]-guidance (auto-activates)
+├── Triggers: [specific patterns]
+├── Behavior: [what it does]
+└── References: [/command] for explicit mode
+
+command: [name] (explicit invocation)
+├── Use case: [when to invoke]
+├── More structured/invasive approach
+└── Shares principles with skill
+```
+
+### Compact Delegatability Rule
+
+When choosing between Skill and Agent, the critical question is: **Can this work be delegated?**
+
+Use **Agent** when Claude can complete the work independently and return results. Use **Skill** when the human must participate throughout and the work requires iterative collaboration.
+
+Expertise depth alone does not determine type. Even deep expertise remains a Skill when human participation is continuous.
+
+**Can be delegated (Agent):**
+- "Review code and return findings"
+- "Analyze security vulnerabilities in the codebase"
+- "Generate performance report with recommendations"
+- "Research five caching strategies and write comparison"
+- "Audit entire codebase for architecture anti-patterns"
+
+**Requires collaboration (Skill):**
+- "Help me make architectural decisions"
+- "Guide me through TDD process"
+- "Brainstorm design options with me"
+- "Refine my rough idea into a design"
+- "Create ADRs during design discussions"
+
+**Example - Test-Driven Development:**
+- ❌ Superficial thinking: "Complex methodology + expertise in testing = Agent"
+- ✓ Delegatability test: "Developer must write tests and code iteratively with guidance = Skill"
+
+TDD requires ongoing collaboration - the developer writes tests, sees them fail, implements code, and refactors with continuous guidance. This iterative, collaborative nature makes it a Skill, despite being a complex methodology.
+
+**Example - Security Audit:**
+- ✓ Delegatable: "Scan codebase for OWASP Top 10 vulnerabilities and report findings = Agent"
+- Human receives report after completion, reviews independently
