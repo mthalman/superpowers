@@ -111,28 +111,11 @@ QUERY=$(printf 'mutation { resolveReviewThread(input: {threadId: "%s"}) { thread
 gh api graphql -f query="$QUERY" --jq '.data.resolveReviewThread.thread.isResolved'
 ```
 
-**Batch resolution** — to resolve ALL unresolved threads at once:
-
-```bash
-for tid in $(gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'); do
-  QUERY=$(printf 'mutation { resolveReviewThread(input: {threadId: "%s"}) { thread { isResolved } } }' "$tid")
-  gh api graphql -f query="$QUERY" --jq '.data.resolveReviewThread.thread.isResolved'
-  echo " resolved: $tid"
-done
-```
-
-**PowerShell batch resolution:**
-
-```powershell
-$threadIds = gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'
-
-foreach ($tid in $threadIds) {
-  gh api graphql -f query="mutation { resolveReviewThread(input: {threadId: `"$tid`"}) { thread { isResolved } } }" --jq '.data.resolveReviewThread.thread.isResolved'
-}
-```
+Resolve threads individually, using the thread ID matched to the Copilot comment being processed above. Do not enumerate and resolve all unresolved threads, since they may belong to other reviewers.
 
 **Rules:**
 - Always resolve after replying — unresolved threads block clean PR state
+- Resolve only the thread matched to the Copilot comment being processed
 - Use `printf` (bash) or backtick-escaped quotes (PowerShell) for the mutation query to avoid shell escaping issues
 - Never use `-F` or variable interpolation inside the query string — it breaks GraphQL parsing
 
