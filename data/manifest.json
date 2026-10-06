@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T21:20:23Z",
+  "generated_at": "2026-10-06T21:14:25Z",
   "repository": "mthalman/superpowers",
   "sparkline_length": 20,
   "regression_window": 10,
@@ -19,16 +19,16 @@
       "name": "code-review",
       "pattern": "A",
       "latest": {
-        "commit": "19d27eb9b8fd3316de2469e3519ca1ab266719b6",
-        "short_sha": "19d27eb",
-        "timestamp": "2026-08-24T21:20:23Z",
-        "commit_message": "Merge origin/main into main",
-        "headline_score": 87.5,
-        "delta_from_previous": -12.5,
+        "commit": "b28b1fd52188c1c044dace42d0620232c2200058",
+        "short_sha": "b28b1fd",
+        "timestamp": "2026-10-06T21:14:25Z",
+        "commit_message": "Move oversized skill detail into references (#43)",
+        "headline_score": 100.0,
+        "delta_from_previous": 12.5,
         "status": "ok",
         "adapter": "copilot"
       },
-      "run_count": 3,
+      "run_count": 4,
       "sparkline": [
         {
           "short_sha": "d9cdf7c",
@@ -47,6 +47,12 @@
           "timestamp": "2026-08-24T21:20:23Z",
           "status": "ok",
           "headline_score": 87.5
+        },
+        {
+          "short_sha": "b28b1fd",
+          "timestamp": "2026-10-06T21:14:25Z",
+          "status": "ok",
+          "headline_score": 100.0
         }
       ],
       "biggest_drop_last_10": {
