@@ -24,7 +24,10 @@ The adapter must:
 
 1. Read and parse stdin.
 2. Construct a review prompt that incorporates `SKILL.md` (or whatever skill
-   you are evaluating) and the diff + context.
+   you are evaluating) and the diff + context. `SKILL.md` links to
+   `references/*.md` files for detail it needs only at specific steps. Give
+   the model file access to the skill directory, or inline those files when
+   the model cannot read files itself.
 3. Invoke its LLM / CLI / API of choice.
 4. Write the **review markdown** to **stdout**.
 5. Exit 0 on success; non-zero on failure.
@@ -61,7 +64,11 @@ param()
 $ErrorActionPreference = 'Stop'
 $req = [Console]::In.ReadToEnd() | ConvertFrom-Json
 
-$skill = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..' '..' 'SKILL.md') -Raw
+$skillPath = Join-Path $PSScriptRoot '..' '..' '..' 'skills' 'code-review' 'SKILL.md'
+$skill = Get-Content -LiteralPath $skillPath -Raw
+# Inline the on-demand references, since this example's model cannot read files.
+Get-ChildItem -LiteralPath (Join-Path (Split-Path -Parent $skillPath) 'references') -Filter '*.md' |
+    ForEach-Object { $skill += "`n`n---`nreferences/$($_.Name):`n" + (Get-Content -LiteralPath $_.FullName -Raw) }
 $diff  = Get-Content -LiteralPath $req.diffPath -Raw
 $pr    = if ($req.prDescriptionPath) { Get-Content -LiteralPath $req.prDescriptionPath -Raw } else { '' }
 

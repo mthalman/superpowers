@@ -1,5 +1,7 @@
 # Condition-Based Waiting
 
+This reference covers replacing arbitrary sleeps with condition-based polling.
+
 ## Overview
 
 Flaky tests often guess at timing with arbitrary delays. This creates race conditions where tests pass on fast machines but fail under load or in CI.
@@ -79,7 +81,7 @@ async function waitFor<T>(
 }
 ```
 
-See `condition-based-waiting-example.ts` in this directory for complete implementation with domain-specific helpers (`waitForEvent`, `waitForEventCount`, `waitForEventMatch`) from actual debugging session.
+See `../scripts/condition-based-waiting-example.ts` from this reference file (`scripts/condition-based-waiting-example.ts` relative to the skill directory) for complete implementation with domain-specific helpers (`waitForEvent`, `waitForEventCount`, `waitForEventMatch`) from actual debugging session.
 
 ## Common Mistakes
 

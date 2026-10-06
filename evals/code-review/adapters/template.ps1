@@ -16,9 +16,17 @@ $ErrorActionPreference = 'Stop'
 # 1. Parse request
 $req = [Console]::In.ReadToEnd() | ConvertFrom-Json
 
-# 2. Load the skill being evaluated
-$skillPath = Join-Path $PSScriptRoot '..' '..' 'SKILL.md' | Resolve-Path
+# 2. Load the skill being evaluated, plus its on-demand references.
+# SKILL.md links to references/*.md for detail it loads only when needed;
+# an LLM without file access must receive them inline.
+$skillPath = Join-Path $PSScriptRoot '..' '..' '..' 'skills' 'code-review' 'SKILL.md' | Resolve-Path
 $skill = Get-Content -LiteralPath $skillPath -Raw
+$referencesDir = Join-Path (Split-Path -Parent $skillPath) 'references'
+if (Test-Path -LiteralPath $referencesDir -PathType Container) {
+    foreach ($ref in Get-ChildItem -LiteralPath $referencesDir -Filter '*.md' -File | Sort-Object Name) {
+        $skill += "`n`n---`nreferences/$($ref.Name):`n" + (Get-Content -LiteralPath $ref.FullName -Raw)
+    }
+}
 
 # 3. Load the diff
 $diff = Get-Content -LiteralPath $req.diffPath -Raw
@@ -46,7 +54,7 @@ Surrounding source files are under: $($req.contextDir)
 You may read any file under contextDir to understand the change in context.
 
 ---
-SKILL.md:
+SKILL.md (followed by the reference files it links to):
 $skill
 ---
 $prSection

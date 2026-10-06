@@ -1,10 +1,47 @@
 # Root Cause Tracing
 
+This reference covers backward tracing from a symptom to the original trigger.
+
 ## Overview
 
 Bugs often manifest deep in the call stack (git init in wrong directory, file created in wrong location, database opened with wrong path). Your instinct is to fix where the error appears, but that's treating a symptom.
 
 **Core principle:** Trace backward through the call chain until you find the original trigger, then fix at the source.
+
+## Multi-Component Boundary Instrumentation
+
+When system has multiple components (CI → build → signing, API → service → database):
+
+Before proposing fixes, add diagnostic instrumentation for each component boundary:
+
+- Log what data enters component.
+- Log what data exits component.
+- Verify environment/config propagation.
+- Check state at each layer.
+
+Run once to gather evidence showing WHERE it breaks. THEN analyze evidence to identify failing component. THEN investigate that specific component.
+
+Example from a multi-layer signing failure:
+
+```bash
+# Layer 1: Workflow
+echo "=== Secrets available in workflow: ==="
+echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+
+# Layer 2: Build script
+echo "=== Env vars in build script: ==="
+env | grep IDENTITY || echo "IDENTITY not in environment"
+
+# Layer 3: Signing script
+echo "=== Keychain state: ==="
+security list-keychains
+security find-identity -v
+
+# Layer 4: Actual signing
+codesign --sign "$IDENTITY" --verbose=4 "$APP"
+```
+
+This reveals: which layer fails (secrets → workflow ✓, workflow → build ✗).
 
 ## When to Use
 
@@ -98,10 +135,10 @@ npm test 2>&1 | grep 'DEBUG git init'
 
 If something appears during tests but you don't know which test:
 
-Use the bisection script `find-polluter.sh` in this directory:
+Use the bisection script `../scripts/find-polluter.sh` from this reference file, or `scripts/find-polluter.sh` relative to the skill directory:
 
 ```bash
-./find-polluter.sh '.git' 'src/**/*.test.ts'
+./scripts/find-polluter.sh '.git' 'src/**/*.test.ts'
 ```
 
 Runs tests one-by-one, stops at first polluter. See script for usage.

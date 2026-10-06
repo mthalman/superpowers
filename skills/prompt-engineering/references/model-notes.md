@@ -1,5 +1,7 @@
 # Model-Specific Prompt Engineering Notes
 
+Model-specific prompt engineering notes for Claude, GPT, Gemini, open source models, and cross-model trade-offs.
+
 ## Claude (Anthropic)
 
 ### XML Tag Preferences

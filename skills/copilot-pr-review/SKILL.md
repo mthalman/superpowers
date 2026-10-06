@@ -5,225 +5,115 @@ description: "Full GitHub Copilot PR review feedback loop — add Copilot as rev
 
 # Copilot PR Review
 
-Run the full GitHub Copilot code reviewer feedback loop on an open pull request: add Copilot as reviewer, poll for its review, respond to each comment, resolve threads, re-request review, and repeat until clean.
+Run the full GitHub Copilot code reviewer feedback loop on an open pull request:
+add Copilot as reviewer, poll for its review, respond to each comment, resolve
+threads, re-request review, and repeat until clean.
 
 **Bot identity:** `copilot-pull-request-reviewer[bot]`
 
-> **WARNING:** The bot login is NOT `Copilot`, NOT `copilot[bot]`, NOT `github-copilot`.
-> It is exactly `copilot-pull-request-reviewer[bot]`. Using the wrong name will
-> silently fail or return "not found".
+> **WARNING:** The bot login is NOT `Copilot`, NOT `copilot[bot]`, NOT
+> `github-copilot`. It is exactly
+> `copilot-pull-request-reviewer[bot]`. Using the wrong name silently fails or
+> returns "not found".
 
 ## Prerequisites
 
-- `gh` CLI installed and authenticated
-- An open pull request
-- The authenticated user must have write access to the repo
+- `gh` CLI installed and authenticated.
+- An open pull request.
+- The authenticated user has write access to the repository.
+- A clean working tree, or an explicit decision to manage existing local
+  changes before applying review fixes.
 
-## Context Detection
+## Context detection
 
-1. Infer `owner/repo` from git remotes: `git remote get-url origin`
-2. Infer PR number from current branch: `gh pr view --json number --jq .number`
-3. If either cannot be inferred, ask the user
+1. Infer `owner/repo` from `git remote get-url origin`.
+2. Infer the PR number from the current branch with
+   `gh pr view --json number --jq .number`.
+3. If either cannot be inferred, ask for it instead of guessing.
 
-## Workflow
+## Six-step loop
 
-### Step 1 — Add Copilot as reviewer
+### Step 1: add Copilot as reviewer
 
-Use the GitHub API directly. `gh pr edit --add-reviewer` does NOT work for bot accounts.
+Use the GitHub API directly. `gh pr edit --add-reviewer` does not work for bot
+accounts.
 
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
-  --method POST \
-  -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-```
+Open `references/api-commands.md` when you need the exact `gh api` command to
+request Copilot, verify requested reviewers, fetch comments, reply, resolve
+threads, or re-request review.
 
-**Verification:** Confirm the reviewer was set:
+### Step 1.5: establish review baseline
 
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
-  --jq '.users[].login'
-```
+Before requesting or re-requesting review, count existing reviews from
+`copilot-pull-request-reviewer[bot]` and store `BASELINE_COUNT`. Step 2 must
+look for a **new** review where the count exceeds that baseline, not merely any
+old Copilot review.
 
-### Step 1.5 — Establish review baseline
+### Step 2: poll for Copilot's review
 
-**Before requesting review** (or before re-requesting in Step 5), count the existing Copilot reviews so you can detect when a NEW one arrives:
+Poll until a new review from `copilot-pull-request-reviewer[bot]` appears.
+Default cadence is 60 seconds for up to 15 minutes unless project context
+requires a different timeout. If polling is unreliable, use the commands and
+checks in the reliability reference.
 
-```bash
-BASELINE_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
-  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | length')
-echo "Baseline review count: $BASELINE_COUNT"
-```
+Open `references/reliability.md` when polling, merge conflicts, unresolved
+threads, context budget, or pre-rerequest verification need deeper handling.
 
-Store `BASELINE_COUNT`. You will use it in Step 2 to distinguish new reviews from old ones.
+### Step 3: fetch review comments
 
-### Step 2 — Poll for Copilot's review
+Fetch line-level comments for the new review. If the review body says Copilot
+generated no comments, the PR is clean. If it generated comments, process every
+comment before Step 5.
 
-Poll the reviews endpoint until a **new** review from `copilot-pull-request-reviewer[bot]` appears (count exceeds `BASELINE_COUNT`).
+### Step 4: respond to each comment
 
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
-  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | length'
-```
+For each comment:
 
-**Polling parameters:**
-- **Interval:** 60 seconds between checks
-- **Timeout:** 15 minutes (15 attempts)
-- **Detection:** Review count > `BASELINE_COUNT` means Copilot has submitted a NEW review
+1. Read and understand the comment.
+2. Make the fix on the PR branch.
+3. Create **one commit per comment**.
+4. Push the commit.
+5. Reply to the comment with the fixing commit SHA.
+6. Resolve the review thread.
 
-**Full detection query** (returns review state and comment count):
+> **PowerShell warning:** Do not use `-f "body=@$tempFile"`; PowerShell posts
+> the literal file path. Store the reply in a variable and pass
+> `-f "body=$bodyVar"` directly.
 
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
-  --jq '.[] | select(.user.login=="copilot-pull-request-reviewer[bot]") | {id: .id, state: .state, submitted_at: .submitted_at}'
-```
+### Gate before Step 5
 
-### Step 3 — Fetch review comments
+You MUST complete Steps 3-4 for **all** comments before re-requesting review.
+Do not re-request until every comment has been read, fixed, committed, pushed,
+replied to, and resolved. Skipping this gate prevents the loop from converging.
 
-After a review is detected, fetch the individual line-level comments:
+### Step 5: re-request Copilot review
 
-```bash
-REVIEW_ID=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
-  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")][-1].id')
+After all comments are processed and threads are resolved, refresh
+`BASELINE_COUNT`, then request Copilot again through the API.
 
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews/$REVIEW_ID/comments" \
-  --jq '.[] | {id: .id, path: .path, line: .line, body: .body}'
-```
+### Step 6: repeat until clean
 
-If the review body says "generated no comments", no action is needed — the PR is clean.
-If it says "generated N comments", proceed to Step 4.
+Return to Step 2. Poll for a review newer than the refreshed baseline. If it has
+no comments, the loop is complete. If it has comments, repeat Steps 3-5.
 
-### Step 4 — Respond to each comment
+## Anti-patterns
 
-For EACH comment, make a fix and create ONE commit per comment:
+- **NEVER use `gh pr edit --add-reviewer`** for bot accounts.
+- **NEVER filter by `.user.login=="Copilot"`**; use
+  `copilot-pull-request-reviewer[bot]`.
+- **NEVER batch multiple comment fixes into one commit**.
+- **NEVER skip replies or thread resolution** after fixing a comment.
+- **NEVER re-request review while current comments remain unprocessed**.
+- **NEVER use `gh api ... -f 'reviewers[]=Copilot'`**; it can appear to succeed
+  while doing nothing.
 
-1. **Read the comment** — understand what Copilot is asking for
-2. **Make the fix** in the appropriate file(s) on the PR branch
-3. **Commit** with a semantic message describing the fix
-4. **Push** the commit to the PR branch
+## Output contract
 
-**Reply to the comment thread** after pushing:
+Report:
 
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" \
-  --method POST \
-  -f "body=Fixed in {commit_sha}"
-```
-
-**PowerShell equivalent:**
-
-```powershell
-$body = "Fixed in <commit_sha>"
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies" -f "body=$body"
-```
-
-> **⚠️ PowerShell:** Do NOT use `-f "body=@$tempFile"` — the `@file` syntax does not work in PowerShell and will post the literal file path. Always store the body in a variable and pass directly: `-f "body=$bodyVar"`.
-
-### Step 4.5 — Resolve the conversation thread
-
-After replying to each comment, **resolve the review thread** using the GraphQL API.
-
-**Find the thread ID** for the comment:
-
-```bash
-THREAD_ID=$(gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved comments(first: 1) { nodes { databaseId } } } } } } }' \
-  --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.comments.nodes[0].databaseId == {comment_id}) | .id')
-```
-
-**Resolve it:**
-
-```bash
-QUERY=$(printf 'mutation { resolveReviewThread(input: {threadId: "%s"}) { thread { isResolved } } }' "$THREAD_ID")
-gh api graphql -f query="$QUERY" --jq '.data.resolveReviewThread.thread.isResolved'
-```
-
-**Batch resolution** — to resolve ALL unresolved threads at once:
-
-```bash
-for tid in $(gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'); do
-  QUERY=$(printf 'mutation { resolveReviewThread(input: {threadId: "%s"}) { thread { isResolved } } }' "$tid")
-  gh api graphql -f query="$QUERY" --jq '.data.resolveReviewThread.thread.isResolved'
-  echo " resolved: $tid"
-done
-```
-
-**PowerShell batch resolution:**
-
-```powershell
-$threadIds = gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 50) { nodes { id isResolved } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id'
-
-foreach ($tid in $threadIds) {
-  gh api graphql -f query="mutation { resolveReviewThread(input: {threadId: `"$tid`"}) { thread { isResolved } } }" --jq '.data.resolveReviewThread.thread.isResolved'
-}
-```
-
-**Rules:**
-- Always resolve after replying — unresolved threads block clean PR state
-- Use `printf` (bash) or backtick-escaped quotes (PowerShell) for the mutation query to avoid shell escaping issues
-- Never use `-F` or variable interpolation inside the query string — it breaks GraphQL parsing
-
----
-
-> ⚠️ **CRITICAL: You MUST complete Steps 3-4.5 for ALL comments before proceeding to Step 5.**
-> Do NOT re-request review until every comment has been:
-> 1. Read and understood
-> 2. Fixed (one commit per comment)
-> 3. Replied to with "Fixed in {sha}"
-> 4. Thread resolved via GraphQL
->
-> If you skip this and re-request review without fixing comments, the loop will never converge.
-
----
-
-### Step 5 — Re-request Copilot review
-
-After addressing ALL comments, re-request Copilot's review.
-
-**Before re-requesting**, update your baseline so Step 2 can detect the next new review:
-
-```bash
-BASELINE_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews" \
-  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | length')
-```
-
-Then re-request:
-
-```bash
-gh api "repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers" \
-  --method POST \
-  -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-```
-
-### Step 6 — Repeat
-
-Go back to Step 2. Poll for the NEW review (count > `BASELINE_COUNT`). If the new review has no comments,
-the PR is clean and the Copilot review loop is complete. If it has comments,
-repeat Steps 3-5.
-
-## Anti-Patterns
-
-- **NEVER use `gh pr edit --add-reviewer`** for bot accounts — it returns "not found"
-- **NEVER filter by `.user.login=="Copilot"`** — the login is `copilot-pull-request-reviewer[bot]`
-- **NEVER batch multiple comment fixes into one commit** — one commit per comment
-- **NEVER skip the re-request step** — Copilot won't re-review unless explicitly asked
-- **NEVER use `gh api ... -f 'reviewers[]=Copilot'`** — succeeds silently but does nothing
-
-## Merge Conflict Resolution
-
-If merge conflicts arise during this workflow:
-
-1. Fetch and rebase: `git fetch origin && git rebase origin/<target-branch>`
-2. Resolve conflicts
-3. Force-push: `git push --force-with-lease`
-4. Re-request review (Step 5)
-
-## Reliability Notes
-
-- **Context budget**: The Copilot review loop is context-intensive. If you've already done Phase 1 (local review) in this same agent context, be aware you have limited context remaining. Focus on the mechanical steps: read comment → fix → commit → reply → resolve. Do not re-investigate or re-analyze the broader PR — stay focused on what each comment asks for.
-- **One round at a time**: Process one complete round (all comments from a single review) before re-requesting. Never batch re-requests. Never re-request review while there are still unprocessed comments from the current review.
-- **Verify before re-requesting**: After resolving all threads, verify with `gh api graphql` that no unresolved threads remain before re-requesting review:
-  ```bash
-  UNRESOLVED=$(gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { pullRequest(number: {pr_number}) { reviewThreads(first: 100) { nodes { isResolved } } } } }' \
-    --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
-  echo "Unresolved threads: $UNRESOLVED"
-  ```
-  If `UNRESOLVED` > 0, go back and resolve them before proceeding to Step 5.
+- repository and PR number;
+- baseline counts for each review round;
+- every Copilot comment processed, with fix commit SHA and thread resolution
+  status;
+- verification run before re-requesting or completing;
+- final Copilot review state: clean, issues remaining, or blocked with evidence.
