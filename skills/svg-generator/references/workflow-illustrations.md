@@ -57,22 +57,22 @@ The superpowers:designing-ui-color skill provides:
 
 **If image will have text overlay (hero images, backgrounds):**
 
-You MUST consider luminance values and contrast ratios, not just "subtle colors."
+You MUST verify contrast ratios for exact text/background color pairs, not rely on color descriptions or luminance heuristics.
 
 **Text overlay requirements:**
 
-| Text Color | Background Luminance | WCAG Contrast Ratio | Color Strategy |
-|-----------|---------------------|-------------------|----------------|
-| White text | L* < 60 (dark backgrounds) | 4.5:1 for body, 3:1 for large text | Use muted, low-luminance colors |
-| Dark text | L* > 70 (light backgrounds) | 4.5:1 for body, 3:1 for large text | Use pastel, high-luminance colors |
+| Text Size | WCAG AA Contrast Ratio |
+|-----------|-------------------------|
+| Normal text | 4.5:1 |
+| Large text (at least 18 pt, or 14 pt bold) | 3:1 |
 
 **Example analysis:**
 
-✓ Good: "For white text overlay, using sage green (#8B9A7F, L* ≈ 52), taupe (#B8A898, L* ≈ 58), soft blue (#6B8CAA, L* ≈ 48). All L* < 60 ensures WCAG AA compliance (≥4.5:1 contrast) for body text."
+✓ Good: "White text on #526247 has a 6.57:1 contrast ratio; on #71604F, 6.02:1; and on #3F5C70, 7.06:1. Each exact pair meets the 4.5:1 body-text threshold."
 
-✗ Bad: "Using subtle green and blue colors" (No luminance analysis, no contrast verification)
+✗ Bad: "Using subtle green and blue colors" (No exact color pair or contrast calculation)
 
-**How to verify:** Use an online contrast checker or calculate: If RGB values average <128, likely dark enough for white text.
+**How to verify:** Calculate the contrast ratio for the exact rendered foreground/background pair beneath each text element. For gradients or images, check the lowest-contrast area behind the text. Do not infer compliance from L* or average RGB values.
 
 **Calculate key coordinates:**
 - Element centers
