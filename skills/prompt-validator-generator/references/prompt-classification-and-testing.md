@@ -6,6 +6,8 @@ This reference covers prompt type classification and choosing the comparison met
 
 **Determine what type of prompt you're validating:**
 
+Classify from the prompt's primary objective and expected outcome, not its wording, sections, or internal criteria. If this metadata is unavailable or ambiguous, ask for clarification rather than guessing.
+
 ### 2.1 Prompt Type Taxonomy
 
 **Note:** Prompts often combine multiple types. Identify the PRIMARY type to guide validation focus.

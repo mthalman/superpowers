@@ -27,17 +27,18 @@ description: Use when needing to create validators for LLM prompts in a specific
 
 **This skill REQUIRES subagent-based execution to prevent circular validation.**
 
-Three-agent architecture:
+Use three agents:
 
-1. **Main agent identifies domain.** Read the target prompt only enough to name the domain. Do not analyze the domain yet.
-2. **Subagent 1 creates the validator.** Launch a subagent with only the domain name: `Create a validator for [domain name] prompts. Complete Phases 1-5 of the prompt-validator-generator skill.`
-3. **Subagent 2 meta-validates.** After Subagent 1 returns the validator, launch another subagent with the validator plus the target and test prompts: `Here's a [domain] validator: [paste validator]. Test it on these prompts: [target prompt + test prompts]. Complete Phase 6 of the prompt-validator-generator skill.`
+1. The main agent provides metadata: domain, primary objective, audience, and expected outcome. Do not share the prompt's wording or structure. Ask the user if its objective is unclear.
+2. Subagent 1 receives only the domain and performs Phase 1.
+3. Subagent 2 receives Phase 1's analysis and the metadata, but not the prompt or its structure. It performs Phases 2-5, classifying by objective and outcome and grounding dimensions in domain expertise.
+4. Subagent 3 receives the finished validator and target/test prompts, then performs Phase 6.
 
-**CRITICAL: Do NOT pass the target prompt to Subagent 1. Pass ONLY the domain name.** Subagent 1 must base the validator on domain expertise, not the prompt's structure.
+**CRITICAL: Keep the target prompt from Subagents 1 and 2.** Subagent 1 analyzes the domain independently; Subagent 2 gets only enough abstract metadata to classify purpose. Subagent 3 sees the prompt only after the validator is complete.
 
-Subagent 1 returns a complete validator document after Phases 1-5. Subagent 2 applies it, checks false positives and negatives, calibrates it, and returns validation results plus a refined validator.
+Subagent 2 returns the validator after Phases 2-5. Subagent 3 tests and calibrates it, checks false positives and negatives, and returns results plus a refined validator.
 
-Single-agent execution is not recommended because it creates high circular-validation risk. Use it only if subagents are unavailable, and preserve the same separation: identify domain, set the prompt aside, analyze the domain independently, then test afterward.
+If subagents are unavailable, preserve the same separation in a single agent: analyze without prompt context, classify from metadata, create the validator without seeing prompt structure, then test it against the prompts.
 
 ## Non-Negotiable Circular-Validation Rule
 
@@ -119,7 +120,8 @@ When showing process, include enough Phase 1-6 evidence to prove the validator w
 
 ## Short Checklist
 
-- [ ] Subagent 1 received only the domain, not the target prompt
+- [ ] Subagent 1 received only the domain and completed Phase 1
+- [ ] Phases 2-5 received abstract task metadata but not the target prompt or its structure
 - [ ] Phase 1 domain analysis happened before validator generation
 - [ ] Phase 2 type classification shaped the validation approach
 - [ ] Phase 3 made tacit expert knowledge explicit
