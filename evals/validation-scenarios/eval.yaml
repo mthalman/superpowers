@@ -1,0 +1,104 @@
+name: validation-scenarios
+description: Evaluates proportional, risk-based validation scenario planning.
+version: "1"
+type: capability
+defaults:
+  runs: ${RUNS}
+  timeout: 10m
+  model: gpt-5.3-codex
+  reasoning_effort: high
+  executor: copilot-sdk
+  judge_model: gpt-5.3-codex
+  judge_reasoning_effort: high
+scoring:
+  threshold: 0.8
+agent_environment:
+  skills: [../../skills/validation-scenarios]
+stimuli:
+  - name: validation-scenarios--pagination-boundaries
+    tags:
+      skill: validation-scenarios
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      Generate a validation plan for the supplied pagination change. I need
+      scenarios that can guide both automated regression coverage and a short
+      manual API check; do not write test code.
+    agent_environment:
+      files:
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
+          dest: change.patch
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
+          dest: src/pagination.py
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
+          dest: tests/test_pagination.py
+    rubric:
+      - Models pagination behavior rather than files or diff hunks as coverage units.
+      - Validates returned item identities and order, not only counts or next-page metadata.
+      - Covers exact full-page, partial-final-page, and final-page-to-empty boundaries.
+      - Gives each scenario specific setup, action, observations, priority, validation mode, and coverage classification.
+      - Maps scenarios to falsifiable assurance claims and identifies that existing tests need extension.
+      - Does not write test code.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [validation-scenarios]
+      - type: diff-empty
+
+  - name: validation-scenarios--retrying-order-worker
+    tags:
+      skill: validation-scenarios
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      We changed an order worker from one attempt to up to three attempts with
+      exponential backoff. A successful charge must happen once, permanent card
+      errors must not retry, transient gateway failures may retry, duplicate
+      queue delivery is possible, and operators rely on attempt and
+      terminal-outcome metrics. Produce the validation scenarios we should run
+      before release. Some checks can be automated, but include the manual
+      staging workflow where it adds confidence.
+    rubric:
+      - States falsifiable assurance claims for at-most-once charging, retry classification, the three-attempt bound, and observability.
+      - Covers immediate success, transient recovery, permanent failure without retry, retry exhaustion, and duplicate delivery.
+      - Specifies exact charge counts, terminal states, backoff observations, and attempt and terminal-outcome metrics.
+      - Includes a production-like hybrid or manual staging scenario without creating a full Cartesian product.
+      - Explains residual assurance gaps.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [validation-scenarios]
+      - type: diff-empty
+
+  - name: validation-scenarios--documentation-only-change
+    tags:
+      skill: validation-scenarios
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Create validation scenarios for a documentation-only change that fixes
+      two command examples and one broken relative link in a Markdown deployment
+      guide. The prose does not describe a new product behavior. Keep the plan
+      proportionate and don't invent application testing.
+    rubric:
+      - Recognizes that the change is documentation-only and claims no altered application behavior.
+      - Verifies the relative link target and fragment, both corrected commands, and rendered Markdown usability.
+      - Does not propose unrelated runtime, integration, performance, or security testing.
+      - Traces scenarios to assurance claims and states appropriate confidence limits.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [validation-scenarios]
+      - type: diff-empty

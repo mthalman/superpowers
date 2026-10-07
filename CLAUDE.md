@@ -144,229 +144,123 @@ Run the focused suite:
 Invoke-Pester -Path tests/address-pr-comments/AddressPrComments.Tests.ps1 -Output Detailed
 ```
 
-## Skill Evals
+## Vally skill evaluations
 
-Real-model evals follow `evals/_docs/blinding.md`: candidates receive organic
-prompts and sanitized project-shaped environments; fixture truth and rubrics
-remain outside candidate visibility; comparative judges see randomized neutral
-labels and score variants in one pass when possible. Smoke adapters are exempt
-from behavioral blinding.
+Skill evaluations use `@microsoft/vally` and `@microsoft/vally-cli` 0.17.0.
+Node.js 22.12 or newer is required. Telemetry must be disabled with
+`VALLY_TELEMETRY_OPTOUT=1`.
 
-### code-review skill — detection-quality harness
+- `.vally.yaml` defines the `pr`, `main`, and `nightly` suites.
+- Each evaluated skill owns `evals/<skill>/eval.yaml`.
+- Shared TypeScript graders and reporters live in `evals/_vally/` and compile
+  into `evals/_vally/dist/`. Vally loads the emitted JavaScript, not raw
+  TypeScript.
+- `finding-match` deterministically scores code-review findings by expected
+  file region, semantic keywords, verdict floor, and distractor penalties.
+  A verdict below the fixture's floor forces the numeric score to zero.
+- The `pages-history` reporter appends uniform schema-v2 history and detail
+  records. Their schemas reject undeclared fields so raw trajectories cannot
+  enter compact Pages history. The `detection` reporter calculates
+  catch-in-any across trials.
+  Pass rates use Vally's effective scoring threshold, falling back to the
+  grader's binary verdict only when no threshold is configured. Execution
+  and grader errors remain error records even when the run lifecycle completes.
+- `evals/experiments/skill-uplift.experiment.yaml` compares rubric-based skills
+  with and without their skill directory. Vally's comparison judge uses
+  randomized neutral A/B labels.
+- Real-model fixtures follow `evals/_docs/blinding.md`. Hidden truth belongs in
+  `grading_environment`, outside the candidate workspace.
 
-Lives at `evals/code-review/`. Five evaluation dimensions are documented under `design/`; only **detection quality** has a runnable harness in v1.
+Vally 0.17.0 runs environment setup commands in the host's default shell
+without injecting the generated `EVALUATE_ASSETS` variable. Do not rely on
+that variable in setup commands; validate fixture materialization without a
+model before running expensive evaluations. On Windows the default shell is
+`cmd.exe`, not PowerShell or Bash.
+Code-review fixtures keep `change.patch` as review evidence rather than
+applying it: the supplied contextual source snapshots are not uniformly
+pre-change, and some diffs are illustrative excerpts.
+`evals/_vally/test/fixture-setup.test.ts` materializes all seven cases without
+models and checks source preservation, a clean initial worktree, and hidden
+expected findings.
 
-### Evidence-based finding policy
+Grader infrastructure errors are separate from trial execution errors.
+`hadExecutionErrors` alone does not detect failed judges or graders; use
+Vally's `hasGraderError(grade)` to distinguish these from valid failing
+measurements.
+The Pages reporter uses that helper and preserves the failing grader's
+diagnostic in `error_message`. Valid failing grades remain normal measurements.
 
-Build a broad evidence model before generating hypotheses; deepen research in
-high-risk areas; derive candidates from gaps or contradictions with verified
-contracts/invariants; then verify candidates again before output. Unresolved
-concerns may be non-material questions, but are not findings and cannot affect
-severity or verdict. Material evidence gaps make the review incomplete rather
-than an approval.
-
-The code-review process is single-model. Step 5 is the final self-critique ("Grill Your Assessment"); the skill and eval harness do not delegate critique to additional model families.
-
-**Run the Pester unit tests** (parser, matcher, schema):
-
-```powershell
-cd evals/code-review/harness/tests
-Invoke-Pester -Path . -Output Detailed
-```
-
-**Run the targeted skill-guidance policy tests:**
-
-```powershell
-Invoke-Pester -Path evals/code-review/harness/tests/SkillGuidance.Tests.ps1 -Output Detailed
-```
-
-**Run the detection eval end-to-end** against the bundled smoke adapter and worked fixtures:
-
-```powershell
-cd evals/code-review
-./harness/Run-DetectionEval.ps1 `
-  -Adapter ./adapters/smoke.ps1 `
-  -Fixtures ./fixtures/detection/dev `
-  -Trials 1 `
-  -OutDir ./results/local
-```
-
-The smoke adapter returns canned reviews from `adapters/canned-reviews/<case>.review.md` if present, otherwise a generic LGTM. It's for harness validation only — not a real reviewer.
-
-**Run against GitHub Copilot CLI** (real reviewer; requires `copilot` on PATH and an active session):
+Install and validate the toolchain:
 
 ```powershell
-cd evals/code-review
-./harness/Run-DetectionEval.ps1 `
-  -Adapter ./adapters/copilot.ps1 `
-  -Fixtures ./fixtures/detection/dev `
-  -Trials 1 `
-  -OutDir ./results/copilot
+npm ci --prefix evals/_vally
+$node = (Get-Command node).Source
+& $node evals/_vally/node_modules/typescript/bin/tsc --project evals/_vally/tsconfig.json --noEmit
+& $node evals/_vally/node_modules/typescript/bin/tsc --project evals/_vally/tsconfig.json
+Push-Location evals/_vally
+& $node node_modules/vitest/vitest.mjs run
+Pop-Location
+Invoke-Pester -Path tests/skill-eval/, tests/dashboard/ -Output Detailed
 ```
 
-Override the model with `$env:COPILOT_REVIEW_MODEL` (e.g. `claude-opus-4.7`, `gpt-5.3-codex`) and reasoning effort with `$env:COPILOT_REVIEW_EFFORT` (`low`|`medium`|`high`|`xhigh`|`max`).
-
-To wire a different reviewer, copy `adapters/template.ps1` and follow `adapters/README.md` (JSON request on stdin → markdown review on stdout, optional `META: {...}` on stderr).
-
-## Per-commit skill-eval workflow
-
-Issue #7 adds a CI pipeline that runs the per-skill eval suites on push to
-main and publishes per-commit headline scores to `gh-pages` as JSON.
-
-**Per-skill contract.** Every skill that wants to be scored ships
-`evals/<skill>/run-eval.ps1` — invoked as
-`pwsh -File evals/<skill>/run-eval.ps1 -OutDir <path>` — that writes two
-files in `<path>`:
-
-- `headline-score.json` — `{schema_version,pattern,headline_score,status,
-  metrics,…}`
-- `run-detail.json` — `{schema_version,pattern,detail}`
-
-See `evals/_docs/run-eval-contract.md` for the full schema and
-`evals/_docs/headline-score-pattern-a.md` for the Pattern A formula
-(`100 * caught_in_any / required_bug_count`).
-
-**Scripts** (in `scripts/`):
-
-- `detect-changed-skills.ps1` — emits JSON array of skills whose
-  `skills/<S>/` or `evals/<S>/` paths changed. Used by Job 1 of the
-  workflow. Special cases:
-  - Any change under `evals/_<name>/` (shared eval infra such as
-    `evals/_shared/`) triggers a **full sweep** — every skill with a
-    `run-eval.ps1` is re-evaluated.
-  - `evals/_docs/` is explicitly **excluded** from the full-sweep
-    trigger: documentation-only edits never re-run scoring.
-  - Initial commits (no `HEAD^`) also fall back to a full sweep so the
-    workflow never silently emits nothing.
-  - Manual `workflow_dispatch` runs with `skills: all` use `-FullSweep`;
-    `skills: foo,bar` uses `-FullSweep -OnlySkills foo,bar`.
-- `wrap-eval-output.ps1` — wraps a shard's contract files + git metadata
-  into the publishable `history.jsonl` row and `runs/<ts>-<sha>.json`.
-- `build-manifest.ps1` — sweeps `data/<skill>/history.jsonl` into
-  `data/manifest.json`. Emits per-skill `sparkline` (trailing N rows),
-  `biggest_drop_last_10` per skill, and a global `worst_recent_drop`.
-  Resolves the `repository` field from `-Repository` > `$env:GITHUB_REPOSITORY`
-  > parsing `git remote get-url origin` (used by the dashboard for
-  commit-link construction).
-- `sync-dashboard.ps1` — copies the dashboard sources from `dashboard/`
-  on `main` onto the `gh-pages` checkout. Mirrors `index.html`,
-  `skill.html`, and `assets/**`; prunes stale files inside `assets/`;
-  never touches `data/`, `.nojekyll`, the root `README.md`, or anything
-  outside dashboard-owned paths.
-- `init-gh-pages.ps1` — one-shot helper to create the empty `gh-pages`
-  orphan branch (must be run once per fresh repo before the workflow can
-  publish anything). Dashboard files appear on the first workflow run
-  after that.
-
-**Workflow:** `.github/workflows/skill-eval.yml` (three jobs:
-detect-changed-skills → eval matrix → publish). The publish job also
-runs when only `dashboard/**` changes, so dashboard tweaks reach
-`gh-pages` without forcing an eval re-run.
-
-**Run the Pester tests for the workflow scripts:**
+Lint all skills and evals with the pinned CLI:
 
 ```powershell
-Invoke-Pester -Path tests/skill-eval/ -Output Detailed
+$vally = "evals/_vally/node_modules/@microsoft/vally-cli/dist/index.js"
+$grader = (Resolve-Path "evals/_vally/dist/graders/finding-match.js").Path.Replace("\", "/")
+node $vally lint skills --strict
+Get-ChildItem evals -Filter eval.yaml -Recurse | ForEach-Object {
+  node $vally lint --eval-spec $_.FullName --grader-plugin $grader --strict
+}
 ```
 
-**Run the dashboard JS unit tests (node, no browser needed):**
+The GitHub Actions workflow validates deterministic surfaces on pull requests,
+runs changed-skill live evals on `main`, publishes the static trend dashboard
+to `gh-pages`, and supports manual changed-skill runs. Live Actions runs require
+`secrets.COPILOT_PAT`.
+Failed changed-skill evaluations still attempt artifact upload and Pages
+publication before the workflow reports failure. The manifest keeps legacy
+history without requiring Vally metrics and excludes reserved uplift and
+canonical-nightly directories from skill discovery.
+
+The expensive three-trial full suite and uplift experiment run locally so they
+do not consume GitHub Actions minutes. A Copilot automation can invoke:
 
 ```powershell
-Invoke-Pester -Path tests/dashboard/ -Output Detailed
-# or directly:
-node tests/dashboard/app-tests.mjs
+./scripts/Invoke-VallyNightly.ps1 -Publish
 ```
 
-**Locally exercise the code-review reference run-eval (smoke adapter):**
+Use `-DryRun` to validate discovery and experiment resolution without invoking
+models, or `-SkipUplift` to run only the five skill evals. `-Runs` controls both
+skill evaluations and uplift trials; the wrapper defaults to three. Direct
+Vally experiment runs default to one trial and accept `--param RUNS=3`.
+`-Publish` clones the
+configured upstream remote's `gh-pages` branch, appends the local run's
+per-skill history and detail records, writes a schema-validated canonical
+nightly summary and uplift history, synchronizes the dashboard, pushes a
+`vally-history/<timestamp>-<sha>` branch, where the timestamp includes
+milliseconds to avoid same-commit run collisions, and opens a ready-for-review pull
+request targeting `gh-pages`. The source worktree must be clean. If the current
+branch has no unambiguous upstream remote, pass `-Remote <name>`. Pass
+`-AutomationSessionUrl <url>` when the automation can provide its session link.
+Combining `-DryRun -Publish` validates GitHub authentication, remote selection,
+and `gh-pages` existence without running models or changing the repository.
+Publication PRs are left for manual review and merge, including valid runs that
+record a regression or inconclusive uplift.
+
+The Pages dashboard shows pass rate, mean score, pass@k, pass^k, flakiness,
+cost, and recent regressions. Detailed trajectories from Actions runs are
+stored in the `eval-history-<run-id>` workflow artifact; local nightly
+trajectories remain under that run's output directory. Open either source with
+Vally's richer dashboard:
 
 ```powershell
-pwsh -File evals/code-review/run-eval.ps1 -OutDir ./tmp/eval-out
-# Then wrap + publish into a local pages dir:
-pwsh -File scripts/wrap-eval-output.ps1 `
-  -Skill code-review `
-  -EvalOutDir ./tmp/eval-out `
-  -PagesDir ./tmp/pages `
-  -Commit (git rev-parse HEAD)
-pwsh -File scripts/build-manifest.ps1 -PagesDir ./tmp/pages
+./scripts/Start-EvalDashboard.ps1 -Latest
+./scripts/Start-EvalDashboard.ps1 -RunId <run-id>
+./scripts/Start-EvalDashboard.ps1 -ResultsDir <local-results-directory>
+./scripts/Start-EvalDashboard.ps1 -Stop
 ```
 
-Set `$env:EVAL_ADAPTER=copilot` (or any bundled-adapter name) to switch
-the reference run-eval to a real reviewer. Set `$env:EVAL_TRIALS=N` to
-override the per-case trial count. Both env vars are honored by every
-skill's `run-eval.ps1` per the contract in
-`evals/_docs/run-eval-contract.md`.
-
-### Configuring the CI workflow
-
-The workflow defaults to the smoke adapter for every skill (free,
-deterministic, **not a regression signal**). To switch all skills to a
-real reviewer, set a single repo variable:
-
-| Setting | Type | Value |
-|---|---|---|
-| `vars.EVAL_ADAPTER` | Repo variable | `copilot` (or `smoke`) — applies to every skill's `run-eval.ps1` |
-| `vars.EVAL_TRIALS`  | Repo variable (optional) | Integer, e.g. `3` — trials per case where the pattern supports it |
-| `secrets.COPILOT_PAT` | Repo secret | User-owned fine-grained PAT (see below) |
-
-**Adapter resolution.** Each skill's `run-eval.ps1` reads
-`$env:EVAL_ADAPTER` as a short name (e.g. `smoke`, `copilot`) and
-resolves it to `adapters/<name>.ps1` under its own skill directory. So
-`EVAL_ADAPTER=copilot` selects `evals/code-review/adapters/copilot.ps1`
-today, and `evals/<future-skill>/adapters/copilot.ps1` once a future
-skill ships its own copilot adapter. This is intentional: one
-workflow-wide knob, one adapter naming convention per skill.
-
-**Manual override.** The workflow's `workflow_dispatch` trigger
-exposes an `adapter` input that takes precedence over `vars.EVAL_ADAPTER`
-for that one run — useful for testing a real adapter before flipping
-the repo-wide default, or for one-off backfills.
-
-**Authentication for the Copilot adapter.** When `EVAL_ADAPTER`
-resolves to `copilot`, the workflow installs the Copilot CLI and
-exports `COPILOT_GITHUB_TOKEN` + `GH_TOKEN` from `secrets.COPILOT_PAT`
-(those are the two env vars the CLI reads, with `COPILOT_GITHUB_TOKEN`
-taking precedence). The fine-grained PAT just provides a GitHub
-identity for the CLI to authenticate as — your account's Copilot
-subscription is what gates Copilot access. For the bundled `copilot.ps1`
-adapter the token needs no repo or API permissions; if you later extend
-the adapter to fetch GitHub data, add the matching permissions then.
-
-Create the PAT at
-https://github.com/settings/personal-access-tokens/new and save it as
-`COPILOT_PAT` under **Settings → Secrets and variables → Actions**.
-
-When `EVAL_ADAPTER` does NOT contain `copilot`, the install steps are
-skipped to keep CI fast and free.
-
-## Eval dashboard (`dashboard/`)
-
-Issue #8 adds a static GitHub Pages dashboard at the `gh-pages` root
-that visualizes the JSON data the per-commit workflow publishes.
-
-- Source files live in `dashboard/` on `main`:
-  - `index.html` — landing page (skill grid + biggest-recent-regression callout)
-  - `skill.html` — drill-down (`?name=<skill>`), Chart.js line chart, pattern-A detail table, generic-fallback for other patterns
-  - `assets/{app.js,styles.css,chart.umd.js,LICENSE.chartjs.md}`
-  - `README.md` — vendoring + local-smoke instructions
-- Vendored Chart.js v4.5.1 (MIT) lives at `dashboard/assets/chart.umd.js`.
-  Source URL + SHA-256 are recorded in `dashboard/README.md`.
-- The workflow's `publish` job calls `scripts/sync-dashboard.ps1` to
-  mirror these onto `gh-pages` after writing `data/`. Scoped pruning
-  means stale `assets/*` files are removed but `data/`, `.nojekyll`, and
-  the root `README.md` are preserved.
-- All data is rendered via `textContent` / DOM APIs (no `innerHTML`
-  interpolation with user-supplied strings) and all paths are relative,
-  so the dashboard works at any Pages base path and is XSS-resistant.
-- Repo identity (for commit URLs) comes from `manifest.repository`,
-  never `window.location` — preventing brittleness on custom domains,
-  user-pages sites, and forks.
-
-**Run JS unit tests + dashboard sync tests:**
-
-```powershell
-Invoke-Pester -Path tests/dashboard/, tests/skill-eval/Dashboard.Tests.ps1 -Output Detailed
-```
-
-**Local smoke test the dashboard against fake data:** see the recipe in
-`dashboard/README.md`. Requires a real static server — `file://` won't
-work because browsers block local `fetch()`.
+The launcher recursively finds `results.jsonl` files and explicitly ingests
+each run directory into its SQLite store before serving. Empty result trees
+and failed ingestion are errors, not empty dashboards.

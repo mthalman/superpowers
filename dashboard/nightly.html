@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nightly Vally history · Superpowers</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <p><a href="index.html">&larr; All skills</a></p>
+    <h1>Canonical nightly history</h1>
+    <p class="tagline">Full-suite status and with-skill versus without-skill uplift.</p>
+  </header>
+
+  <main>
+    <section id="error-panel" class="error-panel" hidden></section>
+
+    <section class="chart-section">
+      <h2>Overall uplift</h2>
+      <div class="chart-wrapper">
+        <canvas id="uplift-chart" aria-label="Overall uplift history"></canvas>
+      </div>
+      <div id="uplift-latest" class="detail"></div>
+    </section>
+
+    <section class="history-section">
+      <h2>Nightly runs</h2>
+      <table id="nightly-table" class="history-table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Status</th>
+            <th>Source</th>
+            <th>Flaky</th>
+            <th>Skill details</th>
+            <th>Uplift data</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      <a href="index.html">All skills</a>
+      &middot;
+      <a href="data/nightly-runs/index.json">nightly index</a>
+      &middot;
+      <a href="data/uplift/history.jsonl">uplift history</a>
+    </p>
+  </footer>
+
+  <script src="assets/chart.umd.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    window.SuperpowersDashboard.initNightlyPage();
+  </script>
+</body>
+</html>

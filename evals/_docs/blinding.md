@@ -2,10 +2,8 @@
 
 Real-model evaluations can measure test awareness instead of normal task
 behavior when the candidate sees the rubric, expected findings, model labels,
-or experiment-shaped paths. Apply blinding whenever an adapter invokes a model
+or experiment-shaped paths. Apply blinding whenever Vally invokes a model
 whose behavior can change in response to those clues.
-
-Deterministic smoke adapters do not require behavioral blinding.
 
 ## Separate information by audience
 
@@ -20,7 +18,8 @@ Give the candidate:
 
 ### Harness-only
 
-Keep these outside the candidate-visible workspace:
+Keep these outside the candidate-visible workspace. Use Vally's
+`grading_environment` for hidden fixture truth:
 
 - expected results;
 - fixture metadata;
@@ -90,9 +89,9 @@ skills, and commands the candidate actually used. Reading a skill does not
 prove that the candidate applied it, and citing a skill does not prove that it
 was read.
 
-Execution evidence is adapter-dependent. Adapters should declare which evidence
-they can provide. Do not hard-code a host's private transcript path into the
-cross-skill contract.
+Vally trajectories are the execution evidence contract. Graders may request
+`trajectory`, `diff`, `golden_patch`, or `repo` evidence. Do not depend on a
+host-private transcript path.
 
 ## Report limitations
 
@@ -104,6 +103,10 @@ Record:
 - whether comparisons shared one judge pass;
 - which execution evidence was available;
 - known sources of leakage or calibration drift.
+
+Vally's experiment comparison judge randomizes neutral A/B labels. Preserve
+the experiment output and comparison JSONL so that this provenance is
+auditable.
 
 An evaluation with material leakage is not a clean comparison. Preserve its
 artifacts, but label the result accordingly.
