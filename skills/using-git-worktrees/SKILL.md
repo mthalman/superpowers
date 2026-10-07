@@ -15,6 +15,12 @@ tool is available.
 **Core principle:** Detect existing isolation first. Then use native tools. Then
 fall back to Git. Never fight the harness.
 
+**Large-repository exception:** When native session/worktree initialization
+has timed out, or the user explicitly requests a parent-managed manual
+worktree session, use `manual-worktree-session` instead of retrying native
+creation. It verifies a manually created checkout before registering it as an
+existing project and attaching an in-place child session.
+
 **Announce at start:** "I'm using the using-git-worktrees skill to set up an
 isolated workspace."
 
@@ -114,9 +120,9 @@ read-only audit. The audit script remains at `scripts/Get-WorktreeAudit.ps1`.
 ## Non-Negotiable Rules
 
 **Never:**
-
 - Create a worktree when Step 0 detects existing isolation.
-- Use `git worktree add` when you have a native worktree tool.
+- Use `git worktree add` when a working native worktree tool is available,
+  except for the explicit `manual-worktree-session` timeout workflow.
 - Skip Step 1a by jumping straight to Step 1b's Git commands.
 - Create a project-local worktree without verifying it is ignored.
 - Skip baseline test verification.

@@ -95,8 +95,28 @@ The repository uses PowerShell for scripts and automation. When creating new ski
 - `Measure-Object -Sum` over an empty pipeline returns a MeasureInfo whose `Sum` is `$null`; under `Set-StrictMode -Version Latest` accessing `.Sum` throws. Guard with `if (@($items).Count -gt 0)`.
 - A function that returns an empty array via `return $errors.ToArray()` is unwrapped by the caller to `$null` unless the call site wraps it: `$x = @(Get-Foo)`.
 - String interpolation: `"$var:rest"` is parsed as drive-qualified; use `"${var}:rest"`.
+- Suppress `CopyToAsync(...).GetAwaiter().GetResult()` with `[void]`; PowerShell
+  can emit a `VoidTaskResult` into the success pipeline and corrupt a structured
+  native-process result. Transfer Git NUL-delimited paths through byte streams,
+  not PowerShell's text pipeline.
 
 ### Worktree and decision-log utilities
+
+`manual-worktree-session` is the large-repository exception to native-first
+isolation. Its `scripts/Initialize-ManualWorktree.ps1` creates an external
+worktree, pins and verifies HEAD/branch/index/files, and emits orchestration
+JSON. Register the ready path with `create_project(path: ...)`, then use
+`create_session(workspace_type: 'branch')` without `base_branch`. App tools stay
+in the skill, not the helper. Recovery is limited to this helper's recorded
+failed initialization and requires stopped-session/no-writer attestations;
+it never adopts arbitrary existing worktrees or overwrites surviving files.
+Before restoring deleted paths it rejects reparse-point and non-directory
+ancestors, preventing checkout through a directory junction.
+Run the focused temporary-repository tests with:
+
+```powershell
+Invoke-Pester -Path tests/manual-worktree-session -Output Detailed
+```
 
 `skills/using-git-worktrees/scripts/Get-WorktreeAudit.ps1` performs a
 conservative read-only audit of linked worktrees. It never fetches or removes
