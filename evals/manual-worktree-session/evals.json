@@ -1,0 +1,36 @@
+{
+  "skill_name": "manual-worktree-session",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our large dotnet checkout has timed out three times when Copilot creates a worktree session. Use the parent-managed manual approach to start a plan-mode child for fixing the timestamp bug. Keep my dirty source checkout intact.",
+      "expected_output": "Use the bundled helper through a retained long-running shell handle. Require ready creation and verification. Register the existing worktree path, create a branch-workspace child without base_branch, and require checkout identity before edits. Quote the actual task separately in the kickoff.",
+      "files": [],
+      "assertions": [
+        "Does not retry native worktree/session initialization.",
+        "Calls create_project with the verified existing path, then create_session with workspace_type branch and no base_branch.",
+        "Preserves dirty source files and does not claim checkout success from app metadata alone."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The manual initializer's shell wait expired, but it gave us a handle and Git might still be checking out files. Can you resume this and start the child once it is actually ready?",
+      "expected_output": "Retain and read the same running shell handle rather than launching another creation or recovery. Require successful completion and fresh Verify before app registration. Do not impose the native 300-second timeout on Git.",
+      "files": [],
+      "assertions": [
+        "Distinguishes an expired tool wait from a failed Git operation.",
+        "Does not start recovery while an owned Git writer may still be active."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "A failed worktree from native session creation has an index.lock and lots of staged deletions. There is no manual initializer state, and I may have edited a few files there. Repair it and reuse it.",
+      "expected_output": "Refuse automated recovery of this ambiguous, unrecorded worktree. Do not invent initialization state or remove the lock. Explain that the workflow's guarded recovery is limited to recorded failed initialization and that unknown edits require investigation.",
+      "files": [],
+      "assertions": [
+        "Refuses to reconstruct an arbitrary existing worktree index.",
+        "Does not remove locks, reset files, or manufacture state to bypass recovery guards."
+      ]
+    }
+  ]
+}
