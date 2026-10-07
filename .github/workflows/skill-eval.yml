@@ -1,315 +1,221 @@
-name: Skill eval
-
-# Runs per-skill `run-eval.ps1` for each skill whose code or eval suite
-# changed (or every skill, on manual full-sweep). Publishes per-commit
-# headline scores to the `gh-pages` branch as JSON for the dashboard.
+name: Skill evaluations
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/skill-eval.yml"
+      - ".vally.yaml"
+      - "dashboard/**"
+      - "evals/**"
+      - "scripts/**"
+      - "skills/**"
+      - "tests/dashboard/**"
+      - "tests/skill-eval/**"
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/skill-eval.yml"
+      - ".vally.yaml"
+      - "dashboard/**"
+      - "evals/**"
+      - "scripts/**"
+      - "skills/**"
   workflow_dispatch:
     inputs:
       skills:
-        description: Comma-separated skill names, or "all" for a full sweep.
-        required: false
-        default: ""
-      adapter:
-        description: Override the eval adapter ("smoke", "copilot", ...). Leave blank to use vars.EVAL_ADAPTER.
-        required: false
-        default: ""
+        description: "Comma-separated skill names, or all"
+        default: all
+        required: true
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: skill-eval-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  VALLY_TELEMETRY_OPTOUT: "1"
+  NODE_VERSION: "22.12.0"
 
 jobs:
-  detect-changed-skills:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: evals/_vally/package-lock.json
+      - name: Install Vally toolchain
+        run: npm ci --prefix evals/_vally
+      - name: Build and test plugins
+        run: |
+          npm run typecheck --prefix evals/_vally
+          npm run build --prefix evals/_vally
+          npm test --prefix evals/_vally
+      - name: Lint skills and evals
+        shell: pwsh
+        run: |
+          $vally = "evals/_vally/node_modules/@microsoft/vally-cli/dist/index.js"
+          $grader = (Resolve-Path "evals/_vally/dist/graders/finding-match.js").Path.Replace("\", "/")
+          node $vally lint skills --strict
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem evals -Filter eval.yaml -Recurse | ForEach-Object {
+            node $vally lint --eval-spec $_.FullName --grader-plugin $grader --strict
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Run offline regression checks
+        shell: pwsh
+        run: ./scripts/Invoke-VallyRegression.ps1
+      - name: Run dashboard tests
+        run: node tests/dashboard/app-tests.mjs
+      - name: Run PowerShell tests
+        shell: pwsh
+        run: Invoke-Pester -Path tests/skill-eval/, tests/dashboard/ -Output Detailed -CI
+
+  detect:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
-      skills: ${{ steps.detect.outputs.skills }}
-      count: ${{ steps.detect.outputs.count }}
-      dashboard_changed: ${{ steps.dashboard.outputs.changed }}
+      skills: ${{ steps.changed.outputs.skills }}
+      has_skills: ${{ steps.changed.outputs.has_skills }}
+      dashboard_changed: ${{ steps.changed.outputs.dashboard_changed }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-
-      - name: Detect skills to re-evaluate
-        id: detect
+      - id: changed
         shell: pwsh
         env:
-          MANUAL_SKILLS: ${{ inputs.skills }}
+          REQUESTED_SKILLS: ${{ inputs.skills }}
         run: |
-          $manual = ($env:MANUAL_SKILLS ?? '').Trim()
-          if ($manual -and $manual -ieq 'all') {
-            $json = (& ./scripts/detect-changed-skills.ps1 -FullSweep)
-          } elseif ($manual) {
-            $json = (& ./scripts/detect-changed-skills.ps1 -FullSweep -OnlySkills $manual)
+          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+            if ($env:REQUESTED_SKILLS -eq "all") {
+              $json = ./scripts/Get-ChangedVallySkills.ps1 -FullSweep
+            } else {
+              $json = ./scripts/Get-ChangedVallySkills.ps1 -FullSweep -OnlySkills ($env:REQUESTED_SKILLS -split ",")
+            }
           } else {
-            $json = (& ./scripts/detect-changed-skills.ps1)
+            $json = ./scripts/Get-ChangedVallySkills.ps1 -BaseRef HEAD^ -HeadRef HEAD
           }
-          $arr = $json | ConvertFrom-Json
-          $count = @($arr).Count
-          Write-Host "Detected skills: $json"
-          Write-Host "Count: $count"
-          "skills=$json" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "count=$count"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $selected = @($json | ConvertFrom-Json)
+          "skills=$json" >> $env:GITHUB_OUTPUT
+          "has_skills=$([bool]($selected.Count))".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+          $dashboardChanged = $false
+          if ($env:GITHUB_EVENT_NAME -eq "push") {
+            git rev-parse --verify "HEAD^^{commit}" 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              $dashboardChanged = $true
+            } else {
+              $dashboardChanged = @(
+                git diff --name-only HEAD^ HEAD |
+                  Where-Object { $_ -match '^(dashboard/|scripts/sync-dashboard\.ps1$)' }
+              ).Count -gt 0
+            }
+          }
+          "dashboard_changed=$dashboardChanged".ToLowerInvariant() >> $env:GITHUB_OUTPUT
 
-      - name: Detect dashboard changes
-        id: dashboard
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          # Dashboard-only commits must still publish so changes reach
-          # gh-pages without an eval re-run. On the initial commit (no
-          # HEAD^) or any manual dispatch, assume true so the bootstrap
-          # publish step runs.
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! git rev-parse --verify --quiet "HEAD^{commit}" >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! git rev-parse --verify --quiet "HEAD^^{commit}" >/dev/null; then
-            # Repo has only one commit — sweep dashboard.
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          changed_paths=$(git diff --name-only HEAD^ HEAD || true)
-          if echo "$changed_paths" | grep -qE '^dashboard/'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  eval:
-    needs: detect-changed-skills
-    if: ${{ needs.detect-changed-skills.outputs.count != '0' }}
+  evaluate:
+    needs: detect
+    if: needs.detect.outputs.has_skills == 'true' || needs.detect.outputs.dashboard_changed == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        skill: ${{ fromJson(needs.detect-changed-skills.outputs.skills) }}
-    env:
-      # The Copilot CLI just needs a GitHub identity to authenticate;
-      # only consumed when EVAL_ADAPTER resolves to copilot. Exposed
-      # under both env var names the CLI reads, with COPILOT_GITHUB_TOKEN
-      # taking precedence over GH_TOKEN.
-      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
-      GH_TOKEN:             ${{ secrets.COPILOT_PAT }}
-      # Workflow-wide knobs that every skill's run-eval.ps1 honors.
-      # See evals/_docs/run-eval-contract.md for the contract. The
-      # workflow_dispatch `adapter` input takes precedence over
-      # vars.EVAL_ADAPTER when non-empty.
-      EVAL_ADAPTER: ${{ inputs.adapter != '' && inputs.adapter || vars.EVAL_ADAPTER }}
-      EVAL_TRIALS:  ${{ vars.EVAL_TRIALS }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        if: contains(env.EVAL_ADAPTER, 'copilot')
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install GitHub Copilot CLI
-        if: contains(env.EVAL_ADAPTER, 'copilot')
-        run: npm install -g @github/copilot
-        shell: bash
-
-      - name: Run eval
-        id: run
-        continue-on-error: true
-        shell: pwsh
-        env:
-          SKILL: ${{ matrix.skill }}
-        run: |
-          $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
-          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-          $script = "evals/$env:SKILL/run-eval.ps1"
-          if (-not (Test-Path $script -PathType Leaf)) {
-            throw "Missing run-eval.ps1 for skill '$env:SKILL'"
-          }
-          # Tee stdout AND stderr to a log so the publisher can include a
-          # snippet in the synthesized error contract when run-eval.ps1
-          # crashes before writing headline-score.json.
-          $logPath = Join-Path $env:RUNNER_TEMP 'run-eval.log'
-          & pwsh -NoProfile -File $script -OutDir $outDir *>&1 | Tee-Object -FilePath $logPath
-          # Propagate the child process exit code so steps.run.outcome
-          # accurately reflects success/failure (otherwise this step is
-          # always 'success' regardless of the child's exit status, and
-          # the synthesized error message reports a misleading outcome).
-          exit $LASTEXITCODE
-
-      - name: Synthesize error contract if missing
-        if: always()
-        shell: pwsh
-        env:
-          SKILL: ${{ matrix.skill }}
-          STEP_OUTCOME: ${{ steps.run.outcome }}
-        run: |
-          $outDir = Join-Path $env:RUNNER_TEMP 'eval-out'
-          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-          $headline = Join-Path $outDir 'headline-score.json'
-          if (-not (Test-Path $headline -PathType Leaf)) {
-            $logPath = Join-Path $env:RUNNER_TEMP 'run-eval.log'
-            $logSnippet = ''
-            if (Test-Path $logPath -PathType Leaf) {
-              $log = Get-Content -LiteralPath $logPath -Raw -ErrorAction SilentlyContinue
-              if ($log) {
-                # Keep the last ~2 KB so the published error is diagnosable
-                # without bloating history.jsonl rows.
-                $tail = if ($log.Length -gt 2048) { $log.Substring($log.Length - 2048) } else { $log }
-                $logSnippet = "`n`n--- run-eval.ps1 output (tail) ---`n$tail"
-              }
-            }
-            $msg = "run-eval.ps1 did not produce headline-score.json (job step status=$env:STEP_OUTCOME)$logSnippet"
-            $headlineObj = [ordered]@{
-              schema_version = 1
-              pattern        = $null
-              headline_score = $null
-              status         = 'error'
-              error          = $msg
-            }
-            $detailObj = [ordered]@{
-              schema_version = 1
-              pattern        = $null
-              detail         = [ordered]@{ error = $msg }
-            }
-            $enc = New-Object System.Text.UTF8Encoding($false)
-            [IO.File]::WriteAllText($headline, ([PSCustomObject]$headlineObj | ConvertTo-Json -Depth 10), $enc)
-            [IO.File]::WriteAllText((Join-Path $outDir 'run-detail.json'), ([PSCustomObject]$detailObj | ConvertTo-Json -Depth 10), $enc)
-          }
-          # Sidecar so the publisher knows which skill this belongs to.
-          $meta = [ordered]@{
-            skill = $env:SKILL
-            commit = $env:GITHUB_SHA
-            workflow_run_id = $env:GITHUB_RUN_ID
-          }
-          $enc = New-Object System.Text.UTF8Encoding($false)
-          [IO.File]::WriteAllText((Join-Path $outDir 'shard-meta.json'), ([PSCustomObject]$meta | ConvertTo-Json), $enc)
-
-      - name: Upload eval output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eval-output-${{ matrix.skill }}
-          path: ${{ runner.temp }}/eval-out
-
-  publish:
-    needs: [detect-changed-skills, eval]
-    if: ${{ always() && (needs.detect-changed-skills.outputs.count != '0' || needs.detect-changed-skills.outputs.dashboard_changed == 'true') }}
-    runs-on: ubuntu-latest
-    concurrency:
-      group: gh-pages-publish
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
+      - name: Check out source
+        uses: actions/checkout@v4
         with:
           path: source
-
-      - name: Download all eval artifacts
-        if: ${{ needs.detect-changed-skills.outputs.count != '0' }}
-        uses: actions/download-artifact@v4
-        with:
-          path: _artifacts
-          pattern: eval-output-*
-
-      - name: Checkout gh-pages
+      - name: Check out Pages data
         uses: actions/checkout@v4
         with:
           ref: gh-pages
-          path: _pages
-          # Full history is required so the later `git pull --rebase
-          # origin gh-pages` step can replay our new commit against any
-          # racing publishes; the default fetch-depth of 1 would make
-          # the rebase fail with "fatal: refusing to merge unrelated
-          # histories" once another publish lands first.
-          fetch-depth: 0
-
-      - name: Wrap each shard + rebuild manifest
+          path: pages
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/evals/_vally/package-lock.json
+      - name: Install and build Vally toolchain
+        if: needs.detect.outputs.has_skills == 'true'
+        working-directory: source
+        run: |
+          npm ci --prefix evals/_vally
+          npm run build --prefix evals/_vally
+      - name: Authenticate Copilot CLI
+        if: needs.detect.outputs.has_skills == 'true'
+        working-directory: source
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          test -n "$COPILOT_GITHUB_TOKEN"
+          npm install --global @github/copilot
+          copilot --version
+      - name: Evaluate changed skills
+        id: evaluations
+        continue-on-error: true
+        if: needs.detect.outputs.has_skills == 'true'
+        working-directory: source
         shell: pwsh
         env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
-          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+          CHANGED_SKILLS: ${{ needs.detect.outputs.skills }}
+          VALLY_PAGES_DIR: ${{ github.workspace }}/pages
+          VALLY_REPOSITORY: ${{ github.repository }}
+          VALLY_COMMIT: ${{ github.sha }}
+          VALLY_RUN_ID: ${{ github.run_id }}
+          VALLY_RUN_KIND: main
+          VALLY_ARTIFACT_NAME: eval-history-${{ github.run_id }}
         run: |
-          # On workflow_dispatch, github.event.head_commit is empty —
-          # fall back to `git log` against the source checkout so the
-          # published commit_message / commit_author are always populated.
-          $commitMsg = ($env:COMMIT_MESSAGE -split "`n", 2)[0]
-          $authorName = $env:COMMIT_AUTHOR_NAME
-          $authorEmail = $env:COMMIT_AUTHOR_EMAIL
-          if (-not $commitMsg -or -not $authorName) {
-            Push-Location source
-            try {
-              if (-not $commitMsg) {
-                $commitMsg = (& git log -1 --format=%s $env:GITHUB_SHA).Trim()
-              }
-              if (-not $authorName)  { $authorName  = (& git log -1 --format=%an $env:GITHUB_SHA).Trim() }
-              if (-not $authorEmail) { $authorEmail = (& git log -1 --format=%ae $env:GITHUB_SHA).Trim() }
-            } finally {
-              Pop-Location
-            }
+          $vally = "evals/_vally/node_modules/@microsoft/vally-cli/dist/index.js"
+          $grader = (Resolve-Path "evals/_vally/dist/graders/finding-match.js").Path.Replace("\", "/")
+          $pages = (Resolve-Path "evals/_vally/dist/reporters/pages-history.js").Path.Replace("\", "/")
+          $detection = (Resolve-Path "evals/_vally/dist/reporters/detection.js").Path.Replace("\", "/")
+          $failures = @()
+          foreach ($skill in ($env:CHANGED_SKILLS | ConvertFrom-Json)) {
+            node $vally eval --eval-spec "evals/$skill/eval.yaml" --suite main --runs 1 `
+              --output-dir "vally-results/$skill" `
+              --grader-plugin $grader `
+              --reporter-plugin $pages `
+              --reporter-plugin $detection `
+              --require-pass
+            if ($LASTEXITCODE -ne 0) { $failures += $skill }
           }
-          $author = "$authorName <$authorEmail>"
-          $runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          $artifactDirs = @(Get-ChildItem -LiteralPath _artifacts -Directory -ErrorAction SilentlyContinue)
-          Write-Host "Found $($artifactDirs.Count) shard(s)"
-          foreach ($dir in $artifactDirs) {
-            $metaPath = Join-Path $dir.FullName 'shard-meta.json'
-            $skill = $null
-            if (Test-Path $metaPath) {
-              try { $skill = (Get-Content $metaPath -Raw | ConvertFrom-Json).skill } catch {}
-            }
-            if (-not $skill -and $dir.Name -like 'eval-output-*') {
-              $skill = $dir.Name.Substring('eval-output-'.Length)
-            }
-            if (-not $skill) {
-              Write-Warning "Skipping artifact '$($dir.Name)': no skill identity"
-              continue
-            }
-            Write-Host "Wrapping shard for skill '$skill'"
-            & ./source/scripts/wrap-eval-output.ps1 `
-              -Skill $skill `
-              -EvalOutDir $dir.FullName `
-              -PagesDir _pages `
-              -Commit $env:GITHUB_SHA `
-              -CommitMessage $commitMsg `
-              -CommitAuthor $author `
-              -WorkflowRunUrl $runUrl
+          if ($failures.Count -gt 0) {
+            throw "Evaluation failed for: $($failures -join ', ')"
           }
-          & ./source/scripts/build-manifest.ps1 -PagesDir _pages -Repository $env:GITHUB_REPOSITORY
-
-      - name: Sync dashboard files onto gh-pages
+      - name: Build Pages manifest
+        working-directory: source
         shell: pwsh
-        run: |
-          # Mirror source/dashboard/ onto the gh-pages root, but scope the
-          # mirror so we never delete data/, .nojekyll, or README.md.
-          # Implementation: copy each top-level dashboard file/dir into the
-          # pages checkout, and prune any stale files inside dashboard-owned
-          # subtrees (currently only assets/) that no longer exist in
-          # source/dashboard/.
-          & ./source/scripts/sync-dashboard.ps1 `
-              -SourceDir ./source/dashboard `
-              -PagesDir _pages
-
-      - name: Commit + push gh-pages
+        run: ./scripts/Build-VallyDashboardManifest.ps1 -PagesDir ../pages -Repository $env:GITHUB_REPOSITORY
+      - name: Sync dashboard files
+        working-directory: source
         shell: pwsh
+        run: ./scripts/sync-dashboard.ps1 -SourceDir dashboard -PagesDir ../pages
+      - name: Upload detailed results
+        if: ${{ !cancelled() && needs.detect.outputs.has_skills == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-history-${{ github.run_id }}
+          path: source/vally-results
+          retention-days: 90
+      - name: Publish Pages data
+        working-directory: pages
+        shell: bash
         run: |
-          Set-Location _pages
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name  "github-actions[bot]"
-          git add -A
-          $status = git status --porcelain
-          if (-not $status) {
-            Write-Host "No changes to publish."
-            return
-          }
-          git commit -m "skill-eval: publish run for $($env:GITHUB_SHA.Substring(0,7))"
-          git pull --rebase origin gh-pages
-          git push origin gh-pages
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add --all
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Publish Vally eval results for ${GITHUB_SHA::7}"
+          git pull --rebase
+          git push
+      - name: Report evaluation failure
+        if: ${{ !cancelled() && steps.evaluations.outcome == 'failure' }}
+        run: |
+          echo "One or more skill evaluations failed. See the artifact upload and Pages publication steps for preservation results."
+          exit 1

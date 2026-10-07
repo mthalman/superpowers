@@ -1,0 +1,116 @@
+name: defend-the-diff
+description: Evaluates the explainability panel for proposed code changes.
+version: "1"
+type: capability
+defaults:
+  runs: ${RUNS}
+  timeout: 15m
+  model: gpt-5.3-codex
+  reasoning_effort: high
+  executor: copilot-sdk
+  judge_model: gpt-5.3-codex
+  judge_reasoning_effort: high
+scoring:
+  threshold: 0.8
+agent_environment:
+  skills: [../../skills/defend-the-diff]
+stimuli:
+  - name: defend-the-diff--pagination-change
+    tags:
+      skill: defend-the-diff
+      loop: [pr, main, nightly]
+      cost: high
+    prompt: >-
+      Interrogate the proposed pagination change in the supplied pager-service
+      project. Determine whether the change is justified, explainable, correct,
+      and maintainable. Do not edit anything unless I approve a proposal.
+    agent_environment:
+      files:
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
+          dest: change.patch
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
+          dest: src/pagination.py
+        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
+          dest: tests/test_pagination.py
+    rubric:
+      - Explains that Python slicing excludes the end index and the expression returns one fewer item than page_size.
+      - Identifies missing regression coverage for actual page contents.
+      - Includes a questioner second-pass classification for every defender answer, defender self-assessment, and independent judge verdict with evidence.
+      - Uses persistent role contexts when available and accepts fresh isolated follow-up agents with complete packets as fallback.
+      - Proposes changes without applying them and requests approval before editing.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [defend-the-diff]
+      - type: diff-empty
+
+  - name: defend-the-diff--documentation-only-change
+    tags:
+      skill: defend-the-diff
+      loop: [pr, main, nightly]
+      cost: high
+    prompt: >-
+      Interrogate the supplied directory-service documentation-only change.
+      Determine whether it is justified, explainable, correct, and maintainable,
+      but be strict about whether any additional explanation is actually
+      warranted. Do not edit anything unless I approve a proposal.
+    agent_environment:
+      files:
+        - src: files/directory-service/change.patch
+          dest: change.patch
+        - src: files/directory-service/src/format.ts
+          dest: src/format.ts
+    rubric:
+      - Recognizes that the patch has no behavioral effect.
+      - Concludes that no additional comment, documentation, test, or refactoring is warranted.
+      - Records coverage without manufacturing a tutorial or speculative concern.
+      - Concludes that the change is defensible and does not modify the project.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [defend-the-diff]
+      - type: diff-empty
+
+  - name: defend-the-diff--refund-event-handler
+    tags:
+      skill: defend-the-diff
+      loop: [pr, main, nightly]
+      cost: high
+    prompt: >-
+      Interrogate the proposed refund event handler in the supplied event-service
+      project. Treat event acknowledgement, amount-unit conversion, and
+      per-handler observability as three user-specified semantic units.
+      Determine whether the change is justified, explainable, correct, and
+      maintainable. Do not edit anything unless I approve a proposal.
+    agent_environment:
+      files:
+        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/pr.md
+          dest: pr.md
+        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/diff.patch
+          dest: change.patch
+        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/context/src
+          dest: src
+    rubric:
+      - Identifies missing acknowledgement, rejection, or dead-letter behavior required by the handler contract.
+      - Identifies that amountMinor is already in minor units and multiplying by 100 is wrong.
+      - Identifies the missing per-handler observability metric.
+      - Preserves the three user-specified semantic units and accounts for remaining diff behavior.
+      - Includes independently tracked material questions, evidence from surrounding files, second-pass classifications, defender self-assessment, and judge verdict.
+      - Proposes changes without applying them and requests approval before editing.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [defend-the-diff]
+      - type: diff-empty

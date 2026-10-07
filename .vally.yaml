@@ -1,0 +1,26 @@
+paths:
+  skills:
+    - skills
+  evals:
+    - evals
+  results: vally-results
+
+metadata:
+  repository: mthalman/superpowers
+
+params:
+  RUNS: "1"
+
+suites:
+  pr:
+    description: Deterministic regression grading over saved trajectories.
+    filter:
+      loop: pr
+  main:
+    description: One live trial for changed skills.
+    filter:
+      loop: main
+  nightly:
+    description: Three live trials for every evaluated skill.
+    filter:
+      loop: nightly

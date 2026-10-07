@@ -1,0 +1,86 @@
+name: tdd
+description: Evaluates the initial red phase of test-driven development.
+version: "1"
+type: capability
+defaults:
+  runs: ${RUNS}
+  timeout: 15m
+  model: gpt-5.3-codex
+  reasoning_effort: high
+  executor: copilot-sdk
+  judge_model: gpt-5.3-codex
+  judge_reasoning_effort: high
+scoring:
+  threshold: 0.8
+agent_environment:
+  skills: [../../skills/tdd]
+stimuli:
+  - name: tdd--typescript-reservation-policy
+    tags:
+      skill: tdd
+      loop: [pr, main, nightly]
+      cost: high
+    prompt: >-
+      We approved a TypeScript design for a ReservationPolicy with
+      reserve(request): ReservationResult. It accepts inventoryId, quantity,
+      and requestId; rejects non-positive quantities; returns
+      InsufficientInventory without changing inventory when stock is too low;
+      and repeated requestIds return the original result without decrementing
+      twice. Stub the designed API in this repo and write the tests first. Do not
+      implement the policy.
+    rubric:
+      - Production scaffolding exposes the designed input and result contracts without implementing reservation behavior.
+      - Tests exercise observable validation, insufficient inventory, success, and duplicate-request behavior through the public API.
+      - The scaffold compiles or type-checks, and failures come from deliberately unimplemented behavior rather than broken setup.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory, diff]
+      - type: skill-invocation
+        config:
+          required: [tdd]
+
+  - name: tdd--python-converter-contract
+    tags:
+      skill: tdd
+      loop: [pr, main, nightly]
+      cost: high
+    prompt: >-
+      Here is the accepted Python design for a document converter: a Converter
+      protocol exposes convert(source: Document, target: Format) -> Conversion,
+      unsupported format pairs raise UnsupportedConversion, and the result
+      records content plus warnings. Two implementations will eventually share
+      the contract. Please create only the interfaces and a reusable
+      contract-test suite that implementers can run later.
+    rubric:
+      - Represents the accepted Converter, Document, Format, Conversion, warning, and UnsupportedConversion contracts.
+      - Expresses shared behavior as reusable contract tests parameterized by an implementation factory.
+      - Leaves an explicit red placeholder and does not return success-shaped default conversion data.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory, diff]
+      - type: skill-invocation
+        config:
+          required: [tdd]
+
+  - name: tdd--unresolved-rate-limiter-api
+    tags:
+      skill: tdd
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: Design me three possible APIs for a rate limiter and write tests for the best one.
+    rubric:
+      - Does not prematurely scaffold one API while interface selection remains unresolved.
+      - Routes the interface competition to arena and defers test-driven scaffolding until a design is selected.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [tdd]
+      - type: diff-empty
