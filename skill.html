@@ -17,7 +17,7 @@
     <section id="error-panel" class="error-panel" hidden></section>
 
     <section class="chart-section">
-      <h2>Headline score over time</h2>
+      <h2>Pass rate over time</h2>
       <div class="chart-wrapper">
         <canvas id="history-chart" aria-label="Headline score history"></canvas>
       </div>
@@ -25,6 +25,8 @@
 
     <section class="detail-section">
       <h2>Latest run</h2>
+      <p>Open the full Vally drill-down locally:</p>
+      <pre id="local-command"></pre>
       <div id="latest-detail" class="detail"></div>
     </section>
 
@@ -36,11 +38,12 @@
             <tr>
               <th>When</th>
               <th>Commit</th>
-              <th>Score</th>
-              <th>Δ</th>
+              <th>Pass rate</th>
+              <th>Mean score</th>
+              <th>Run kind</th>
               <th>Status</th>
-              <th>Adapter</th>
-              <th>Detail</th>
+              <th>CI artifact</th>
+              <th>Local command</th>
             </tr>
           </thead>
           <tbody></tbody>

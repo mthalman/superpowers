@@ -1,0 +1,551 @@
+{
+  "schema_version": 2,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "skill": "validation-scenarios",
+  "status": "completed",
+  "passed": true,
+  "metrics": {
+    "pass_rate": 1,
+    "mean_score": 0.9944444444444446,
+    "pass_at_k": 1,
+    "pass_to_k": 1,
+    "flaky_count": 0,
+    "tokens": 794082,
+    "turns": 50,
+    "tool_calls": 53,
+    "wall_time_ms": 1294930
+  },
+  "stimuli": [
+    {
+      "name": "validation-scenarios--pagination-boundaries",
+      "score": {
+        "aggregateScore": 1,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "validation-scenarios--retrying-order-worker",
+      "score": {
+        "aggregateScore": 1,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "validation-scenarios--documentation-only-change",
+      "score": {
+        "aggregateScore": 0.9833333333333332,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    }
+  ],
+  "trials": [
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--documentation-only-change",
+      "passed": true,
+      "score": 1,
+      "durationMs": 51513,
+      "metrics": {
+        "tokens": 29578,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 51513
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, proportionate response that matches the requested scope for a documentation-only change. It validates exactly the edited risk areas (2 commands + relative link/rendering), avoids invented product testing, and provides clear claim-to-scenario traceability with explicit limits."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--documentation-only-change",
+      "passed": true,
+      "score": 1,
+      "durationMs": 51610,
+      "metrics": {
+        "tokens": 30072,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 51610
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a proportionate, documentation-focused validation plan that fully addresses the requested checks (two commands, broken relative link, markdown usability), avoids unrelated testing, and provides clear claim-to-scenario traceability with realistic confidence boundaries."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--documentation-only-change",
+      "passed": true,
+      "score": 1,
+      "durationMs": 53449,
+      "metrics": {
+        "tokens": 29819,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 53449
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The output is proportionate, documentation-focused, and directly aligned to the requested scope. It verifies the two command fixes and the relative link in rendered context, avoids irrelevant application testing, and provides clear traceability plus realistic confidence boundaries."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--documentation-only-change",
+      "passed": true,
+      "score": 1,
+      "durationMs": 63088,
+      "metrics": {
+        "tokens": 46714,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 63088
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, proportionate validation plan for a documentation-only change. It stays strictly within docs QA scope, covers both command fixes and link/render behavior, and provides clear claim-to-scenario traceability with realistic confidence boundaries."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--documentation-only-change",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 70052,
+      "metrics": {
+        "tokens": 46759,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 70052
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong, proportionate docs-validation plan with clear claim-to-scenario traceability and proper scope control. The main shortfall is incomplete explicit verification of the corrected link fragment/anchor behavior, preventing a perfect score."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--pagination-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 90639,
+      "metrics": {
+        "tokens": 64392,
+        "turns": 4,
+        "tool_calls": 7,
+        "wall_time_ms": 90639
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, rubric-aligned validation plan: behavior-centric modeling, explicit identity/order checks, complete boundary coverage, well-structured scenarios with all requested fields, clear claim-to-scenario traceability, and explicit extension of existing tests, all without writing test code."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--pagination-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 112018,
+      "metrics": {
+        "tokens": 110141,
+        "turns": 7,
+        "tool_calls": 8,
+        "wall_time_ms": 112018
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, rubric-aligned validation plan: behavior-centric, falsifiable, and complete on key pagination boundaries, with clear automated/manual split and explicit extension points for existing tests. It avoids test code while still being precise enough for implementation."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--pagination-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 110251,
+      "metrics": {
+        "tokens": 81412,
+        "turns": 5,
+        "tool_calls": 7,
+        "wall_time_ms": 110251
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The response is a strong validation plan that is behavior-driven, boundary-complete for pagination semantics, and structured for both automated regression and concise manual API verification. It maps concrete scenarios to falsifiable claims and avoids writing code, fully matching the rubric."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--pagination-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 119692,
+      "metrics": {
+        "tokens": 80840,
+        "turns": 5,
+        "tool_calls": 9,
+        "wall_time_ms": 119692
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, rubric-aligned validation plan: behavior-centric, falsifiable, and complete on required pagination boundaries, with clear automated and manual paths and explicit extension guidance for existing tests. No rubric gaps were found."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--pagination-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 146906,
+      "metrics": {
+        "tokens": 99347,
+        "turns": 6,
+        "tool_calls": 9,
+        "wall_time_ms": 146906
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The submission fully satisfies the rubric: it is behavior-centered, includes identity/order-focused boundary scenarios, provides complete per-scenario fields, links scenarios to falsifiable claims, calls out extension of existing tests, and avoids writing test code."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--retrying-order-worker",
+      "passed": true,
+      "score": 1,
+      "durationMs": 101305,
+      "metrics": {
+        "tokens": 32017,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 101305
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, release-ready validation plan aligned to the requested risk model. It is structured around explicit claims and expected observations, covers all critical paths (including duplicate delivery and manual staging confidence), and includes residual-gap transparency. Only minor precision gaps remain around fully exact charge assertions in every duplicate case and concrete metric naming."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--retrying-order-worker",
+      "passed": true,
+      "score": 1,
+      "durationMs": 80052,
+      "metrics": {
+        "tokens": 48678,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 80052
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, release-ready validation plan that directly matches the requested behavior changes and rubric requirements. It provides falsifiable claims, scenario completeness, concrete expected counts/outcomes/metrics, a realistic manual staging workflow, and explicit residual risk statements."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--retrying-order-worker",
+      "passed": true,
+      "score": 1,
+      "durationMs": 70300,
+      "metrics": {
+        "tokens": 31234,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 70300
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a high-quality pre-release validation plan: it is structured around falsifiable claims, covers all required behavior classes, defines expected outcomes and observability checks, and includes practical staging confidence-building steps. Minor precision gaps on numeric backoff specifics do not materially reduce the overall strength."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--retrying-order-worker",
+      "passed": true,
+      "score": 1,
+      "durationMs": 104195,
+      "metrics": {
+        "tokens": 31735,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 104195
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong, release-ready validation plan: it is structured around explicit claims, covers all critical behavioral paths including duplicates, and includes both automated and staging/manual confidence steps with operator observability checks. The only minor weakness is that exact backoff values are not fully concretized in-line, but the response correctly calls that out as a residual gap."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "validation-scenarios",
+      "stimulus": "validation-scenarios--retrying-order-worker",
+      "passed": true,
+      "score": 1,
+      "durationMs": 69860,
+      "metrics": {
+        "tokens": 31344,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 69860
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "This is a strong validation plan aligned to the requested behavior changes and rubric. It is specific, falsifiable, and operationally useful, with complete path coverage and clear observability expectations, plus realistic manual staging confidence checks and explicit remaining gaps."
+        },
+        {
+          "name": "skill-invocation requires validation-sc…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    }
+  ]
+}

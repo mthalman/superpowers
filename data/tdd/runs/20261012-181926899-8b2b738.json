@@ -1,0 +1,491 @@
+{
+  "schema_version": 2,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "skill": "tdd",
+  "status": "completed",
+  "passed": false,
+  "metrics": {
+    "pass_rate": 0.6,
+    "mean_score": 0.736111111111111,
+    "pass_at_k": 0.6666666666666666,
+    "pass_to_k": 0.44256,
+    "flaky_count": 1,
+    "tokens": 3743124,
+    "turns": 198,
+    "tool_calls": 255,
+    "wall_time_ms": 3962257
+  },
+  "stimuli": [
+    {
+      "name": "tdd--typescript-reservation-policy",
+      "score": {
+        "aggregateScore": 0.9,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 0.3276800000000001
+        },
+        "flaky": true
+      }
+    },
+    {
+      "name": "tdd--python-converter-contract",
+      "score": {
+        "aggregateScore": 0.925,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "tdd--unresolved-rate-limiter-api",
+      "score": {
+        "aggregateScore": 0.38333333333333336,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    }
+  ],
+  "trials": [
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--python-converter-contract",
+      "passed": true,
+      "score": 0.875,
+      "durationMs": 150344,
+      "metrics": {
+        "tokens": 223748,
+        "turns": 12,
+        "tool_calls": 16,
+        "wall_time_ms": 150344
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "The deliverable strongly matches the requested interface-and-contract-test scaffold and correctly keeps a deliberate red state without inventing success behavior. The only minor shortfall is that parameterization is done via subclass fixtures rather than an explicit implementation-factory abstraction, so this is very good but not perfect."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--python-converter-contract",
+      "passed": true,
+      "score": 0.875,
+      "durationMs": 164056,
+      "metrics": {
+        "tokens": 195838,
+        "turns": 11,
+        "tool_calls": 16,
+        "wall_time_ms": 164056
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "The submission is strong and close to target: it provides the requested interfaces and a reusable contract-test suite with an intentionally red default. Minor shortfalls are that warnings are not modeled as a separate warning contract and test parameterization is fixture-based rather than an explicit implementation-factory abstraction."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--python-converter-contract",
+      "passed": true,
+      "score": 1,
+      "durationMs": 185192,
+      "metrics": {
+        "tokens": 233312,
+        "turns": 13,
+        "tool_calls": 19,
+        "wall_time_ms": 185192
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The submission fully delivers the requested interface contract and reusable contract-test scaffold, and it intentionally preserves a red placeholder state without fake success outputs. Minor extra artifacts (e.g., cache files/CLAUDE.md) do not detract from rubric fulfillment."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--python-converter-contract",
+      "passed": true,
+      "score": 1,
+      "durationMs": 185982,
+      "metrics": {
+        "tokens": 257804,
+        "turns": 14,
+        "tool_calls": 18,
+        "wall_time_ms": 185982
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent delivered a contract-only scaffold and reusable contract-test suite that match the requested design and preserves a clear red-phase placeholder. Evidence shows the interfaces, exception contract, and reusable tests are present and the placeholder fails explicitly rather than returning fabricated conversion data."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--python-converter-contract",
+      "passed": true,
+      "score": 0.875,
+      "durationMs": 328382,
+      "metrics": {
+        "tokens": 637550,
+        "turns": 27,
+        "tool_calls": 32,
+        "wall_time_ms": 328382
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "The submission is a solid contract-first scaffold: interfaces are present, reusable contract tests are in place, and placeholders are explicitly red with no fake implementation behavior. Minor deductions come from not modeling warning as a distinct explicit contract and using fixture/subclass injection rather than a clearly defined implementation-factory parameter."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--typescript-reservation-policy",
+      "passed": true,
+      "score": 0.875,
+      "durationMs": 447874,
+      "metrics": {
+        "tokens": 226464,
+        "turns": 12,
+        "tool_calls": 14,
+        "wall_time_ms": 447874
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "This is a solid tests-first scaffold that appears to match the requested reservation contract and intentionally leaves policy behavior unimplemented. Test coverage aligns well with the required observable scenarios. The only reason this is not a 5 is evidentiary certainty: key confirmation of TS contract/type-check status is partially indirect (compiled artifacts and reported run results) rather than fully visible in the inspected excerpts."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--typescript-reservation-policy",
+      "passed": true,
+      "score": 0.875,
+      "durationMs": 441177,
+      "metrics": {
+        "tokens": 277925,
+        "turns": 15,
+        "tool_calls": 17,
+        "wall_time_ms": 441177
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Overall, the work substantially matches the requested TDD scaffold: contract-first production surface and comprehensive red tests for the specified behaviors, while intentionally leaving policy logic unimplemented. The main limitation in grading confidence is incomplete direct visibility into some large evidence sections (notably full source/command output), preventing a fully definitive top score."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--typescript-reservation-policy",
+      "passed": true,
+      "score": 1,
+      "durationMs": 470428,
+      "metrics": {
+        "tokens": 284870,
+        "turns": 15,
+        "tool_calls": 19,
+        "wall_time_ms": 470428
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The submission matches the requested TDD scaffolding outcome: contract types and API are stubbed, tests for the required behaviors are present and API-driven, and execution failures are attributable to the deliberate `Not implemented` stub instead of broken project wiring."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--typescript-reservation-policy",
+      "passed": true,
+      "score": 1,
+      "durationMs": 491943,
+      "metrics": {
+        "tokens": 235809,
+        "turns": 13,
+        "tool_calls": 15,
+        "wall_time_ms": 491943
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The submission matches the requested TDD scaffold: contract types and API stub are present, behavior remains unimplemented, and the test suite encodes the required validation/insufficient/success/idempotency scenarios through the public interface. Type-check passes, and test failures are intentional and correctly attributable to the explicit not-implemented stub."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--typescript-reservation-policy",
+      "passed": false,
+      "score": 0.75,
+      "durationMs": 410710,
+      "metrics": {
+        "tokens": 279222,
+        "turns": 15,
+        "tool_calls": 24,
+        "wall_time_ms": 410710
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "Solid contract-first scaffold and compile-valid setup were produced, with deliberate unimplemented behavior. The major gap is test coverage: the required success behavior is not evidenced, while validation/insufficient/duplicate are. Overall this is partially complete but does not fully satisfy the rubric."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--unresolved-rate-limiter-api",
+      "passed": false,
+      "score": 0.3333333333333333,
+      "durationMs": 148836,
+      "metrics": {
+        "tokens": 156451,
+        "turns": 9,
+        "tool_calls": 13,
+        "wall_time_ms": 148836
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0,
+          "evidence": "The agent completed a plausible TDD scaffold, but against this rubric it failed the required process: it did not run an arena-style interface competition and committed to implementation scaffolding before demonstrating a resolved interface-selection phase. Both criteria are missed."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--unresolved-rate-limiter-api",
+      "passed": false,
+      "score": 0.4166666666666667,
+      "durationMs": 146265,
+      "metrics": {
+        "tokens": 174530,
+        "turns": 10,
+        "tool_calls": 14,
+        "wall_time_ms": 146265
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "The final deliverable includes three API options and tests for one chosen API, but the process does not follow the required interface-competition flow. Evidence indicates immediate TDD scaffolding of a single API without an arena-mediated selection step, so rubric compliance is low overall."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--unresolved-rate-limiter-api",
+      "passed": false,
+      "score": 0.4166666666666667,
+      "durationMs": 138574,
+      "metrics": {
+        "tokens": 169052,
+        "turns": 10,
+        "tool_calls": 11,
+        "wall_time_ms": 138574
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "The final output is coherent and includes three API options plus tests, but the process did not follow the required interface-selection discipline. Most importantly, it skipped `arena` and moved into TDD scaffolding flow immediately, so rubric compliance is weak despite a usable artifact."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--unresolved-rate-limiter-api",
+      "passed": false,
+      "score": 0.3333333333333333,
+      "durationMs": 131876,
+      "metrics": {
+        "tokens": 173444,
+        "turns": 10,
+        "tool_calls": 14,
+        "wall_time_ms": 131876
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0,
+          "evidence": "Although the final output contains three API ideas and a red test suite, the execution process did not follow the required design-selection workflow. The agent went straight into TDD scaffolding for one API without an arena-phase interface competition, so both rubric criteria are not met."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "tdd",
+      "stimulus": "tdd--unresolved-rate-limiter-api",
+      "passed": false,
+      "score": 0.4166666666666667,
+      "durationMs": 120618,
+      "metrics": {
+        "tokens": 217105,
+        "turns": 12,
+        "tool_calls": 13,
+        "wall_time_ms": 120618
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "The submission satisfies the task outcome superficially (three API options plus tests for one), and sequencing was partly disciplined, but it misses the key process requirement to run interface competition through arena. Given the rubric’s focus on that workflow, this is a substantial failure despite some partial compliance."
+        },
+        {
+          "name": "skill-invocation requires tdd",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    }
+  ]
+}

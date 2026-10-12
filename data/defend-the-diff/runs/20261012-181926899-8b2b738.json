@@ -1,0 +1,551 @@
+{
+  "schema_version": 2,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "skill": "defend-the-diff",
+  "status": "completed",
+  "passed": false,
+  "metrics": {
+    "pass_rate": 0,
+    "mean_score": 0.4166666666666667,
+    "pass_at_k": 0,
+    "pass_to_k": 0,
+    "flaky_count": 0,
+    "tokens": 1633605,
+    "turns": 102,
+    "tool_calls": 209,
+    "wall_time_ms": 1597223
+  },
+  "stimuli": [
+    {
+      "name": "defend-the-diff--pagination-change",
+      "score": {
+        "aggregateScore": 0.09999999999999999,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "defend-the-diff--documentation-only-change",
+      "score": {
+        "aggregateScore": 0.6000000000000001,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "defend-the-diff--refund-event-handler",
+      "score": {
+        "aggregateScore": 0.55,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    }
+  ],
+  "trials": [
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--documentation-only-change",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 61955,
+      "metrics": {
+        "tokens": 67807,
+        "turns": 5,
+        "tool_calls": 5,
+        "wall_time_ms": 61955
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent delivered a strict, evidence-based review aligned with the requested stance: it identified a pure documentation typo fix, confirmed no behavioral change, and appropriately avoided requesting unnecessary follow-up work."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--documentation-only-change",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 62789,
+      "metrics": {
+        "tokens": 54365,
+        "turns": 4,
+        "tool_calls": 5,
+        "wall_time_ms": 62789
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong evaluation: accurate identification of a documentation-only typo fix, correct no-behavior-impact conclusion, and appropriately concise coverage. Minor deduction for not explicitly covering all 'no additional X' categories (test/refactor) and for introducing a small optional-note caveat."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--documentation-only-change",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 63124,
+      "metrics": {
+        "tokens": 55103,
+        "turns": 4,
+        "tool_calls": 6,
+        "wall_time_ms": 63124
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong evaluation: it correctly identifies a harmless documentation typo fix, confirms no behavioral impact, and recommends approval without code changes. Minor hedging about possible team policy prevents a fully strict, unequivocal match to the 'no additional explanation warranted' rubric language."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--documentation-only-change",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 66301,
+      "metrics": {
+        "tokens": 54486,
+        "turns": 4,
+        "tool_calls": 6,
+        "wall_time_ms": 66301
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong evaluation overall: it correctly classifies the patch as a harmless documentation typo fix, explains why it is defensible, and avoids speculative noise. The only minor shortfall is a small hedge suggesting a brief rationale note, which keeps it just shy of a perfectly strict 'nothing additional warranted' conclusion."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--documentation-only-change",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 73651,
+      "metrics": {
+        "tokens": 42812,
+        "turns": 3,
+        "tool_calls": 5,
+        "wall_time_ms": 73651
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "A solid, concise review that correctly classifies the patch as documentation-only and defensible, with no unnecessary speculation. Minor deduction for not explicitly naming tests/refactoring/comments when concluding no further follow-up is needed."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--pagination-change",
+      "passed": false,
+      "score": 0.16666666666666666,
+      "durationMs": 90128,
+      "metrics": {
+        "tokens": 115611,
+        "turns": 8,
+        "tool_calls": 10,
+        "wall_time_ms": 90128
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "Technically, the analysis is strong on pagination correctness, slice semantics, and test-gap identification, and it correctly avoids making edits without approval. However, it misses the required multi-role/second-pass classification and role-context/fallback process criteria entirely. So the submission is partially successful but not fully compliant with the full rubric."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--pagination-change",
+      "passed": false,
+      "score": 0.08333333333333333,
+      "durationMs": 97988,
+      "metrics": {
+        "tokens": 89662,
+        "turns": 6,
+        "tool_calls": 8,
+        "wall_time_ms": 97988
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "Technically, the core pagination analysis is strong and accurate (off-by-one explanation and missing content-assertion tests were correctly identified). However, the response misses major required process elements in the rubric—especially the required questioner/defender/judge second-pass classifications and role-context workflow expectations. Because those rubric items are entirely absent, the overall performance is below acceptable despite correct technical conclusions."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--pagination-change",
+      "passed": false,
+      "score": 0.08333333333333333,
+      "durationMs": 111060,
+      "metrics": {
+        "tokens": 156602,
+        "turns": 10,
+        "tool_calls": 14,
+        "wall_time_ms": 111060
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "The agent’s technical diagnosis of the pagination bug and test-gap is strong and evidence-based, and it correctly refrains from editing without approval. However, it entirely misses the required defend-the-diff process criteria (questioner second-pass classifications and role-context/fallback handling). Because multiple explicit rubric requirements are unfulfilled, the holistic result is below passing despite accurate core code analysis."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--pagination-change",
+      "passed": false,
+      "score": 0.08333333333333333,
+      "durationMs": 104503,
+      "metrics": {
+        "tokens": 117162,
+        "turns": 8,
+        "tool_calls": 10,
+        "wall_time_ms": 104503
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "The core technical assessment is strong and correct (slice semantics and missing test coverage), but the response misses key required process elements: no defender/questioner/judge second-pass classification and no role-context/fallback-agent handling. It mostly respects the no-edit constraint, but only partially satisfies the explicit approval-request requirement. Overall, good bug analysis but weak compliance with the full rubric protocol."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--pagination-change",
+      "passed": false,
+      "score": 0.08333333333333333,
+      "durationMs": 116158,
+      "metrics": {
+        "tokens": 100147,
+        "turns": 7,
+        "tool_calls": 9,
+        "wall_time_ms": 116158
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.25,
+          "evidence": "Technically, the core pagination analysis is strong and correct, and the regression-test gap is identified well. However, the response misses major rubric-required process elements (questioner/defender/judge classifications and role-context/fallback workflow), which are complete omissions. Because multiple required criteria are unmet, the holistic grade is below passing despite good technical content."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": false,
+          "score": 0,
+          "evidence": "Workspace diff is not empty — the stimulus changed the workspace"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--refund-event-handler",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 116168,
+      "metrics": {
+        "tokens": 87551,
+        "turns": 5,
+        "tool_calls": 18,
+        "wall_time_ms": 116168
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Technically, the agent correctly identified the three core semantic defects and respected the no-edit/approval constraint, with actionable remediation. The main gap is process completeness: required meta-structure elements (material questions tracking, second-pass classification, defender self-assessment) were not provided."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--refund-event-handler",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 143416,
+      "metrics": {
+        "tokens": 133930,
+        "turns": 8,
+        "tool_calls": 22,
+        "wall_time_ms": 143416
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Technically, the review is strong and correctly identifies all three critical semantic defects with concrete evidence and impact analysis. It also avoids making edits and provides a practical remediation proposal. The main shortfall is process-format compliance: missing explicit meta sections (material questions/second-pass/self-assessment) and no explicit approval request phrasing. Overall: high-quality technical interrogation with moderate rubric-structure gaps."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--refund-event-handler",
+      "passed": false,
+      "score": 0.5833333333333334,
+      "durationMs": 152539,
+      "metrics": {
+        "tokens": 184676,
+        "turns": 10,
+        "tool_calls": 27,
+        "wall_time_ms": 152539
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "The agent delivered a strong technical review on the core semantics, with accurate defect identification and practical implications, and respected the no-edit/approval constraint. The main deficiency is process completeness: it omitted the required structured artifacts (material questions, second-pass classifications, defender self-assessment), which prevents a top score."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--refund-event-handler",
+      "passed": false,
+      "score": 0.5,
+      "durationMs": 176575,
+      "metrics": {
+        "tokens": 195975,
+        "turns": 10,
+        "tool_calls": 31,
+        "wall_time_ms": 176575
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "Technically, the evaluation is strong and correctly identifies all three core semantic defects with good supporting evidence, and it respects the no-edit-without-approval constraint. However, it substantially misses the required meta-structure in criterion 5 (material questions/second-pass/self-assessment), which lowers overall compliance with the full rubric."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "defend-the-diff",
+      "stimulus": "defend-the-diff--refund-event-handler",
+      "passed": false,
+      "score": 0.5,
+      "durationMs": 160868,
+      "metrics": {
+        "tokens": 177716,
+        "turns": 10,
+        "tool_calls": 33,
+        "wall_time_ms": 160868
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "Technically, the review is strong: it correctly identifies all three core defects and supports them with relevant codebase evidence, then offers a sensible remediation plan without making edits. However, it misses major required reporting structure items (material questions tracking, second-pass classification, defender self-assessment), so compliance with the full rubric is only partial."
+        },
+        {
+          "name": "skill-invocation requires defend-the-di…",
+          "passed": false,
+          "score": 0,
+          "evidence": "The following required skills were not called: defend-the-diff\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    }
+  ]
+}

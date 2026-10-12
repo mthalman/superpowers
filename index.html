@@ -3,31 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Superpowers Skill Scoreboard</title>
+  <title>Superpowers Skill Evals</title>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
   <header class="site-header">
-    <h1>Superpowers Skill Scoreboard</h1>
-    <p class="tagline">Per-commit eval scores for each skill. Lower bars and red borders mean regressions.</p>
+    <h1>Superpowers Skill Evals</h1>
+    <p class="tagline">Vally pass rates, reliability, uplift, and cost trends.</p>
   </header>
 
   <main>
+    <section id="latest-nightly" class="nightly-summary" hidden>
+      <div>
+        <h2>Latest canonical nightly</h2>
+        <p id="latest-nightly-detail"></p>
+      </div>
+      <a href="nightly.html">Nightly history and uplift &rarr;</a>
+    </section>
     <section id="callout" class="callout" hidden></section>
     <section id="error-panel" class="error-panel" hidden></section>
     <section id="empty-state" class="empty-state" hidden>
-      <h2>No skill scores yet</h2>
-      <p>Once the <code>skill-eval</code> workflow runs against a code change,
-         scores will appear here.</p>
+      <h2>No Vally runs yet</h2>
+      <p>Once the <code>skill-eval</code> workflow publishes a run, results will appear here.</p>
     </section>
     <section id="grid" class="grid" aria-live="polite"></section>
   </main>
 
   <footer class="site-footer">
     <p>
-      <a id="how-link" href="#">How is the score computed?</a>
-      &middot;
       <a id="raw-manifest" href="data/manifest.json">manifest.json</a>
+      &middot;
+      <a href="nightly.html">nightly history</a>
       &middot;
       <span id="generated-at"></span>
     </p>

@@ -1,0 +1,1255 @@
+{
+  "schema_version": 2,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "skill": "code-review",
+  "status": "completed",
+  "passed": false,
+  "metrics": {
+    "pass_rate": 0.5714285714285714,
+    "mean_score": 0.8785714285714287,
+    "pass_at_k": 0.7142857142857143,
+    "pass_to_k": 0.3808000000000001,
+    "flaky_count": 3,
+    "tokens": 4004139,
+    "turns": 276,
+    "tool_calls": 472,
+    "wall_time_ms": 2064311
+  },
+  "stimuli": [
+    {
+      "name": "add-refund-event-handler",
+      "score": {
+        "aggregateScore": 0.6666666666666666,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "distractor-exec-array-args",
+      "score": {
+        "aggregateScore": 0.9833333333333334,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 0.3276800000000001
+        },
+        "flaky": true
+      }
+    },
+    {
+      "name": "leak-file-handle-on-error",
+      "score": {
+        "aggregateScore": 0.9333333333333332,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 0.3276800000000001
+        },
+        "flaky": true
+      }
+    },
+    {
+      "name": "off-by-one-pagination",
+      "score": {
+        "aggregateScore": 0.9,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 0.010240000000000003
+        },
+        "flaky": true
+      }
+    },
+    {
+      "name": "perf-on2-membership-check",
+      "score": {
+        "aggregateScore": 1,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "race-double-checked-cache",
+      "score": {
+        "aggregateScore": 0.6666666666666666,
+        "multiTrial": {
+          "passAtK": 0,
+          "passToTheK": 0
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "ssrf-fetch-no-allowlist",
+      "score": {
+        "aggregateScore": 1,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    }
+  ],
+  "trials": [
+    {
+      "evalName": "code-review",
+      "stimulus": "add-refund-event-handler",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 60755,
+      "metrics": {
+        "tokens": 117176,
+        "turns": 7,
+        "tool_calls": 27,
+        "wall_time_ms": 60755
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "add-refund-event-handler",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 64732,
+      "metrics": {
+        "tokens": 183762,
+        "turns": 12,
+        "tool_calls": 32,
+        "wall_time_ms": 64732
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "add-refund-event-handler",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 67074,
+      "metrics": {
+        "tokens": 213219,
+        "turns": 12,
+        "tool_calls": 27,
+        "wall_time_ms": 67074
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "add-refund-event-handler",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 72593,
+      "metrics": {
+        "tokens": 216096,
+        "turns": 12,
+        "tool_calls": 36,
+        "wall_time_ms": 72593
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "add-refund-event-handler",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 74097,
+      "metrics": {
+        "tokens": 269328,
+        "turns": 16,
+        "tool_calls": 38,
+        "wall_time_ms": 74097
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "distractor-exec-array-args",
+      "passed": false,
+      "score": 0.9166666666666666,
+      "durationMs": 82809,
+      "metrics": {
+        "tokens": 89071,
+        "turns": 7,
+        "tool_calls": 9,
+        "wall_time_ms": 82809
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "0/0 required bugs caught; 1 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "distractor-exec-array-args",
+      "passed": true,
+      "score": 1,
+      "durationMs": 84365,
+      "metrics": {
+        "tokens": 109403,
+        "turns": 8,
+        "tool_calls": 14,
+        "wall_time_ms": 84365
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "0/0 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "distractor-exec-array-args",
+      "passed": true,
+      "score": 1,
+      "durationMs": 121869,
+      "metrics": {
+        "tokens": 108340,
+        "turns": 8,
+        "tool_calls": 8,
+        "wall_time_ms": 121869
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "0/0 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "distractor-exec-array-args",
+      "passed": true,
+      "score": 1,
+      "durationMs": 118137,
+      "metrics": {
+        "tokens": 148072,
+        "turns": 10,
+        "tool_calls": 15,
+        "wall_time_ms": 118137
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "0/0 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "leak-file-handle-on-error",
+      "passed": true,
+      "score": 1,
+      "durationMs": 61549,
+      "metrics": {
+        "tokens": 87198,
+        "turns": 7,
+        "tool_calls": 9,
+        "wall_time_ms": 61549
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "leak-file-handle-on-error",
+      "passed": true,
+      "score": 1,
+      "durationMs": 63396,
+      "metrics": {
+        "tokens": 61478,
+        "turns": 5,
+        "tool_calls": 6,
+        "wall_time_ms": 63396
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "distractor-exec-array-args",
+      "passed": true,
+      "score": 1,
+      "durationMs": 154089,
+      "metrics": {
+        "tokens": 335616,
+        "turns": 16,
+        "tool_calls": 22,
+        "wall_time_ms": 154089
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "0/0 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "leak-file-handle-on-error",
+      "passed": true,
+      "score": 1,
+      "durationMs": 47422,
+      "metrics": {
+        "tokens": 86164,
+        "turns": 7,
+        "tool_calls": 8,
+        "wall_time_ms": 47422
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "leak-file-handle-on-error",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 49784,
+      "metrics": {
+        "tokens": 74630,
+        "turns": 6,
+        "tool_calls": 9,
+        "wall_time_ms": 49784
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "off-by-one-pagination",
+      "passed": true,
+      "score": 1,
+      "durationMs": 33771,
+      "metrics": {
+        "tokens": 85004,
+        "turns": 7,
+        "tool_calls": 11,
+        "wall_time_ms": 33771
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "leak-file-handle-on-error",
+      "passed": true,
+      "score": 1,
+      "durationMs": 36387,
+      "metrics": {
+        "tokens": 80408,
+        "turns": 6,
+        "tool_calls": 8,
+        "wall_time_ms": 36387
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "off-by-one-pagination",
+      "passed": true,
+      "score": 1,
+      "durationMs": 42766,
+      "metrics": {
+        "tokens": 131022,
+        "turns": 9,
+        "tool_calls": 15,
+        "wall_time_ms": 42766
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "2/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "off-by-one-pagination",
+      "passed": false,
+      "score": 0.8333333333333334,
+      "durationMs": 38260,
+      "metrics": {
+        "tokens": 117432,
+        "turns": 9,
+        "tool_calls": 11,
+        "wall_time_ms": 38260
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "1/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "off-by-one-pagination",
+      "passed": false,
+      "score": 0.8333333333333334,
+      "durationMs": 40890,
+      "metrics": {
+        "tokens": 126533,
+        "turns": 9,
+        "tool_calls": 12,
+        "wall_time_ms": 40890
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "1/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "perf-on2-membership-check",
+      "passed": true,
+      "score": 1,
+      "durationMs": 30516,
+      "metrics": {
+        "tokens": 65647,
+        "turns": 5,
+        "tool_calls": 10,
+        "wall_time_ms": 30516
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "off-by-one-pagination",
+      "passed": false,
+      "score": 0.8333333333333334,
+      "durationMs": 41505,
+      "metrics": {
+        "tokens": 86937,
+        "turns": 7,
+        "tool_calls": 9,
+        "wall_time_ms": 41505
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0.5,
+          "evidence": "1/2 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "perf-on2-membership-check",
+      "passed": true,
+      "score": 1,
+      "durationMs": 33214,
+      "metrics": {
+        "tokens": 78966,
+        "turns": 6,
+        "tool_calls": 10,
+        "wall_time_ms": 33214
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "perf-on2-membership-check",
+      "passed": true,
+      "score": 1,
+      "durationMs": 33334,
+      "metrics": {
+        "tokens": 79425,
+        "turns": 6,
+        "tool_calls": 8,
+        "wall_time_ms": 33334
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "perf-on2-membership-check",
+      "passed": true,
+      "score": 1,
+      "durationMs": 35193,
+      "metrics": {
+        "tokens": 72961,
+        "turns": 6,
+        "tool_calls": 10,
+        "wall_time_ms": 35193
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "perf-on2-membership-check",
+      "passed": true,
+      "score": 1,
+      "durationMs": 34416,
+      "metrics": {
+        "tokens": 46731,
+        "turns": 4,
+        "tool_calls": 5,
+        "wall_time_ms": 34416
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "race-double-checked-cache",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 22615,
+      "metrics": {
+        "tokens": 57842,
+        "turns": 5,
+        "tool_calls": 5,
+        "wall_time_ms": 22615
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict lgtm"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "race-double-checked-cache",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 49421,
+      "metrics": {
+        "tokens": 48236,
+        "turns": 4,
+        "tool_calls": 6,
+        "wall_time_ms": 49421
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict lgtm"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "race-double-checked-cache",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 40878,
+      "metrics": {
+        "tokens": 60906,
+        "turns": 5,
+        "tool_calls": 8,
+        "wall_time_ms": 40878
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict lgtm"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "race-double-checked-cache",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 48688,
+      "metrics": {
+        "tokens": 76406,
+        "turns": 6,
+        "tool_calls": 8,
+        "wall_time_ms": 48688
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict lgtm"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "race-double-checked-cache",
+      "passed": false,
+      "score": 0.6666666666666666,
+      "durationMs": 60820,
+      "metrics": {
+        "tokens": 83881,
+        "turns": 6,
+        "tool_calls": 9,
+        "wall_time_ms": 60820
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": false,
+          "score": 0,
+          "evidence": "0/1 required bugs caught; 0 distractors flagged; verdict lgtm"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "ssrf-fetch-no-allowlist",
+      "passed": true,
+      "score": 1,
+      "durationMs": 50219,
+      "metrics": {
+        "tokens": 117594,
+        "turns": 9,
+        "tool_calls": 13,
+        "wall_time_ms": 50219
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "ssrf-fetch-no-allowlist",
+      "passed": true,
+      "score": 1,
+      "durationMs": 49413,
+      "metrics": {
+        "tokens": 117472,
+        "turns": 9,
+        "tool_calls": 14,
+        "wall_time_ms": 49413
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "ssrf-fetch-no-allowlist",
+      "passed": true,
+      "score": 1,
+      "durationMs": 64640,
+      "metrics": {
+        "tokens": 63443,
+        "turns": 5,
+        "tool_calls": 8,
+        "wall_time_ms": 64640
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "ssrf-fetch-no-allowlist",
+      "passed": true,
+      "score": 1,
+      "durationMs": 74217,
+      "metrics": {
+        "tokens": 140876,
+        "turns": 9,
+        "tool_calls": 15,
+        "wall_time_ms": 74217
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "code-review",
+      "stimulus": "ssrf-fetch-no-allowlist",
+      "passed": true,
+      "score": 1,
+      "durationMs": 80477,
+      "metrics": {
+        "tokens": 166864,
+        "turns": 11,
+        "tool_calls": 17,
+        "wall_time_ms": 80477
+      },
+      "graders": [
+        {
+          "name": "finding-match",
+          "passed": true,
+          "score": 1,
+          "evidence": "1/1 required bugs caught; 0 distractors flagged; verdict needs_changes"
+        },
+        {
+          "name": "skill-invocation requires code-review",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    }
+  ]
+}
