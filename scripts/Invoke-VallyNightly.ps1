@@ -12,6 +12,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $env:VALLY_TELEMETRY_OPTOUT = '1'
+Import-Module (Join-Path $PSScriptRoot 'VallyProcessEnvironment.psm1') -Force
 
 function Invoke-Checked {
     param(
@@ -138,19 +139,26 @@ $env:VALLY_RUN_KIND = 'nightly'
 $env:VALLY_COMMIT = $sourceSha
 $env:VALLY_REPOSITORY = $repository
 
-foreach ($evalSpec in $evalSpecs) {
-    $skill = Split-Path $evalSpec.DirectoryName -Leaf
-    Write-Host "Running $skill ($Runs trials per stimulus)..."
-    Invoke-Checked {
-        & $node $vally eval `
-            --eval-spec $evalSpec.FullName `
-            --suite nightly `
-            --runs $Runs `
-            --output-dir (Join-Path $OutputDir $skill) `
-            --grader-plugin $grader `
-            --reporter-plugin $pagesReporter `
-            --reporter-plugin $detection
-    } "Vally evaluation failed operationally for '$skill'. Partial data was retained locally but will not be published."
+$originalPath = $env:PATH
+try {
+    $env:PATH = Get-VallyProcessPath
+    foreach ($evalSpec in $evalSpecs) {
+        $skill = Split-Path $evalSpec.DirectoryName -Leaf
+        Write-Host "Running $skill ($Runs trials per stimulus)..."
+        Invoke-Checked {
+            & $node $vally eval `
+                --eval-spec $evalSpec.FullName `
+                --tag loop=nightly `
+                --runs $Runs `
+                --output-dir (Join-Path $OutputDir $skill) `
+                --grader-plugin $grader `
+                --reporter-plugin $pagesReporter `
+                --reporter-plugin $detection
+        } "Vally evaluation failed operationally for '$skill'. Partial data was retained locally but will not be published."
+    }
+}
+finally {
+    $env:PATH = $originalPath
 }
 
 $comparisonFile = Join-Path $OutputDir 'uplift-comparisons.jsonl'

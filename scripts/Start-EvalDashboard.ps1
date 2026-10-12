@@ -64,24 +64,39 @@ if ($PSCmdlet.ParameterSetName -eq 'Results') {
 }
 else {
     if ($PSCmdlet.ParameterSetName -eq 'Latest') {
-        $json = & gh run list --workflow skill-eval.yml --status success --limit 1 --json databaseId
-        if ($LASTEXITCODE -ne 0) { throw 'Failed to query GitHub Actions runs.' }
-        $runs = @($json | ConvertFrom-Json)
-        if ($runs.Count -eq 0) { throw 'No successful skill-eval workflow run was found.' }
-        $RunId = $runs[0].databaseId
-    }
-    $cacheDir = Join-Path $cacheRoot ([string] $RunId)
-    $downloadMarker = Join-Path $cacheDir '.downloaded'
-    if (-not (Test-Path $downloadMarker -PathType Leaf)) {
-        New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
-        & gh run download $RunId --name "eval-history-$RunId" --dir $cacheDir
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to download the eval-history-$RunId artifact."
+        $resultsRoot = Join-Path $repoRoot 'vally-results'
+        $latestRun = $null
+        if (Test-Path $resultsRoot -PathType Container) {
+            $latestRun = Get-ChildItem -LiteralPath $resultsRoot -Directory |
+                Where-Object { $_.Name -like 'nightly-*' } |
+                Sort-Object Name -Descending |
+                Where-Object {
+                    @(Get-ChildItem -LiteralPath $_.FullName -Filter results.jsonl -Recurse -File).Count -gt 0
+                } |
+                Select-Object -First 1
         }
-        [IO.File]::WriteAllText($downloadMarker, '', [Text.UTF8Encoding]::new($false))
+        if (-not $latestRun) {
+            throw 'No local evaluation results were found. Run .\scripts\Invoke-VallyNightly.ps1 first, or specify -ResultsDir.'
+        }
+        $ingestDir = $latestRun.FullName
+        $cacheDir = Join-Path $cacheRoot 'local'
+        New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+        $store = Join-Path $cacheDir 'eval-history.db'
     }
-    $ingestDir = $cacheDir
-    $store = Join-Path $cacheDir 'eval-history.sqlite'
+    else {
+        $cacheDir = Join-Path $cacheRoot ([string] $RunId)
+        $downloadMarker = Join-Path $cacheDir '.downloaded'
+        if (-not (Test-Path $downloadMarker -PathType Leaf)) {
+            New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+            & gh run download $RunId --name "eval-history-$RunId" --dir $cacheDir
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to download the eval-history-$RunId artifact."
+            }
+            [IO.File]::WriteAllText($downloadMarker, '', [Text.UTF8Encoding]::new($false))
+        }
+        $ingestDir = $cacheDir
+        $store = Join-Path $cacheDir 'eval-history.sqlite'
+    }
 }
 
 $resultFiles = @(Get-ChildItem -LiteralPath $ingestDir -Filter results.jsonl -Recurse -File)

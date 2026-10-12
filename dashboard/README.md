@@ -2,7 +2,7 @@
 
 Static GitHub Pages dashboard for Vally skill-eval trends. It shows pass rate,
 mean score, pass@k, pass^k, flakiness, skill uplift when available, and
-trajectory cost. Full trajectories stay in the workflow artifact and can be
+trajectory cost. Full trajectories stay in the local run directory and can be
 opened with `scripts/Start-EvalDashboard.ps1`.
 
 ## Files
@@ -40,15 +40,40 @@ path. It reads:
 - `data/<skill>/runs/<…>.json` — emitted by the `pages-history` Vally reporter
 
 The manifest carries per-skill sparklines, latest metrics, recent regression
-data, and repository identity. The skill page links to the workflow artifact
-and prints the exact local dashboard command for the selected run.
+data, and repository identity. The skill page prints the exact local dashboard
+command for the selected run. Existing historical Actions records retain
+their artifact links.
 
-The full three-trial suite and uplift experiment are intentionally local rather
-than scheduled in GitHub Actions:
+## Run locally and publish history
+
+All evaluations run locally. There is no evaluation GitHub Actions workflow.
+Install Node.js 22.12 or newer and authenticate the Copilot CLI before running
+live evaluations. The runner restores missing Vally dependencies and builds
+its plugins automatically.
+
+Run all five evaluated skills and the uplift experiment, then open the results:
 
 ```powershell
-./scripts/Invoke-VallyNightly.ps1 -Publish
+.\scripts\Invoke-VallyNightly.ps1
+.\scripts\Start-EvalDashboard.ps1 -Latest
 ```
+
+The default is three trials per scenario. Use `-Runs 1` for a shorter run.
+Results remain under `vally-results\nightly-<run-id>`. No data is pushed unless
+you explicitly select `-Publish`.
+On Windows, the runner temporarily compacts PATH for Vally subprocesses so
+fixture setup can find Git even when the inherited PATH is too long for
+`cmd.exe`; it restores the original PATH when evaluation finishes.
+
+To run all evaluations and publish their history, start from a clean committed
+worktree, authenticate `gh`, and select the remote containing `gh-pages`:
+
+```powershell
+.\scripts\Invoke-VallyNightly.ps1 -Publish -Remote origin
+```
+
+Replace `origin` with your intended remote. This command starts a new run;
+it does not upload a previously completed run.
 
 `-Publish` appends the locally generated per-skill history and run detail,
 commits the uplift comparison and canonical nightly summary, rebuilds the
@@ -66,7 +91,7 @@ Canonical nightly data lives under:
 - `data/uplift/runs/<run-id>.jsonl`
 
 The dashboard treats canonical nightly runs as the regression baseline.
-Changed-skill `main` runs remain visible on skill charts but do not drive
+Historical changed-skill `main` runs remain visible on skill charts but do not drive
 nightly deltas or the largest-regression callout.
 
 `-Runs` sets the trial count for both skill evaluations and the uplift
@@ -77,13 +102,14 @@ Pass rates follow Vally's effective scoring threshold, or the grader's binary
 verdict when no threshold is configured. Execution and grader infrastructure
 errors are recorded as errors, with grader diagnostics preserved in
 `error_message`; valid failing grades remain measurements. Legacy history
-remains visible without requiring Vally-specific
-metrics. Failed changed-skill Actions runs still attempt to upload detailed
-results and publish available history before reporting failure.
+remains visible without requiring Vally-specific metrics. Operationally
+incomplete local runs retain diagnostics locally and are not published.
 
 `Start-EvalDashboard.ps1` recursively ingests nested `results.jsonl` files
-before starting `vally serve`. This supports both local nightly output and
-downloaded Actions artifacts. Missing results or ingestion failures stop the
+before starting `vally serve`. `-Latest` selects the newest local
+`vally-results\nightly-*` directory with results; `-ResultsDir` supports custom
+output paths. `-RunId` remains available for historical Actions artifacts.
+Missing results or ingestion failures stop the
 launcher instead of opening an empty dashboard.
 
 The landing page uses `manifest.repository` (e.g. `mthalman/superpowers`)
@@ -124,5 +150,6 @@ http.server`, `npx http-server`, `caddy file-server`, ...).
 
 ## How it ships
 
-Files in this directory are committed on `main`. The Vally skill-eval workflow
-copies them onto `gh-pages` alongside the reporter-owned `data/` directory.
+Files in this directory are committed on `main`. The local runner's `-Publish`
+option copies them onto its publication branch alongside the reporter-owned
+`data/` directory. Merge the generated PR into `gh-pages` to update shared history.

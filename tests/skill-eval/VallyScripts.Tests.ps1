@@ -4,35 +4,6 @@ BeforeAll {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
 
-Describe "Get-ChangedVallySkills.ps1" {
-    It "returns every skill with an eval spec during a full sweep" {
-        $actual = @(& (Join-Path $repoRoot "scripts\Get-ChangedVallySkills.ps1") -FullSweep | ConvertFrom-Json)
-        $expected = @(Get-ChildItem (Join-Path $repoRoot "evals") -Filter eval.yaml -Recurse |
-            ForEach-Object { Split-Path $_.DirectoryName -Leaf } |
-            Sort-Object -Unique)
-
-        $actual | Should -Be $expected
-    }
-
-    It "filters a full sweep to requested skills" {
-        $actual = @(& (Join-Path $repoRoot "scripts\Get-ChangedVallySkills.ps1") `
-            -FullSweep `
-            -OnlySkills @("tdd", "code-review") | ConvertFrom-Json)
-
-        $actual | Should -Be @("code-review", "tdd")
-    }
-
-    It "falls back to a full sweep when the base ref does not exist" {
-        $actual = @(& (Join-Path $repoRoot "scripts\Get-ChangedVallySkills.ps1") `
-            -BaseRef "refs/heads/not-a-real-base" | ConvertFrom-Json)
-        $expected = @(Get-ChildItem (Join-Path $repoRoot "evals") -Filter eval.yaml -Recurse |
-            ForEach-Object { Split-Path $_.DirectoryName -Leaf } |
-            Sort-Object -Unique)
-
-        $actual | Should -Be $expected
-    }
-}
-
 Describe "Build-VallyDashboardManifest.ps1" {
     It "keeps mixed legacy skill history and excludes uplift history" {
         $pages = Join-Path $TestDrive "mixed-pages"
@@ -82,6 +53,25 @@ Describe "Build-VallyDashboardManifest.ps1" {
     }
 }
 
+Describe "VallyProcessEnvironment.psm1" {
+    It "keeps required tools resolvable for Windows shell children with a long PATH" {
+        Import-Module (Join-Path $repoRoot "scripts\VallyProcessEnvironment.psm1") -Force
+        $originalPath = $env:PATH
+        $compactPath = Get-VallyProcessPath -CurrentPath ("C:\extra\path;" * 1200)
+        try {
+            $env:PATH = $compactPath
+            $node = (Get-Command node -ErrorAction Stop).Source
+            $output = & $node -e "require('node:child_process').exec('git --version', (error, stdout) => { if (error) process.exitCode = 1; else process.stdout.write(stdout) })"
+
+            $compactPath.Length | Should -BeLessThan 8000
+            $output | Should -Match '^git version '
+        }
+        finally {
+            $env:PATH = $originalPath
+        }
+    }
+}
+
 Describe "Invoke-VallyRegression.ps1" {
     It "succeeds when no stored trajectories exist" {
         {
@@ -91,6 +81,54 @@ Describe "Invoke-VallyRegression.ps1" {
 }
 
 Describe "Start-EvalDashboard.ps1" {
+    It "selects the newest local run with results without querying GitHub" {
+        $oldLocalAppData = $env:LOCALAPPDATA
+        $root = Join-Path $TestDrive "local-repo"
+        $older = Join-Path $root "vally-results\nightly-20260101-old"
+        $newer = Join-Path $root "vally-results\nightly-20260102-new"
+        $empty = Join-Path $root "vally-results\nightly-20260103-empty"
+        New-Item -ItemType Directory -Path $older, $newer, $empty -Force | Out-Null
+        '{}' | Set-Content (Join-Path $older 'results.jsonl')
+        '{}' | Set-Content (Join-Path $newer 'results.jsonl')
+        Mock git { $root }
+        Mock Get-Command { [pscustomobject]@{ Source = 'node' } } -ParameterFilter { $Name -eq 'node' }
+        Mock Test-Path { $true } -ParameterFilter { $Path -like '*vally-cli*' }
+        Mock node {
+            $global:LASTEXITCODE = 0
+            if ($args[0] -eq '--version') { 'v25.0.0' }
+        }
+        Mock Start-Process { [pscustomobject]@{ Id = 987654; HasExited = $false } }
+        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 200 } }
+        Mock gh { throw 'Local results must not query GitHub.' }
+        try {
+            $env:LOCALAPPDATA = Join-Path $TestDrive 'latest-cache'
+            & (Join-Path $repoRoot 'scripts\Start-EvalDashboard.ps1') -Latest -NoOpen
+            Should -Invoke node -Times 1 -ParameterFilter {
+                $args[1] -eq 'ingest' -and $args[2] -eq $newer
+            }
+            Should -Invoke gh -Times 0
+        }
+        finally {
+            $env:LOCALAPPDATA = $oldLocalAppData
+        }
+    }
+
+    It "reports missing local results without querying GitHub" {
+        $oldLocalAppData = $env:LOCALAPPDATA
+        Mock git { Join-Path $TestDrive 'missing-repo' }
+        Mock Test-Path { $true } -ParameterFilter { $Path -like '*vally-cli*' }
+        Mock gh { throw 'Local results must not query GitHub.' }
+        try {
+            $env:LOCALAPPDATA = Join-Path $TestDrive 'missing-cache'
+            { & (Join-Path $repoRoot 'scripts\Start-EvalDashboard.ps1') -Latest -NoOpen } |
+                Should -Throw '*No local evaluation results were found*'
+            Should -Invoke gh -Times 0
+        }
+        finally {
+            $env:LOCALAPPDATA = $oldLocalAppData
+        }
+    }
+
     It "ingests nested run directories before serving its database" {
         $oldLocalAppData = $env:LOCALAPPDATA
         $results = Join-Path $TestDrive "nested results"
@@ -140,6 +178,18 @@ Describe "Start-EvalDashboard.ps1" {
     }
 
     Describe "Invoke-VallyNightly.ps1" {
+        It "does not have an evaluation Actions workflow" {
+            Test-Path (Join-Path $repoRoot '.github\workflows\skill-eval.yml') |
+                Should -BeFalse
+        }
+
+        It "selects the nightly tag when running eval specs individually" {
+            $script = Get-Content (Join-Path $repoRoot "scripts\Invoke-VallyNightly.ps1") -Raw
+            $script | Should -Match '--eval-spec \$evalSpec\.FullName'
+            $script | Should -Match '--tag loop=nightly'
+            $script | Should -Not -Match '--suite nightly'
+        }
+
         It "resolves every eval and the uplift experiment without running models" {
             {
                 & (Join-Path $repoRoot "scripts\Invoke-VallyNightly.ps1") -DryRun

@@ -214,26 +214,31 @@ Get-ChildItem evals -Filter eval.yaml -Recurse | ForEach-Object {
 }
 ```
 
-The GitHub Actions workflow validates deterministic surfaces on pull requests,
-runs changed-skill live evals on `main`, publishes the static trend dashboard
-to `gh-pages`, and supports manual changed-skill runs. Live Actions runs require
-`secrets.COPILOT_PAT`.
-Failed changed-skill evaluations still attempt artifact upload and Pages
-publication before the workflow reports failure. The manifest keeps legacy
+All evaluations and deterministic validation run locally. There is no
+skill-eval GitHub Actions workflow or changed-skill CI runner. The manifest keeps legacy
 history without requiring Vally metrics and excludes reserved uplift and
 canonical-nightly directories from skill discovery.
 
-The expensive three-trial full suite and uplift experiment run locally so they
-do not consume GitHub Actions minutes. A Copilot automation can invoke:
+Run all five skill evaluations and the uplift experiment locally, without
+publishing, then open the latest results:
 
 ```powershell
-./scripts/Invoke-VallyNightly.ps1 -Publish
+.\scripts\Invoke-VallyNightly.ps1
+.\scripts\Start-EvalDashboard.ps1 -Latest
 ```
 
+To run and publish compact history, explicitly invoke
+`.\scripts\Invoke-VallyNightly.ps1 -Publish -Remote <name>`.
+This starts a new evaluation run; it does not publish a previous run.
 Use `-DryRun` to validate discovery and experiment resolution without invoking
 models, or `-SkipUplift` to run only the five skill evals. `-Runs` controls both
 skill evaluations and uplift trials; the wrapper defaults to three. Direct
 Vally experiment runs default to one trial and accept `--param RUNS=3`.
+The local runner evaluates one spec at a time, so it selects nightly stimuli
+with `--tag loop=nightly`; Vally rejects combining `--suite` and `--eval-spec`.
+On Windows it gives Vally subprocesses a temporary PATH capped below 8,000
+characters, keeping Git and common tools discoverable when the inherited PATH
+is too long for `cmd.exe`; the caller's PATH is restored after evaluation.
 `-Publish` clones the
 configured upstream remote's `gh-pages` branch, appends the local run's
 per-skill history and detail records, writes a schema-validated canonical
@@ -249,14 +254,14 @@ Publication PRs are left for manual review and merge, including valid runs that
 record a regression or inconclusive uplift.
 
 The Pages dashboard shows pass rate, mean score, pass@k, pass^k, flakiness,
-cost, and recent regressions. Detailed trajectories from Actions runs are
-stored in the `eval-history-<run-id>` workflow artifact; local nightly
-trajectories remain under that run's output directory. Open either source with
-Vally's richer dashboard:
+cost, and recent regressions. Detailed trajectories remain under the local
+run's output directory. `-Latest` opens the newest `vally-results\nightly-*`
+directory containing results. For a custom output path, use `-ResultsDir`.
+The `-RunId` option remains available only for historical Actions artifacts.
+Open local results with Vally's richer dashboard:
 
 ```powershell
 ./scripts/Start-EvalDashboard.ps1 -Latest
-./scripts/Start-EvalDashboard.ps1 -RunId <run-id>
 ./scripts/Start-EvalDashboard.ps1 -ResultsDir <local-results-directory>
 ./scripts/Start-EvalDashboard.ps1 -Stop
 ```
