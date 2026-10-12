@@ -1,0 +1,551 @@
+{
+  "schema_version": 2,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "skill": "over-engineering-review",
+  "status": "completed",
+  "passed": true,
+  "metrics": {
+    "pass_rate": 1,
+    "mean_score": 0.9666666666666667,
+    "pass_at_k": 1,
+    "pass_to_k": 1,
+    "flaky_count": 0,
+    "tokens": 744256,
+    "turns": 48,
+    "tool_calls": 43,
+    "wall_time_ms": 1411649
+  },
+  "stimuli": [
+    {
+      "name": "over-engineering-review--speculative-report-writer-stack",
+      "score": {
+        "aggregateScore": 1,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "over-engineering-review--justified-payment-boundaries",
+      "score": {
+        "aggregateScore": 0.9666666666666666,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    },
+    {
+      "name": "over-engineering-review--mixed-cache-design",
+      "score": {
+        "aggregateScore": 0.9333333333333332,
+        "multiTrial": {
+          "passAtK": 1,
+          "passToTheK": 1
+        },
+        "flaky": false
+      }
+    }
+  ],
+  "trials": [
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--justified-payment-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 92581,
+      "metrics": {
+        "tokens": 80380,
+        "turns": 5,
+        "tool_calls": 7,
+        "wall_time_ms": 92581
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, rubric-aligned over-engineering review: focused scope, proportionate judgment, and explicit confidence statement. Minor limitation is lack of direct code-level verification, but the reasoning is still appropriate and non-speculative given the available inputs."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--justified-payment-boundaries",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 92928,
+      "metrics": {
+        "tokens": 77420,
+        "turns": 5,
+        "tool_calls": 5,
+        "wall_time_ms": 92928
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong, focused over-engineering review that is proportionate and aligned to the requested criteria, with explicit confidence and no manufactured findings. The only limitation is that the judgment is grounded in the user’s description rather than direct inspection of module code artifacts, which modestly reduces evidentiary strength."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--justified-payment-boundaries",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 93091,
+      "metrics": {
+        "tokens": 47058,
+        "turns": 3,
+        "tool_calls": 4,
+        "wall_time_ms": 93091
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "A strong, scope-appropriate over-engineering assessment: it delivers a proportionate verdict, ties the major design elements to legitimate needs, stays mostly on-topic, and includes confidence while remaining read-only. The main limitation is that conclusions are based on the provided description rather than direct module inspection."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--justified-payment-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 111669,
+      "metrics": {
+        "tokens": 78657,
+        "turns": 5,
+        "tool_calls": 6,
+        "wall_time_ms": 111669
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, rubric-aligned over-engineering review: proportionate verdict, mechanism-by-mechanism justification tied to variation/testing/retries, no generic bug review drift, and explicit confidence with read-only posture. Only a small limitation is that some claims are qualified rather than code-verified."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--justified-payment-boundaries",
+      "passed": true,
+      "score": 1,
+      "durationMs": 111707,
+      "metrics": {
+        "tokens": 63730,
+        "turns": 4,
+        "tool_calls": 5,
+        "wall_time_ms": 111707
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, scope-faithful over-engineering review: proportionate verdict, mechanism-by-mechanism justification tied to runtime/testing/retry realities, no irrelevant correctness detours, and explicit confidence while remaining read-only."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--mixed-cache-design",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 40683,
+      "metrics": {
+        "tokens": 29540,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 40683
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong assessment with concrete evidence and practical simplification guidance, especially around keeping concurrency guarantees while removing speculative layers. The only notable shortfall is structure: it did not fully collapse provider/policy/registry/plugin-loader into one unified finding as strictly requested, instead splitting policy into a separate item."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--mixed-cache-design",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 50059,
+      "metrics": {
+        "tokens": 46198,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 50059
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong assessment with actionable simplification and good handling of concurrency correctness. The main shortfall versus the rubric is structural: it does not fully consolidate provider/policy/registry/plugin-loader into a single combined over-engineering finding, instead presenting two related findings."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--mixed-cache-design",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 56862,
+      "metrics": {
+        "tokens": 46275,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 56862
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong assessment with clear evidence and practical simplification guidance. It correctly preserves essential concurrency behavior and provides confidence. Minor shortfall: the over-engineering argument is split into two findings rather than fully consolidated into a single combined speculative-extensibility finding spanning provider, policy, registry, and plugin loader."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--mixed-cache-design",
+      "passed": true,
+      "score": 1,
+      "durationMs": 39720,
+      "metrics": {
+        "tokens": 29296,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 39720
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "Strong, evidence-based assessment that correctly flags speculative extensibility, proposes the right simplification direction, and preserves the critical concurrency guarantee. Minor structural mismatch on full consolidation keeps criterion 1 from perfect, but overall quality is high and aligned with the task."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--mixed-cache-design",
+      "passed": true,
+      "score": 0.9166666666666666,
+      "durationMs": 46430,
+      "metrics": {
+        "tokens": 29198,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 46430
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": false,
+          "score": 0.75,
+          "evidence": "Strong assessment with accurate simplification guidance and clear preservation of the critical concurrency guarantee. The only notable gap is formatting/structure: it largely, but not perfectly, consolidates all speculative-extensibility concerns into one single finding as requested."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--speculative-report-writer-stack",
+      "passed": true,
+      "score": 1,
+      "durationMs": 131117,
+      "metrics": {
+        "tokens": 47476,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 131117
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent fully satisfies the requested over-engineering review: it is focused, evidence-aligned, read-only, and directly addresses the exact architectural concern with an appropriate simplification path while preserving current behavior constraints."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--speculative-report-writer-stack",
+      "passed": true,
+      "score": 1,
+      "durationMs": 124593,
+      "metrics": {
+        "tokens": 29629,
+        "turns": 2,
+        "tool_calls": 1,
+        "wall_time_ms": 124593
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent fully satisfies the rubric with a focused over-engineering diagnosis, complete supporting evidence, a practical simplification path that preserves behavior (including invalid-format rejection), and explicit confidence while remaining read-only."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--speculative-report-writer-stack",
+      "passed": true,
+      "score": 1,
+      "durationMs": 123487,
+      "metrics": {
+        "tokens": 46468,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 123487
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent fully satisfies the requested over-engineering review: it accurately identifies speculative variation as one cohesive issue, supports claims with the required concrete evidence points, proposes a simpler architecture that preserves behavior including unsupported-format rejection, and remains read-only with clear confidence reporting."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--speculative-report-writer-stack",
+      "passed": true,
+      "score": 1,
+      "durationMs": 142023,
+      "metrics": {
+        "tokens": 46075,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 142023
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent’s output matches the requested over-engineering review very closely: it consolidates the core abstraction stack into a single speculative-variation finding, cites the required concrete evidence, proposes an appropriate simplification while preserving behavior (including invalid-format rejection), and remains read-only with explicit confidence."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    },
+    {
+      "evalName": "over-engineering-review",
+      "stimulus": "over-engineering-review--speculative-report-writer-stack",
+      "passed": true,
+      "score": 1,
+      "durationMs": 154699,
+      "metrics": {
+        "tokens": 46856,
+        "turns": 3,
+        "tool_calls": 2,
+        "wall_time_ms": 154699
+      },
+      "graders": [
+        {
+          "name": "prompt",
+          "passed": true,
+          "score": 1,
+          "evidence": "The agent fully satisfies the rubric with a focused over-engineering diagnosis, complete evidence coverage, a practical simplification path that preserves required behavior, and explicit confidence while staying read-only."
+        },
+        {
+          "name": "skill-invocation requires over-engineer…",
+          "passed": true,
+          "score": 1,
+          "evidence": "All required skills were called\nNo disallowed skills were called"
+        },
+        {
+          "name": "diff-empty",
+          "passed": true,
+          "score": 1,
+          "evidence": "Workspace diff is empty"
+        }
+      ]
+    }
+  ]
+}

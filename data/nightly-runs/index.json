@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "run_id": "20261012-181926899-8b2b738",
+      "timestamp": "2026-10-12T20:31:57.072Z",
+      "status": "regression",
+      "commit": "8b2b7383fb821cdea074352b57776d3b60e66b50",
+      "short_sha": "8b2b738",
+      "flaky_count": 4,
+      "summary_file": "data/nightly-runs/20261012-181926899-8b2b738.json"
+    }
+  ]
+}

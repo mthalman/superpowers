@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "run_id": "20261012-181926899-8b2b738",
+  "run_kind": "nightly",
+  "timestamp": "2026-10-12T20:31:57.072Z",
+  "source": {
+    "commit": "8b2b7383fb821cdea074352b57776d3b60e66b50",
+    "short_sha": "8b2b738"
+  },
+  "publication": {
+    "branch": "vally-history/20261012-181926899-8b2b738",
+    "automation_session_url": null
+  },
+  "toolchain": {
+    "vally_version": "0.17.0",
+    "schema_version": 1
+  },
+  "runs_per_stimulus": 5,
+  "status": "regression",
+  "flaky_count": 4,
+  "skills": [
+    {
+      "skill": "code-review",
+      "passed": false,
+      "model": "gpt-5.3-codex",
+      "metrics": {
+        "pass_rate": 0.5714285714285714,
+        "mean_score": 0.8785714285714287,
+        "pass_at_k": 0.7142857142857143,
+        "pass_to_k": 0.3808000000000001,
+        "flaky_count": 3,
+        "tokens": 4004139,
+        "turns": 276,
+        "tool_calls": 472,
+        "wall_time_ms": 2064311
+      },
+      "detail_file": "data/code-review/runs/20261012-181926899-8b2b738.json",
+      "delta_from_previous_nightly": null
+    },
+    {
+      "skill": "defend-the-diff",
+      "passed": false,
+      "model": "gpt-5.3-codex",
+      "metrics": {
+        "pass_rate": 0,
+        "mean_score": 0.4166666666666667,
+        "pass_at_k": 0,
+        "pass_to_k": 0,
+        "flaky_count": 0,
+        "tokens": 1633605,
+        "turns": 102,
+        "tool_calls": 209,
+        "wall_time_ms": 1597223
+      },
+      "detail_file": "data/defend-the-diff/runs/20261012-181926899-8b2b738.json",
+      "delta_from_previous_nightly": null
+    },
+    {
+      "skill": "over-engineering-review",
+      "passed": true,
+      "model": "gpt-5.3-codex",
+      "metrics": {
+        "pass_rate": 1,
+        "mean_score": 0.9666666666666667,
+        "pass_at_k": 1,
+        "pass_to_k": 1,
+        "flaky_count": 0,
+        "tokens": 744256,
+        "turns": 48,
+        "tool_calls": 43,
+        "wall_time_ms": 1411649
+      },
+      "detail_file": "data/over-engineering-review/runs/20261012-181926899-8b2b738.json",
+      "delta_from_previous_nightly": null
+    },
+    {
+      "skill": "tdd",
+      "passed": false,
+      "model": "gpt-5.3-codex",
+      "metrics": {
+        "pass_rate": 0.6,
+        "mean_score": 0.736111111111111,
+        "pass_at_k": 0.6666666666666666,
+        "pass_to_k": 0.44256,
+        "flaky_count": 1,
+        "tokens": 3743124,
+        "turns": 198,
+        "tool_calls": 255,
+        "wall_time_ms": 3962257
+      },
+      "detail_file": "data/tdd/runs/20261012-181926899-8b2b738.json",
+      "delta_from_previous_nightly": null
+    },
+    {
+      "skill": "validation-scenarios",
+      "passed": true,
+      "model": "gpt-5.3-codex",
+      "metrics": {
+        "pass_rate": 1,
+        "mean_score": 0.9944444444444446,
+        "pass_at_k": 1,
+        "pass_to_k": 1,
+        "flaky_count": 0,
+        "tokens": 794082,
+        "turns": 50,
+        "tool_calls": 53,
+        "wall_time_ms": 1294930
+      },
+      "detail_file": "data/validation-scenarios/runs/20261012-181926899-8b2b738.json",
+      "delta_from_previous_nightly": null
+    }
+  ],
+  "uplift": {
+    "history_file": "data/uplift/history.jsonl",
+    "comparison_file": "data/uplift/runs/20261012-181926899-8b2b738.jsonl",
+    "overall": {
+      "trial_count": 60,
+      "mean_score": 0.09000000000000001,
+      "ci_low": -0.00995928091637023,
+      "ci_high": 0.18995928091637027,
+      "wins": 19,
+      "ties": 28,
+      "losses": 13,
+      "win_rate": 0.31666666666666665,
+      "verdict": "inconclusive"
+    },
+    "skills": [
+      {
+        "skill": "defend-the-diff",
+        "baseline_model": "gpt-5.3-codex",
+        "treatment_model": "gpt-5.3-codex",
+        "trial_count": 15,
+        "mean_score": -0.026666666666666675,
+        "ci_low": -0.15817336394316064,
+        "ci_high": 0.1048400306098273,
+        "wins": 2,
+        "ties": 10,
+        "losses": 3,
+        "win_rate": 0.13333333333333333,
+        "verdict": "inconclusive"
+      },
+      {
+        "skill": "over-engineering-review",
+        "baseline_model": "gpt-5.3-codex",
+        "treatment_model": "gpt-5.3-codex",
+        "trial_count": 15,
+        "mean_score": -0.053333333333333344,
+        "ci_low": -0.2179830567724313,
+        "ci_high": 0.1113163901057646,
+        "wins": 3,
+        "ties": 7,
+        "losses": 5,
+        "win_rate": 0.2,
+        "verdict": "inconclusive"
+      },
+      {
+        "skill": "tdd",
+        "baseline_model": "gpt-5.3-codex",
+        "treatment_model": "gpt-5.3-codex",
+        "trial_count": 15,
+        "mean_score": -0.05333333333333334,
+        "ci_low": -0.16773333333333335,
+        "ci_high": 0.061066666666666665,
+        "wins": 1,
+        "ties": 11,
+        "losses": 3,
+        "win_rate": 0.06666666666666667,
+        "verdict": "inconclusive"
+      },
+      {
+        "skill": "validation-scenarios",
+        "baseline_model": "gpt-5.3-codex",
+        "treatment_model": "gpt-5.3-codex",
+        "trial_count": 15,
+        "mean_score": 0.49333333333333335,
+        "ci_low": 0.23913097299810754,
+        "ci_high": 0.7475356936685591,
+        "wins": 13,
+        "ties": 0,
+        "losses": 2,
+        "win_rate": 0.8666666666666667,
+        "verdict": "improvement"
+      }
+    ]
+  }
+}
