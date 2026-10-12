@@ -6,10 +6,10 @@
 
 .DESCRIPTION
     The skill-eval workflow runs this from its `publish` job after
-    `wrap-eval-output.ps1` has written the per-skill JSON. The script:
+    Vally's `pages-history` reporter has written the per-skill JSON. The script:
 
-      1. Mirrors `<SourceDir>/index.html` and `<SourceDir>/skill.html` onto
-         `<PagesDir>/`.
+      1. Mirrors `<SourceDir>/index.html`, `<SourceDir>/skill.html`, and
+         `<SourceDir>/nightly.html` onto `<PagesDir>/`.
       2. Mirrors `<SourceDir>/assets/` onto `<PagesDir>/assets/` and
          removes any files inside `<PagesDir>/assets/` that no longer exist
          in source.
@@ -46,7 +46,7 @@ $dst = (Resolve-Path -LiteralPath $PagesDir   -ErrorAction Stop).Path
 # Files at the top level of <SourceDir> that this script is willing to
 # copy. Anything else (e.g. README.md, design notes) is treated as dev
 # documentation and skipped so the gh-pages README is not clobbered.
-$topLevelAllow = @('index.html', 'skill.html')
+$topLevelAllow = @('index.html', 'skill.html', 'nightly.html')
 
 # Directories whose contents are fully owned by the dashboard. Files
 # present in the destination but absent in the source are deleted.

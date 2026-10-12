@@ -1,0 +1,103 @@
+name: over-engineering-review
+description: Evaluates proportionate, evidence-based over-engineering assessments.
+version: "1"
+type: capability
+defaults:
+  runs: ${RUNS}
+  timeout: 10m
+  model: gpt-5.3-codex
+  reasoning_effort: high
+  executor: copilot-sdk
+  judge_model: gpt-5.3-codex
+  judge_reasoning_effort: high
+scoring:
+  threshold: 0.8
+agent_environment:
+  skills: [../../skills/over-engineering-review]
+stimuli:
+  - name: over-engineering-review--speculative-report-writer-stack
+    tags:
+      skill: over-engineering-review
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      Review this TypeScript design specifically for over-engineering. A CLI
+      currently writes reports in JSON only. ReportWriter is an interface with
+      one JsonReportWriter implementation. ReportWriterFactory reads
+      REPORT_FORMAT, but rejects every value except json. WriterRegistry stores
+      the JSON writer under one key. ReportService asks the factory for a writer
+      and calls write(). There are no plugins, tests use the concrete JSON
+      writer, and the roadmap has no other formats. Do not edit code.
+    rubric:
+      - Identifies the interface, factory, and registry as one related speculative-variation finding rather than three style complaints.
+      - Cites the single implementation, single accepted configuration value, lack of plugin consumers, and absence of a committed second format.
+      - Proposes direct construction or injection while preserving report writing and explicit rejection of unsupported format values.
+      - Remains read-only and includes a confidence level.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [over-engineering-review]
+      - type: diff-empty
+
+  - name: over-engineering-review--justified-payment-boundaries
+    tags:
+      skill: over-engineering-review
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      Evaluate this payment module for over-engineering, not general bugs. It
+      has a PaymentGateway interface with StripeGateway, AdyenGateway, and
+      FakeGateway implementations. Merchant configuration selects Stripe or
+      Adyen at runtime. A GatewayFactory validates configuration and constructs
+      the selected adapter. The interface isolates each vendor SDK and
+      FakeGateway is used in contract tests. The module also uses an idempotency
+      store because webhook retries are documented by both providers. Do not
+      change anything.
+    rubric:
+      - Gives a Proportionate verdict without manufacturing findings.
+      - Ties each mechanism to verified runtime variation, an external boundary, testing, or documented retry behavior.
+      - Does not substitute a generic correctness review or recommend unrelated cleanup.
+      - Remains read-only and includes a confidence level.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [over-engineering-review]
+      - type: diff-empty
+
+  - name: over-engineering-review--mixed-cache-design
+    tags:
+      skill: over-engineering-review
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      Assess this in-memory cache design for over-engineering. A single-process
+      service caches user profiles. CacheCoordinator delegates to
+      CacheProviderFactory, which always creates MemoryCacheProvider. The
+      provider accepts an IEvictionPolicy, but the only policy is
+      FixedTtlPolicy and the configured TTL is the same in every environment.
+      PolicyRegistry and CachePluginLoader have no other registrations or
+      callers. The cache's per-key lock prevents duplicate concurrent loads,
+      and a test proves only one backend request occurs under concurrency.
+      Suggest simplification but do not edit.
+    rubric:
+      - Consolidates the provider, policy, registry, and plugin loader into one speculative-extensibility finding supported by concrete usage evidence.
+      - Proposes a direct memory cache with fixed TTL.
+      - Explicitly preserves the tested per-key lock and its one-load concurrency guarantee.
+      - Does not confuse necessary concurrency complexity with over-engineering and includes a confidence level.
+    graders:
+      - type: prompt
+        config:
+          threshold: 0.8
+          evidence: [trajectory]
+      - type: skill-invocation
+        config:
+          required: [over-engineering-review]
+      - type: diff-empty

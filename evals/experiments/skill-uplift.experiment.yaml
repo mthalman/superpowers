@@ -1,0 +1,19 @@
+name: skill-uplift
+evals:
+  - ../over-engineering-review/eval.yaml
+  - ../validation-scenarios/eval.yaml
+  - ../defend-the-diff/eval.yaml
+  - ../tdd/eval.yaml
+execution:
+  workers: 3
+vary:
+  - /environment/skills
+baseline: without-skill
+variants:
+  without-skill:
+    environment:
+      skills: []
+  with-skill:
+    environment:
+      skills:
+        - ../../skills/${eval.name}

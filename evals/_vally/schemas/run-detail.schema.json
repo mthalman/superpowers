@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "run-detail.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "run_kind", "skill", "status", "passed", "metrics", "stimuli", "trials"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "run_kind": { "enum": ["main", "nightly"] },
+    "skill": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "minLength": 1 },
+    "passed": { "type": "boolean" },
+    "metrics": { "$ref": "#/definitions/metrics" },
+    "stimuli": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "score"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "score": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["aggregateScore", "multiTrial", "flaky"],
+                "properties": {
+                  "aggregateScore": { "type": "number" },
+                  "multiTrial": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["passAtK", "passToTheK"],
+                    "properties": {
+                      "passAtK": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "passToTheK": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  },
+                  "flaky": { "type": "boolean" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "trials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evalName", "stimulus", "passed", "score", "durationMs", "metrics", "graders"],
+        "properties": {
+          "evalName": { "type": "string", "minLength": 1 },
+          "stimulus": { "type": "string", "minLength": 1 },
+          "passed": { "type": "boolean" },
+          "score": { "type": ["number", "null"] },
+          "durationMs": { "type": "number", "minimum": 0 },
+          "metrics": { "$ref": "#/definitions/trialMetrics" },
+          "graders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "passed", "score", "evidence"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "passed": { "type": "boolean" },
+                "score": { "type": "number" },
+                "evidence": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass_rate", "mean_score", "pass_at_k", "pass_to_k", "flaky_count", "tokens", "turns", "tool_calls", "wall_time_ms"],
+      "properties": {
+        "pass_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "mean_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "pass_at_k": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "pass_to_k": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "flaky_count": { "type": "integer", "minimum": 0 },
+        "tokens": { "type": "number", "minimum": 0 },
+        "turns": { "type": "number", "minimum": 0 },
+        "tool_calls": { "type": "number", "minimum": 0 },
+        "wall_time_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "trialMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tokens", "turns", "tool_calls", "wall_time_ms"],
+      "properties": {
+        "tokens": { "type": "number", "minimum": 0 },
+        "turns": { "type": "number", "minimum": 0 },
+        "tool_calls": { "type": "number", "minimum": 0 },
+        "wall_time_ms": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

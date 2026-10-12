@@ -1,0 +1,242 @@
+name: code-review
+description: Evaluates detection quality against hidden, worked pull-request fixtures.
+version: "1"
+type: capability
+defaults:
+  runs: 1
+  timeout: 12m
+  model: gpt-5.3-codex
+  reasoning_effort: high
+  executor: copilot-sdk
+scoring:
+  threshold: 1
+agent_environment:
+  skills: [../../skills/code-review]
+stimuli:
+  - name: add-refund-event-handler
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: medium
+    prompt: >-
+      Review change.patch for merge-blocking defects in the proposed refund event
+      handler, using the supplied source files as context. The patch is review
+      evidence; do not apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/add-refund-event-handler/context
+          dest: .
+        - src: fixtures/detection/dev/add-refund-event-handler/diff.patch
+          dest: change.patch
+        - src: fixtures/detection/dev/add-refund-event-handler/pr.md
+          dest: pr.md
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/add-refund-event-handler/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: distractor-exec-array-args
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for merge-blocking defects in the command-runner change,
+      using the supplied source files as context. The patch is review evidence;
+      do not apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/distractor-exec-array-args/context
+          dest: .
+        - src: fixtures/detection/dev/distractor-exec-array-args/diff.patch
+          dest: change.patch
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/distractor-exec-array-args/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: leak-file-handle-on-error
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for merge-blocking defects in the log-writer change,
+      using the supplied source files as context. The patch is review evidence;
+      do not apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/leak-file-handle-on-error/context
+          dest: .
+        - src: fixtures/detection/dev/leak-file-handle-on-error/diff.patch
+          dest: change.patch
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/leak-file-handle-on-error/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: off-by-one-pagination
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for merge-blocking defects in the pagination change,
+      using the supplied source files as context. The patch is review evidence;
+      do not apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/off-by-one-pagination/context
+          dest: .
+        - src: fixtures/detection/dev/off-by-one-pagination/diff.patch
+          dest: change.patch
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/off-by-one-pagination/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: perf-on2-membership-check
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for material defects in the deduplication change, using
+      the supplied source files as context. The patch is review evidence; do not
+      apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/perf-on2-membership-check/context
+          dest: .
+        - src: fixtures/detection/dev/perf-on2-membership-check/diff.patch
+          dest: change.patch
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/perf-on2-membership-check/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: race-double-checked-cache
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for merge-blocking defects in the cache change, using
+      the supplied source files as context. The patch is review evidence; do not
+      apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/race-double-checked-cache/context
+          dest: .
+        - src: fixtures/detection/dev/race-double-checked-cache/diff.patch
+          dest: change.patch
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/race-double-checked-cache/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
+
+  - name: ssrf-fetch-no-allowlist
+    tags:
+      skill: code-review
+      loop: [pr, main, nightly]
+      cost: low
+    prompt: >-
+      Review change.patch for merge-blocking defects in the proxy change, using
+      the supplied source files as context. The patch is review evidence; do not
+      apply it or edit the repository.
+    agent_environment:
+      files:
+        - src: fixtures/detection/dev/ssrf-fetch-no-allowlist/context
+          dest: .
+        - src: fixtures/detection/dev/ssrf-fetch-no-allowlist/diff.patch
+          dest: change.patch
+        - src: fixtures/detection/dev/ssrf-fetch-no-allowlist/pr.md
+          dest: pr.md
+      commands:
+        - git init -q
+        - git config user.email vally@example.invalid
+        - git config user.name Vally
+        - git add -A
+        - git commit -qm baseline
+    grading_environment:
+      files:
+        - src: fixtures/detection/dev/ssrf-fetch-no-allowlist/expected.json
+          dest: .vally/expected.json
+    graders:
+      - type: finding-match
+      - type: skill-invocation
+        config:
+          required: [code-review]
+      - type: diff-empty
