@@ -68,13 +68,23 @@ stimuli:
 
   - name: tdd--unresolved-rate-limiter-api
     tags:
+      case: unresolved-rate-limiter-api
       skill: tdd
       loop: [pr, main, nightly]
       cost: low
-    prompt: Design me three possible APIs for a rate limiter and write tests for the best one.
+    prompt: >-
+      Start TDD for a rate limiter. We have not selected an API yet: compare
+      three possible APIs and propose the best one for my approval. Do not
+      edit the repository until I approve the design, including scaffolding
+      APIs or writing tests.
+    agent_environment:
+      skills:
+        - ../../skills/arena
+        - ../../skills/dispatching-parallel-agents
     rubric:
       - Does not prematurely scaffold one API while interface selection remains unresolved.
       - Routes the interface competition to arena and defers test-driven scaffolding until a design is selected.
+      - Waits for the user's design approval before creating code or tests.
     graders:
       - type: prompt
         config:
@@ -82,5 +92,5 @@ stimuli:
           evidence: [trajectory]
       - type: skill-invocation
         config:
-          required: [tdd]
+          required: [arena]
       - type: diff-empty

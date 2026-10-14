@@ -10,8 +10,6 @@ let cached: Settings | undefined = undefined;
 
 export class SettingsLoader {
     static async load(): Promise<Settings> {
-        // Hot path optimization: avoid the function call overhead of
-        // returning `cached` when it's already set by inlining the check.
         if (cached === undefined) {
             const fresh = await readSettingsFromDisk();
             cached = fresh;

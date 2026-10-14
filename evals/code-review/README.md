@@ -18,8 +18,43 @@ and grants credit only when semantic keywords and the expected file region
 match. It also enforces the fixture's verdict floor and penalizes distractor
 findings. A verdict below the fixture's floor forces the numeric score to zero,
 so Vally's threshold-based pass rule cannot override that failure.
+Added-line and context-line citations to `change.patch` are mapped to their
+post-change source locations before matching. Patch headers, deleted lines,
+out-of-range references, and lines belonging to another file do not create a
+matching source reference. Semantic requirements and scoring thresholds are
+unchanged.
 The `detection` reporter calculates required-bug catch-in-any across
 trials.
+
+## Fixture integrity
+
+Candidate source and tests must use valid language syntax and must not identify the
+expected findings in comments. Intentional product defects belong in the
+fixture; syntax errors and oracle annotations do not, unless those are the
+behavior being evaluated. The model-free tests check for oracle annotations and
+exercise the runnable pagination and cache cases.
+
+The cache fixture's patch replaces a single-flight Promise cache with a
+resolved-value cache. A gated concurrency test verifies one disk read before
+the change and two after it. Both the cache and log-writer patches are
+reverse-applied and reapplied against their proposed source snapshots.
+
+Verdict floors follow the skill's verdict definitions, not the number of
+required findings. The refund fixture requires Needs Changes because its
+defects can be fixed incrementally. Both required findings are still mandatory;
+LGTM and an incomplete review still fail.
+
+Read-only pagination environments set `PYTHONDONTWRITEBYTECODE=1`, including
+the defend-the-diff and validation-scenarios consumers of the same fixture.
+Tests reproduce bytecode-induced snapshot changes, verify that Python execution
+with bytecode disabled leaves an empty diff, and verify that source edits
+still fail the read-only grader.
+
+Results from revised fixtures are not directly comparable with historical
+results that used leaked annotations, a pre-existing cache race, an invalid
+Python header, or an incompatible verdict floor. Preserve those historical
+records rather than retroactively treating them as measurements of the
+repaired cases.
 
 Run the evaluation from the repository root after building the plugins:
 

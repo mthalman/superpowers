@@ -148,6 +148,38 @@ export function parseReview(markdown: string): { verdict: Verdict; findings: Fin
   return { verdict: getVerdict(markdown), findings };
 }
 
+function getPatchSourceRefs(patch: string): Map<number, FileReference> {
+  const references = new Map<number, FileReference>();
+  let file: string | undefined;
+  let sourceLine = 0;
+  let remaining = 0;
+  for (const [index, text] of patch.split(/\r?\n/).entries()) {
+    if (text.startsWith("diff --git ")) {
+      file = undefined;
+      remaining = 0;
+      continue;
+    }
+    const hunk = text.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/);
+    if (hunk) {
+      sourceLine = Number(hunk[1]);
+      remaining = hunk[2] === undefined ? 1 : Number(hunk[2]);
+      continue;
+    }
+    if (remaining > 0) {
+      if (text.startsWith("+") || text.startsWith(" ")) {
+        if (file) references.set(index + 1, { file, line: sourceLine });
+        sourceLine += 1;
+        remaining -= 1;
+      }
+      continue;
+    }
+    if (text.startsWith("+++ ")) {
+      file = text.startsWith("+++ b/") ? text.slice(6) : undefined;
+    }
+  }
+  return references;
+}
+
 function matchesRegion(
   reference: FileReference,
   region: { file: string; lines: [number, number] },
@@ -194,8 +226,17 @@ export async function scoreReview(
   markdown: string,
   expected: ExpectedCase,
   config: FindingMatchConfig = {},
+  patch = "",
 ): Promise<GraderResult> {
   const parsed = parseReview(markdown);
+  const patchReferences = getPatchSourceRefs(patch);
+  for (const finding of parsed.findings) {
+    finding.fileRefs.push(...finding.fileRefs.flatMap((reference) => {
+      if (!pathsMatch(reference.file, "change.patch") || reference.line === undefined) return [];
+      const source = patchReferences.get(reference.line);
+      return source ? [source] : [];
+    }));
+  }
   const lineWindow = config.line_window ?? 8;
   const semanticThreshold = config.semantic_threshold ?? 2;
   const locationKeywordMin = config.location_keyword_min ?? 1;
@@ -295,7 +336,8 @@ class FindingMatchGrader implements Grader {
     const expected = JSON.parse(
       await readFile(join(input.trajectory.workDir, expectedPath), "utf8"),
     ) as ExpectedCase;
-    return scoreReview(input.trajectory.output, expected, config);
+    const patch = await readFile(join(input.trajectory.workDir, "change.patch"), "utf8");
+    return scoreReview(input.trajectory.output, expected, config, patch);
   }
 }
 

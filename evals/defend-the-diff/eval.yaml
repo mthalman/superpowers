@@ -17,14 +17,17 @@ agent_environment:
 stimuli:
   - name: defend-the-diff--pagination-change
     tags:
+      case: pagination-change
       skill: defend-the-diff
       loop: [pr, main, nightly]
       cost: high
     prompt: >-
-      Interrogate the proposed pagination change in the supplied pager-service
-      project. Determine whether the change is justified, explainable, correct,
+      Use the defend-the-diff skill to interrogate the proposed pagination change
+      in the supplied pager-service project. Determine whether the change is justified, explainable, correct,
       and maintainable. Do not edit anything unless I approve a proposal.
     agent_environment:
+      env:
+        PYTHONDONTWRITEBYTECODE: "1"
       files:
         - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
           dest: change.patch
@@ -43,18 +46,24 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: skill-invocation
-        config:
-          required: [defend-the-diff]
+      - type: tool-calls
+        name: pagination-skill-instructions-read
+        config: &explicit-skill-read
+          required:
+            - name: view
+              path: '(^|[/\\])defend-the-diff[/\\]SKILL\.md$'
+              result: 'name: defend-the-diff[\s\S]*## Workflow[\s\S]*## Report[\s\S]*request approval before editing\.'
       - type: diff-empty
 
   - name: defend-the-diff--documentation-only-change
     tags:
+      case: documentation-only-change
       skill: defend-the-diff
       loop: [pr, main, nightly]
       cost: high
     prompt: >-
-      Interrogate the supplied directory-service documentation-only change.
+      Use the defend-the-diff skill to interrogate the supplied directory-service
+      documentation-only change.
       Determine whether it is justified, explainable, correct, and maintainable,
       but be strict about whether any additional explanation is actually
       warranted. Do not edit anything unless I approve a proposal.
@@ -74,19 +83,20 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: skill-invocation
-        config:
-          required: [defend-the-diff]
+      - type: tool-calls
+        name: documentation-skill-instructions-read
+        config: *explicit-skill-read
       - type: diff-empty
 
   - name: defend-the-diff--refund-event-handler
     tags:
+      case: refund-event-handler
       skill: defend-the-diff
       loop: [pr, main, nightly]
       cost: high
     prompt: >-
-      Interrogate the proposed refund event handler in the supplied event-service
-      project. Treat event acknowledgement, amount-unit conversion, and
+      Use the defend-the-diff skill to interrogate the proposed refund event
+      handler in the supplied event-service project. Treat event acknowledgement, amount-unit conversion, and
       per-handler observability as three user-specified semantic units.
       Determine whether the change is justified, explainable, correct, and
       maintainable. Do not edit anything unless I approve a proposal.
@@ -110,7 +120,7 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: skill-invocation
-        config:
-          required: [defend-the-diff]
+      - type: tool-calls
+        name: refund-skill-instructions-read
+        config: *explicit-skill-read
       - type: diff-empty
