@@ -14,6 +14,10 @@ scoring:
   threshold: 0.8
 agent_environment:
   skills: [../../skills/defend-the-diff]
+grading_environment:
+  files:
+    - src: ../_vally/dist/graders/skill-read.js
+      dest: .vally/skill-read.mjs
 stimuli:
   - name: defend-the-diff--pagination-change
     tags:
@@ -46,13 +50,11 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: tool-calls
+      - type: program
         name: pagination-skill-instructions-read
         config: &explicit-skill-read
-          required:
-            - name: view
-              path: '(^|[/\\])defend-the-diff[/\\]SKILL\.md$'
-              result: 'name: defend-the-diff[\s\S]*## Workflow[\s\S]*## Report[\s\S]*request approval before editing\.'
+          program: node
+          args: [.vally/skill-read.mjs]
       - type: diff-empty
 
   - name: defend-the-diff--documentation-only-change
@@ -83,7 +85,7 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: tool-calls
+      - type: program
         name: documentation-skill-instructions-read
         config: *explicit-skill-read
       - type: diff-empty
@@ -120,7 +122,7 @@ stimuli:
         config:
           threshold: 0.8
           evidence: [trajectory]
-      - type: tool-calls
+      - type: program
         name: refund-skill-instructions-read
         config: *explicit-skill-read
       - type: diff-empty

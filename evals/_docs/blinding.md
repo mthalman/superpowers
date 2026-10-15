@@ -59,12 +59,24 @@ An explicit-only skill may be named in an ordinary user request. This is not
 an instruction to report activation or repeat the evaluation rubric. With the
 pinned Copilot SDK executor, a named request can cause the skill to be read
 without producing a native activation event. The defend-the-diff evaluation
-therefore requires a completed `view` result at the actual skill path, with
-text spanning its frontmatter, workflow, report, and final approval rule.
-Missing-file responses, directory listings, unrelated paths, truncated
-instructions, and self-report do not satisfy that prerequisite. The separate
-behavioral rubric still verifies the panel workflow; a read alone is not
-evidence of compliance.
+therefore requires complete instruction exposure, verified by
+`evals/_vally/graders/skill-read.ts`. It accepts `view`, PowerShell `Get-Content`
+(including `gc`, `cat`, and `type` aliases), and Bash `cat`, `head`, `tail`,
+and `sed` reads. PowerShell readers may appear in script blocks, grouped
+expressions, or variable assignments. Quoted command text and comments do not
+count as reads. Multiple successful, completed calls may collectively expose
+the instructions to one agent.
+The grader checks every distinct nonblank line of the workspace's staged
+`defend-the-diff/SKILL.md`, allowing whitespace and line-number metadata.
+It does not combine partial reads from different agents.
+
+The compiled helper is staged only through `grading_environment` and runs
+through Vally's built-in `program` grader, so direct evals and uplift variants
+use the same check without a custom plugin. Missing-file responses, directory
+listings, unrelated paths, failed or incomplete calls, truncated instructions,
+landmark-only excerpts, and self-report do not satisfy the prerequisite. The
+separate behavioral rubric still verifies the panel workflow, and `diff-empty`
+still detects repository edits. A read alone is not evidence of compliance.
 
 ## Sanitize the environment
 

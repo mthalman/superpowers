@@ -220,11 +220,18 @@ the latter must still fail `diff-empty`.
 
 The pinned SDK does not emit native skill activation for every named
 explicit-only request. Defend-the-diff prompts name the skill and use a
-built-in `tool-calls` prerequisite for a completed instruction read spanning
-the actual skill's frontmatter through its final approval rule. This is not
-native activation evidence. The independent-role rubric and `diff-empty`
-remain separate requirements. Custom grader names must be unique across an
-eval spec, not just within a stimulus.
+built-in `program` prerequisite backed by
+`evals/_vally/graders/skill-read.ts`, compiled and staged only during grading.
+It combines successful, completed reads by one agent through `view`, PowerShell
+`Get-Content` and its reader aliases, or Bash `cat`/`head`/`tail`/`sed`.
+PowerShell detection recognizes script blocks, grouped reads, and variable
+assignments while treating quoted command text and comments as non-executable.
+Every distinct nonblank instruction line must be exposed; line-number metadata
+is allowed. Partial reads from different agents cannot combine. This is not
+native activation evidence. The helper works in uplift variants without custom
+plugin registration. The independent-role rubric and `diff-empty` remain
+separate requirements. Custom grader names must be unique across an eval spec,
+not just within a stimulus.
 
 The unresolved TDD API stimulus exposes `arena` and
 `dispatching-parallel-agents` as support skills. Stimulus-level skills survive
