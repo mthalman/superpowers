@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { createGraderRegistry, gradeTrajectory, resolveGradePass } from "@microsoft/vally";
 import { parseReview, scoreReview } from "../graders/finding-match.js";
 
@@ -18,6 +20,23 @@ const expected = {
 };
 
 describe("finding-match", () => {
+  it("accepts an incrementally fixable refund review without demanding rejection", async () => {
+    const truth = JSON.parse(await readFile(resolve(
+      process.cwd(), "..", "code-review", "fixtures", "detection", "dev",
+      "add-refund-event-handler", "expected.json",
+    ), "utf8"));
+    const review = [
+      "**Summary:** Needs Changes",
+      "#### Error Correctness - Acknowledgement contract is missing",
+      "`src/events/RefundIssuedHandler.ts:17` never calls ack, so the broker redelivers and duplicates refunds.",
+      "#### Error Correctness - Incorrect amount units",
+      "`src/events/RefundIssuedHandler.ts:11` multiplies minor units by 100, refunding 100 times the amount.",
+    ].join("\n");
+    expect((await scoreReview(review, truth)).passed).toBe(true);
+    expect((await scoreReview(review.replace("Needs Changes", "LGTM"), truth)).passed).toBe(false);
+    expect((await scoreReview(review.split("#### Error Correctness - Incorrect")[0], truth)).passed).toBe(false);
+  });
+
   it("parses verdicts, findings, and file references", () => {
     const review = [
       "## Code Review",
@@ -46,6 +65,41 @@ describe("finding-match", () => {
     );
     expect(result.passed).toBe(true);
     expect(result.score).toBe(1);
+  });
+
+  it("maps patch-line citations to source locations without crediting unrelated lines", async () => {
+    const patch = [
+      "diff --git a/src/proxy.ts b/src/proxy.ts",
+      "--- a/src/proxy.ts",
+      "+++ b/src/proxy.ts",
+      "@@ -20,2 +20,2 @@",
+      " export function proxy(url: string) {",
+      "-  return validatedFetch(url);",
+      "+  return fetch(url);",
+      "diff --git a/src/other.ts b/src/other.ts",
+      "--- a/src/other.ts",
+      "+++ b/src/other.ts",
+      "@@ -1 +1 @@",
+      "-export const enabled = false;",
+      "+export const enabled = true;",
+    ].join("\n");
+    const review = (reference: string, finding = "SSRF allows internal hosts without an allowlist") => [
+      "**Verdict:** Needs changes",
+      `#### Error Security - ${finding}`,
+      `See \`${reference}\`.`,
+    ].join("\n");
+    for (const reference of ["change.patch:7", "C:\\project\\change.patch:7"]) {
+      expect((await scoreReview(review(reference), expected, {}, patch)).passed).toBe(true);
+    }
+    for (const line of [3, 6, 13, 99]) {
+      expect((await scoreReview(review(`change.patch:${line}`), expected, {}, patch)).passed).toBe(false);
+    }
+    expect((await scoreReview(review("change.patch:7", "Rename this variable"), expected, {}, patch)).passed)
+      .toBe(false);
+    expect((await scoreReview(review("unrelated.patch:7"), expected, {}, patch)).passed).toBe(false);
+    expect((await scoreReview(
+      review("change.patch:13"), expected, {}, patch.replace("+20,2", "+20,8"),
+    )).passed).toBe(false);
   });
 
   it("does not credit location alone when semantic evidence is absent", async () => {

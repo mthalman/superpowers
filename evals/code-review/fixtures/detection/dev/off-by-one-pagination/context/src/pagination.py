@@ -1,4 +1,4 @@
-// src/pagination.py — paginate a list of items.
+# src/pagination.py - paginate a list of items.
 
 from dataclasses import dataclass
 from typing import List, TypeVar
@@ -21,8 +21,6 @@ def paginate(items: List[T], page: int, page_size: int) -> Page:
     if page_size < 1:
         raise ValueError("page_size must be >= 1")
     start = (page - 1) * page_size
-    # BUG INTRODUCED IN PR: end was previously `start + page_size`. Now it
-    # is `start + page_size - 1`, which drops the last item of each page
-    # (Python slicing is end-exclusive).
+    # Clarify intent: end is the index of the last item, inclusive.
     end = start + page_size - 1
     return Page(items=items[start:end], page=page, page_size=page_size, total=len(items))

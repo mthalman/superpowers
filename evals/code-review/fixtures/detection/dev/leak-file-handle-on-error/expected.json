@@ -11,7 +11,7 @@
       "expectation": "required",
       "expected_severity": "error",
       "evidence_regions": [
-        { "file": "src/log_writer.go", "lines": [13, 22] }
+        { "file": "src/log_writer.go", "lines": [12, 20] }
       ],
       "semantic_keywords": ["close", "leak", "defer", "handle", "descriptor", "resource"],
       "description": "WriteString error path returns without f.Close(). Original defer was removed; nothing replaces it."

@@ -1,20 +1,21 @@
 diff --git a/src/cache.ts b/src/cache.ts
 --- a/src/cache.ts
 +++ b/src/cache.ts
-@@ -10,11 +10,12 @@ let cached: Settings | undefined = undefined;
+@@ -6,13 +6,14 @@
+     region: string;
+ }
+ 
+-let cached: Promise<Settings> | undefined = undefined;
++let cached: Settings | undefined = undefined;
  
  export class SettingsLoader {
-     static async load(): Promise<Settings> {
--        if (cached !== undefined) {
--            return cached;
-+        // Hot path optimization: avoid the function call overhead of
-+        // returning `cached` when it's already set by inlining the check.
-+        if (cached === undefined) {
+-    static load(): Promise<Settings> {
++    static async load(): Promise<Settings> {
+         if (cached === undefined) {
+-            cached = readSettingsFromDisk();
 +            const fresh = await readSettingsFromDisk();
 +            cached = fresh;
          }
--        const fresh = await readSettingsFromDisk();
--        cached = fresh;
          return cached;
      }
  

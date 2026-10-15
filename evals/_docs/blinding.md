@@ -55,6 +55,29 @@ Do not ask candidates to report which skills, rules, or files they consulted.
 Measure instruction use from observable behavior and available execution
 records, not self-report.
 
+An explicit-only skill may be named in an ordinary user request. This is not
+an instruction to report activation or repeat the evaluation rubric. With the
+pinned Copilot SDK executor, a named request can cause the skill to be read
+without producing a native activation event. The defend-the-diff evaluation
+therefore requires complete instruction exposure, verified by
+`evals/_vally/graders/skill-read.ts`. It accepts `view`, PowerShell `Get-Content`
+(including `gc`, `cat`, and `type` aliases), and Bash `cat`, `head`, `tail`,
+and `sed` reads. PowerShell readers may appear in script blocks, grouped
+expressions, or variable assignments. Quoted command text and comments do not
+count as reads. Multiple successful, completed calls may collectively expose
+the instructions to one agent.
+The grader checks every distinct nonblank line of the workspace's staged
+`defend-the-diff/SKILL.md`, allowing whitespace and line-number metadata.
+It does not combine partial reads from different agents.
+
+The compiled helper is staged only through `grading_environment` and runs
+through Vally's built-in `program` grader, so direct evals and uplift variants
+use the same check without a custom plugin. Missing-file responses, directory
+listings, unrelated paths, failed or incomplete calls, truncated instructions,
+landmark-only excerpts, and self-report do not satisfy the prerequisite. The
+separate behavioral rubric still verifies the panel workflow, and `diff-empty`
+still detects repository edits. A read alone is not evidence of compliance.
+
 ## Sanitize the environment
 
 Do not expose experiment terms through candidate-visible paths, filenames,
@@ -78,6 +101,14 @@ When comparing variants:
 4. Keep the judge blind to model and variant identity.
 5. Record the random label mapping in harness-only artifacts.
 6. Reuse the same rubric and scoring scale.
+
+Keep supporting skills needed for routing in the stimulus environment so both
+variants retain them. The unresolved TDD API case exposes `arena` and
+`dispatching-parallel-agents` in both variants; only the evaluated root skill
+differs. Its activation prerequisite checks the intended destination, `arena`,
+not the deliberately inapplicable `tdd` workflow. The request explicitly
+withholds approval for all repository edits, including scaffolding or tests,
+matching its read-only grader.
 
 Separate judge calls can drift in calibration. If separate calls are
 unavoidable, report that limitation.

@@ -15,6 +15,7 @@ agent_environment:
 stimuli:
   - name: add-refund-event-handler
     tags:
+      case: add-refund-event-handler
       skill: code-review
       loop: [pr, main, nightly]
       cost: medium
@@ -81,6 +82,7 @@ stimuli:
 
   - name: leak-file-handle-on-error
     tags:
+      case: leak-file-handle-on-error
       skill: code-review
       loop: [pr, main, nightly]
       cost: low
@@ -113,6 +115,7 @@ stimuli:
 
   - name: off-by-one-pagination
     tags:
+      case: off-by-one-pagination
       skill: code-review
       loop: [pr, main, nightly]
       cost: low
@@ -121,6 +124,8 @@ stimuli:
       using the supplied source files as context. The patch is review evidence;
       do not apply it or edit the repository.
     agent_environment:
+      env:
+        PYTHONDONTWRITEBYTECODE: "1"
       files:
         - src: fixtures/detection/dev/off-by-one-pagination/context
           dest: .
@@ -177,6 +182,7 @@ stimuli:
 
   - name: race-double-checked-cache
     tags:
+      case: race-double-checked-cache
       skill: code-review
       loop: [pr, main, nightly]
       cost: low

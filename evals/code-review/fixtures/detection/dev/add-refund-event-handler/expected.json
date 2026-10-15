@@ -3,7 +3,7 @@
   "mode": "pr",
   "mature": false,
   "description": "Adds a new RefundIssuedHandler that looks textbook-clean inside the diff but violates three pieces of context that only appear in surrounding files: (1) the EventHandler interface's hard ack/nack/deadLetter contract, (2) the events.ts schema documenting `amountMinor` as already-minor-units, and (3) the per-handler observability convention demonstrated by sibling handlers and required by handlerMetrics docs. The PR description confidently reinforces the wrong unit assumption. Designed to evaluate Step 0 (codebase understanding) and Step 1 (cross-file context gathering) — every bug is invisible from the diff alone and from a single-file read of the new handler.",
-  "expected_verdict_at_least": "reject",
+  "expected_verdict_at_least": "needs_changes",
   "bugs": [
     {
       "id": "missing-ack-violates-contract",

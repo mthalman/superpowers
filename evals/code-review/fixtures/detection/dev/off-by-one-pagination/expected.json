@@ -11,7 +11,7 @@
       "expectation": "required",
       "expected_severity": "error",
       "evidence_regions": [
-        { "file": "src/pagination.py", "lines": [21, 25] }
+        { "file": "src/pagination.py", "lines": [23, 25] }
       ],
       "semantic_keywords": ["slice", "off-by-one", "exclusive", "page_size", "end", "drops"],
       "description": "items[start:end] with end = start + page_size - 1 returns page_size - 1 items, not page_size."
@@ -22,7 +22,7 @@
       "expectation": "required",
       "expected_severity": "warning",
       "evidence_regions": [
-        { "file": "tests/test_pagination.py", "lines": [1, 20] }
+        { "file": "tests/test_pagination.py", "lines": [1, 12] }
       ],
       "semantic_keywords": ["test", "regression", "coverage", "missing", "content"],
       "description": "No test asserts the actual page contents; CI won't catch the change."

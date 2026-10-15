@@ -2,7 +2,8 @@
   "case_id": "race-double-checked-cache",
   "mode": "standalone",
   "mature": false,
-  "description": "Refactored async lazy cache. Stated motivation is 'hot path optimization' but the change does nothing for the hot path. The new shape `if (cached === undefined) { ... await readSettingsFromDisk(); cached = fresh; }` is a live race: two concurrent first-callers can both observe `cached === undefined`, both await the (expensive) load in parallel, and the second assignment wins. Reviewer should flag both the race AND the bogus motivation.",
+  "description": "Changes a process-wide lazy cache from storing the in-flight Promise to storing resolved settings. The original implementation shares one load between concurrent callers. The proposed implementation leaves cached undefined while awaiting disk I/O, introducing duplicate concurrent loads and last-writer-wins assignment.",
+  "expected_verdict_at_least": "needs_changes",
   "bugs": [
     {
       "id": "concurrent-first-access-race",
@@ -10,22 +11,10 @@
       "expectation": "required",
       "expected_severity": "warning",
       "evidence_regions": [
-        { "file": "src/cache.ts", "lines": [15, 18] }
+        { "file": "src/cache.ts", "lines": [13, 16] }
       ],
       "semantic_keywords": ["race", "concurrent", "lazy", "synchroniz", "atomic", "await", "parallel", "in-flight"],
-      "description": "Check-then-act under async: two callers may both pass the undefined check, both await readSettingsFromDisk, and the second assignment wins. Fix is typically to cache the in-flight Promise rather than the resolved value."
-    },
-    {
-      "id": "bogus-perf-motivation",
-      "category": "correctness",
-      "expectation": "optional",
-      "expected_severity": "suggestion",
-      "evidence_regions": [
-        { "file": "src/cache.ts", "lines": [13, 14] }
-      ],
-      "semantic_keywords": ["motivation", "evidence", "benchmark", "premature", "optimization", "justif"],
-      "description": "PR claims hot-path optimization with no benchmark; the change is shape-only and doesn't reduce work."
+      "description": "The old implementation cached the in-flight Promise before another caller could enter. The new check-then-await sequence lets two callers pass the undefined check, both read settings, and overwrite each other's result. Preserve single-flight loading by retaining the shared in-flight Promise."
     }
   ]
 }
-

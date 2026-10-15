@@ -17,6 +17,7 @@ agent_environment:
 stimuli:
   - name: validation-scenarios--pagination-boundaries
     tags:
+      case: pagination-boundaries
       skill: validation-scenarios
       loop: [pr, main, nightly]
       cost: medium
@@ -25,6 +26,8 @@ stimuli:
       scenarios that can guide both automated regression coverage and a short
       manual API check; do not write test code.
     agent_environment:
+      env:
+        PYTHONDONTWRITEBYTECODE: "1"
       files:
         - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
           dest: change.patch
