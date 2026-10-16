@@ -1,6 +1,6 @@
 {
   "name": "agents",
-  "version": "4.17.0",
+  "version": "4.17.1",
   "description": "Shared AI skills for Claude Code, GitHub Copilot CLI, and OpenAI Codex.",
   "skills": "./skills/"
 }
