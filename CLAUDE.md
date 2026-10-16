@@ -42,8 +42,11 @@ The repository no longer includes the `adr-generator`, `brainstorming`, `writing
   `REWRITE`, `ENCODE`, and `INVESTIGATE` classifications.
 - `over-engineering-review` is a read-only, evidence-based assessment of
   unnecessary complexity. It owns proportionality and simpler-counterfactual
-  analysis; `code-review` remains the broad correctness review, and
+  analysis; `code-reviewer` remains the broad correctness review, and
   `code-refactorer` implements an approved simplification.
+- `code-reviewer` is the renamed `code-review` skill. Its skill and evaluation
+  directories use `code-reviewer`; historical evaluation records retain their
+  original skill names. The `code-reviewer` agent is a separate extension.
 - `defend-the-diff` is an explicitly invoked, read-only-first explainability panel. An isolated questioner asks as many independently tracked material questions as each semantic change unit requires, a defender answers with evidence and self-assessment, and an independent judge verifies the response. Panel roles use persistent agent contexts for follow-up turns when supported; fresh isolated agents receiving the complete accumulated packet are the non-blocking fallback. Callers may identify semantic units explicitly; the skill preserves those boundaries and inventories uncovered changes separately. It proposes code or documentation changes and waits for user approval before editing.
 
 ## Skill layout: progressive disclosure
@@ -66,7 +69,7 @@ illustrative paths are allowlisted in the test. Run it with:
 Invoke-Pester -Path tests/skills/ -Output Detailed
 ```
 
-The code-review eval adapters expose `skills/code-review/references/` to the
+The code-reviewer eval adapters expose `skills/code-reviewer/references/` to the
 reviewer: `copilot.ps1` through `--add-dir`, and `template.ps1` by inlining the
 files.
 
@@ -208,7 +211,7 @@ patches. The cache fixture must introduce concurrent duplicate reads, not
 retain a pre-existing race: its gated test expects one original read and two
 proposed reads. Fixture comments must not disclose hidden findings.
 
-Verdict floors must match the code-review skill's definitions. The refund
+Verdict floors must match the code-reviewer skill's definitions. The refund
 fixture requires Needs Changes, not Reject; both required findings remain
 mandatory. Revised fixtures and calibration are not directly comparable with
 older published measurements of the defective cases.

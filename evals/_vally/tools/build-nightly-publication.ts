@@ -42,14 +42,14 @@ interface ComparisonSummary {
 }
 
 const expectedSkills = [
-  "code-review",
+  "code-reviewer",
   "defend-the-diff",
   "over-engineering-review",
   "tdd",
   "validation-scenarios",
 ];
 
-const upliftSkills = expectedSkills.filter((skill) => skill !== "code-review");
+const upliftSkills = expectedSkills.filter((skill) => skill !== "code-reviewer");
 const t95 = [
   0, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262,
   2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093,

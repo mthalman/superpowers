@@ -11,7 +11,7 @@ enough durable explanation for a competent maintainer. It need not teach the
 subsystem to a beginner.
 
 This is a question-driven explainability and justification review, not a
-replacement for `code-review`. Trace downstream impact when a unit changes a
+replacement for `code-reviewer`. Trace downstream impact when a unit changes a
 contract or shared behavior. If current source does not establish historical
 motivation, inspect history and record `unknown` when evidence remains
 insufficient.

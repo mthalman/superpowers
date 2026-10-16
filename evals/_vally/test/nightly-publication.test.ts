@@ -15,7 +15,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 const skills = [
-  "code-review",
+  "code-reviewer",
   "defend-the-diff",
   "over-engineering-review",
   "tdd",
@@ -75,7 +75,7 @@ describe("nightly publication builder", () => {
 
     const comparisonFile = join(root, "uplift-comparisons.jsonl");
     const upliftStimuli = skills
-      .filter((skill) => skill !== "code-review")
+      .filter((skill) => skill !== "code-reviewer")
       .map((skill) => ({
         stimulusName: `${skill}--fixture`,
         trials: Array.from({ length: 3 }, () => ({
@@ -208,7 +208,7 @@ describe("nightly publication builder", () => {
           metrics,
           stimuli: [],
           trials:
-            skill === "code-review"
+            skill === "code-reviewer"
               ? [{ trajectory: { raw: "must not publish" } }]
               : [],
         }),
@@ -234,7 +234,7 @@ describe("nightly publication builder", () => {
           winRate: 1,
         },
         stimuli: skills
-          .filter((skill) => skill !== "code-review")
+          .filter((skill) => skill !== "code-reviewer")
           .map((skill) => ({
             stimulusName: `${skill}--fixture`,
             trials: [{ score: 0.4 }],

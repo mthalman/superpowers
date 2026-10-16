@@ -1,4 +1,4 @@
-name: code-review
+name: code-reviewer
 description: Evaluates detection quality against hidden, worked pull-request fixtures.
 version: "1"
 type: capability
@@ -11,12 +11,12 @@ defaults:
 scoring:
   threshold: 1
 agent_environment:
-  skills: [../../skills/code-review]
+  skills: [../../skills/code-reviewer]
 stimuli:
   - name: add-refund-event-handler
     tags:
       case: add-refund-event-handler
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: medium
     prompt: >-
@@ -45,12 +45,12 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: distractor-exec-array-args
     tags:
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -77,13 +77,13 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: leak-file-handle-on-error
     tags:
       case: leak-file-handle-on-error
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -110,13 +110,13 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: off-by-one-pagination
     tags:
       case: off-by-one-pagination
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -145,12 +145,12 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: perf-on2-membership-check
     tags:
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -177,13 +177,13 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: race-double-checked-cache
     tags:
       case: race-double-checked-cache
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -210,12 +210,12 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty
 
   - name: ssrf-fetch-no-allowlist
     tags:
-      skill: code-review
+      skill: code-reviewer
       loop: [pr, main, nightly]
       cost: low
     prompt: >-
@@ -244,5 +244,5 @@ stimuli:
       - type: finding-match
       - type: skill-invocation
         config:
-          required: [code-review]
+          required: [code-reviewer]
       - type: diff-empty

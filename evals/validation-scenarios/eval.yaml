@@ -29,11 +29,11 @@ stimuli:
       env:
         PYTHONDONTWRITEBYTECODE: "1"
       files:
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/diff.patch
           dest: change.patch
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
           dest: src/pagination.py
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
           dest: tests/test_pagination.py
     rubric:
       - Models pagination behavior rather than files or diff hunks as coverage units.
