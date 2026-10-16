@@ -42,9 +42,9 @@ Consider using centered origin for symmetrical compositions.
 
 **Plan colors:**
 
-**For color palette selection, use superpowers:designing-ui-color skill.**
+**For color palette selection, use agents:designing-ui-color skill.**
 
-The superpowers:designing-ui-color skill provides:
+The agents:designing-ui-color skill provides:
 - Color harmony strategies (complementary, analogous, monochromatic)
 - Mood and psychology-based color selection
 - Accessibility and contrast validation

@@ -75,4 +75,4 @@ Check that:
 - **Data representation:** Values are accurately visualized
 - **Proportions:** Relative sizes match relative values
 - **Labels:** All data is properly labeled
-- **Readability:** Text is readable, colors have sufficient contrast (validate with superpowers:designing-ui-color)
+- **Readability:** Text is readable, colors have sufficient contrast (validate with agents:designing-ui-color)

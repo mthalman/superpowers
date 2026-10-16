@@ -45,7 +45,7 @@ Create SVG structure:
 
 2. **Create nodes** - Rectangles, diamonds, circles based on type
 3. **Add connectors** - Lines with arrow markers
-4. **Add labels** - Text centered in or near nodes (use superpowers:designing-ui-typography for font selection if text is prominent)
+4. **Add labels** - Text centered in or near nodes (use agents:designing-ui-typography for font selection if text is prominent)
 5. **Group related elements** - Use `<g>` for logical grouping
 
 ### Step 4: Verify Diagram
@@ -53,5 +53,5 @@ Create SVG structure:
 Check that:
 - **Flow is clear:** Direction and connections are obvious
 - **Layout is balanced:** Nodes are evenly spaced
-- **Labels are readable:** Text doesn't overlap, appropriate font size (check superpowers:designing-ui-typography for readability standards)
+- **Labels are readable:** Text doesn't overlap, appropriate font size (check agents:designing-ui-typography for readability standards)
 - **Logic matches description:** Diagram accurately represents the described process

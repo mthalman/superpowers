@@ -15,14 +15,14 @@ rebrands, visual identity symbols, and improved versions of existing marks.
 
 **Supporting skills (load exact names when needed):**
 
-- **superpowers:designing-ui-color** for all color selection, palettes, color psychology, and contrast validation.
-- **superpowers:designing-ui-typography** for wordmarks, font choice, readability, and licensing trade-offs.
-- **superpowers:svg-generator** for creating production-ready SVG logo files.
+- **agents:designing-ui-color** for all color selection, palettes, color psychology, and contrast validation.
+- **agents:designing-ui-typography** for wordmarks, font choice, readability, and licensing trade-offs.
+- **agents:svg-generator** for creating production-ready SVG logo files.
 
 **Critical:** every logo direction must include actual working SVG files created
-with `superpowers:svg-generator`, actual colors selected with
-`superpowers:designing-ui-color`, and actual fonts chosen with
-`superpowers:designing-ui-typography` when typography is involved.
+with `agents:svg-generator`, actual colors selected with
+`agents:designing-ui-color`, and actual fonts chosen with
+`agents:designing-ui-typography` when typography is involved.
 
 ## When to use
 
@@ -71,9 +71,9 @@ working SVG file.
 For each direction:
 
 - design the icon, wordmark, or combination concept;
-- use **superpowers:svg-generator** to create the SVG file;
-- use **superpowers:designing-ui-color** to select actual colors;
-- use **superpowers:designing-ui-typography** to choose fonts when text is involved;
+- use **agents:svg-generator** to create the SVG file;
+- use **agents:designing-ui-color** to select actual colors;
+- use **agents:designing-ui-typography** to choose fonts when text is involved;
 - document rationale, rejected alternatives, and trade-offs.
 
 Open `references/directions-and-tradeoffs.md` when defining the three
@@ -85,9 +85,9 @@ Before delivery, verify each direction:
 
 - remains recognizable at 16x16px;
 - works in monochrome as solid black;
-- has sufficient contrast, using **superpowers:designing-ui-color**;
-- exports cleanly as SVG, using **superpowers:svg-generator**;
-- has readable typography at all sizes, using **superpowers:designing-ui-typography** for wordmarks;
+- has sufficient contrast, using **agents:designing-ui-color**;
+- exports cleanly as SVG, using **agents:svg-generator**;
+- has readable typography at all sizes, using **agents:designing-ui-typography** for wordmarks;
 - avoids obvious visual similarity or trademark-risk patterns;
 - communicates a clear strategic rationale.
 
@@ -134,9 +134,9 @@ A complete logo-design response includes:
 - Designing without asking discovery questions.
 - Presenting only one direction.
 - Presenting descriptions instead of actual SVG files.
-- Skipping **superpowers:svg-generator** for logo files.
-- Skipping **superpowers:designing-ui-color** for color selection.
-- Skipping **superpowers:designing-ui-typography** when a wordmark or text is involved.
+- Skipping **agents:svg-generator** for logo files.
+- Skipping **agents:designing-ui-color** for color selection.
+- Skipping **agents:designing-ui-typography** when a wordmark or text is involved.
 - Using literal, clichéd interpretation without strategic exploration.
 - Not testing at 16x16px and monochrome.
 - Creating a complex gradient-heavy mark that cannot survive small sizes.

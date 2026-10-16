@@ -14,8 +14,8 @@ Implementation timelines and observable success metrics for delivered logo syste
 - [ ] Update profiles with logo (30 min)
 
 **Week 2 (Total: ~1 hour)**
-- [ ] Add fonts if needed (5 min - use superpowers:designing-ui-typography for font selection)
-- [ ] Update CSS with brand colors (15 min - use superpowers:designing-ui-color for color values)
+- [ ] Add fonts if needed (5 min - use agents:designing-ui-typography for font selection)
+- [ ] Update CSS with brand colors (15 min - use agents:designing-ui-color for color values)
 - [ ] Test across light/dark modes (30 min)
 
 **Week 3 (Optional)**

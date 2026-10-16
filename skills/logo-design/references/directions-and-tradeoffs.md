@@ -8,9 +8,9 @@ Detailed guidance for creating three strategic logo directions and explaining tr
 
 For each direction:
 1. Design the concept (icon style, wordmark approach, visual metaphor)
-2. Use superpowers:svg-generator to CREATE the actual logo file
-3. Use superpowers:designing-ui-color to SELECT actual colors
-4. Use superpowers:designing-ui-typography to CHOOSE actual fonts (if wordmark)
+2. Use agents:svg-generator to CREATE the actual logo file
+3. Use agents:designing-ui-color to SELECT actual colors
+4. Use agents:designing-ui-typography to CHOOSE actual fonts (if wordmark)
 5. Document the rationale and trade-offs
 
 Each direction should:
@@ -36,11 +36,11 @@ Don't present: same logo in 3 colors, or descriptions without actual files.
 ### Common Quantifiable Dimensions
 
 - **Print costs:** Single-color vs multi-color (exact $ difference, e.g., $50/1k stickers vs $200/1k)
-- **Typography licensing:** $0 (system fonts) vs $200-$10k (custom typefaces - see superpowers:designing-ui-typography for details)
+- **Typography licensing:** $0 (system fonts) vs $200-$10k (custom typefaces - see agents:designing-ui-typography for details)
 - **Implementation time:** 15-30 min (upload SVG to website) vs 2-3 hours (full brand rollout across platforms)
 - **File size:** <2KB (fast page loads) vs >50KB (slow, impacts SEO)
 - **Scalability:** Works at 16px vs illegible below 32px
-- **Color accessibility:** WCAG AA vs AAA compliance (check with superpowers:designing-ui-color)
+- **Color accessibility:** WCAG AA vs AAA compliance (check with agents:designing-ui-color)
 
 **Why quantification matters:** "More expensive" is vague. "$200 vs $50" lets user make informed decisions.
 
