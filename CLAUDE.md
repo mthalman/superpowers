@@ -26,6 +26,11 @@ The code-reviewer eval adapters expose `skills/code-reviewer/references/` to the
 reviewer: `copilot.ps1` through `--add-dir`, and `template.ps1` by inlining the
 files.
 
+## Plugin Versioning
+
+`.version-bump.json` lists the plugin manifests whose `version` fields must
+stay synchronized: `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding
