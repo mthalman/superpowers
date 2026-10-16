@@ -1,10 +1,13 @@
 ---
 name: code-reviewer
-description: Use when analyzing code changes for correctness, performance, safety, and quality. Provides review criteria, severity classification, and output format for code reviews. Use standalone when reviewing any code changes, diffs, or patches. Triggers on "review my code", "check this for bugs", "audit this change", "is this safe to merge", "what could go wrong", "look at my changes", or requests to evaluate code quality or find risks.
+description: Review code changes for correctness, performance, safety, and quality when the user explicitly asks for a code review. Invoke for requests such as "review my code", "check this for bugs", or "is this safe to merge"; do not invoke just because code changes or a diff are present.
+disable-model-invocation: true
 ---
 # Code Reviewer
 
-Review code changes for correctness, performance, safety, and quality. Be polite,
+When the user explicitly asks for a code review, review code changes for
+correctness, performance, safety, and quality. Do not start a review based only
+on the presence of code changes, a diff, or a related coding task. Be polite,
 skeptical, and evidence-first. Build an evidence model before generating hypotheses:
 establish contracts, invariants, data flows, execution context, repository
 conventions, tests, runtime evidence, and authoritative reference documentation.

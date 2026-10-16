@@ -2,53 +2,6 @@
 
 Each time you complete a task or learn important information about the project, you should update the `CLAUDE.md` file in the repo to reflect any new information that you've learned or changes that require updates to the instruction file.
 
-The repository no longer includes the `adr-generator`, `brainstorming`, `writing-plans`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `test-driven-development`, `using-superpowers`, or `verification-before-completion` skills. Active skills must not depend on those workflows.
-
-## Skill relationships
-
-- `arena` replaces `design-an-interface`. It compares at least three
-  structurally distinct interface or module designs against a rubric written
-  before dispatch, selects one base, grafts compatible ideas, and records
-  rejected alternatives. It remains a design-only workflow.
-- `dispatching-parallel-agents` owns partition, race, and mixed execution
-  shapes. Interface and module design competitions route to `arena`.
-- `blast-radius` is an explicitly invoked change-impact investigation that
-  grades safety facts from assertion through live reproduction.
-- `validation-scenarios` turns proposed or completed changes into a
-  proportional set of risk-based automated, manual, or hybrid validation
-  scenarios. It plans observable assurance coverage rather than implementing
-  test cases, issuing a code-review verdict, or proving blast-radius safety
-  facts.
-- `tdd` applies the initial red phase of test-driven development to an
-  approved design: it creates compile-valid public contract stubs and
-  behaviorally failing tests, then stops before implementation. Unresolved
-  interface competitions route to `arena`; requests for validation planning
-  without test code route to `validation-scenarios`.
-- `technical-writing` owns document mode, information structure, terminology,
-  and sentence clarity. `draft-pr` owns ready-to-paste PR title and body
-  drafts without creating or updating the PR, and honors the target GitHub
-  repository's PR template when one exists. `markdown-toolkit` owns GFM
-  mechanics. `unslop` is an explicitly invoked final prose cleanup.
-- `unslop` removes every em dash from editable prose. It preserves verbatim
-  quotations, code, identifiers, evidence, technical precision, and
-  uncertainty while rewriting with periods or commas.
-- `bro` explicitly restates the preceding assistant response in plain language.
-- `why` investigates historical rationale and separates direct evidence,
-  inference, competing hypotheses, and unknowns.
-- `show-me-your-work` keeps optional decision trails for long-running work. Its
-  logs are session artifacts by default and are never committed without
-  approval.
-- `code-commenting` includes a comment-audit mode with `KEEP`, `DELETE`,
-  `REWRITE`, `ENCODE`, and `INVESTIGATE` classifications.
-- `over-engineering-review` is a read-only, evidence-based assessment of
-  unnecessary complexity. It owns proportionality and simpler-counterfactual
-  analysis; `code-reviewer` remains the broad correctness review, and
-  `code-refactorer` implements an approved simplification.
-- `code-reviewer` is the renamed `code-review` skill. Its skill and evaluation
-  directories use `code-reviewer`; historical evaluation records retain their
-  original skill names. The `code-reviewer` agent is a separate extension.
-- `defend-the-diff` is an explicitly invoked, read-only-first explainability panel. An isolated questioner asks as many independently tracked material questions as each semantic change unit requires, a defender answers with evidence and self-assessment, and an independent judge verifies the response. Panel roles use persistent agent contexts for follow-up turns when supported; fresh isolated agents receiving the complete accumulated packet are the non-blocking fallback. Callers may identify semantic units explicitly; the skill preserves those boundaries and inventories uncovered changes separately. It proposes code or documentation changes and waits for user approval before editing.
-
 ## Skill layout: progressive disclosure
 
 A skill's whole `SKILL.md` body loads on every activation, and Codex CLI
