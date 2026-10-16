@@ -29,9 +29,9 @@ Core logo design principles, validation checklist, and pressure-response guidanc
 Before delivering, verify:
 - [ ] Scales to 16x16px and remains recognizable
 - [ ] Works in monochrome (solid black)
-- [ ] Has sufficient contrast (WCAG AA minimum - use superpowers:designing-ui-color for validation)
-- [ ] Exports cleanly as SVG (use superpowers:svg-generator for production files)
-- [ ] Typography is readable at all sizes (if wordmark - check with superpowers:designing-ui-typography)
+- [ ] Has sufficient contrast (WCAG AA minimum - use agents:designing-ui-color for validation)
+- [ ] Exports cleanly as SVG (use agents:svg-generator for production files)
+- [ ] Typography is readable at all sizes (if wordmark - check with agents:designing-ui-typography)
 - [ ] No trademark conflicts (visual similarity check)
 - [ ] User understands strategic rationale
 

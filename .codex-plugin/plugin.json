@@ -1,40 +1,6 @@
 {
-  "name": "superpowers",
-  "version": "5.0.7",
-  "description": "An agentic skills framework for debugging, code review, and collaboration workflows.",
-  "author": {
-    "name": "Jesse Vincent",
-    "email": "jesse@fsck.com",
-    "url": "https://github.com/obra"
-  },
-  "homepage": "https://github.com/obra/superpowers",
-  "repository": "https://github.com/obra/superpowers",
-  "license": "MIT",
-  "keywords": [
-    "skills",
-    "debugging",
-    "code-review",
-    "workflow"
-  ],
-  "skills": "./skills/",
-  "interface": {
-    "displayName": "Superpowers",
-    "shortDescription": "Debugging, review, and collaboration workflows for coding agents",
-    "longDescription": "Use Superpowers to guide agent work through systematic debugging, code review, and specialized development workflows.",
-    "developerName": "Jesse Vincent",
-    "category": "Coding",
-    "capabilities": [
-      "Interactive",
-      "Read",
-      "Write"
-    ],
-    "defaultPrompt": [
-      "I've got an idea for something I'd like to build.",
-      "Let's add a feature to this project."
-    ],
-    "brandColor": "#F59E0B",
-    "composerIcon": "./assets/superpowers-small.svg",
-    "logo": "./assets/app-icon.png",
-    "screenshots": []
-  }
+  "name": "agents",
+  "version": "4.17.0",
+  "description": "Shared AI skills for Claude Code, GitHub Copilot CLI, and OpenAI Codex.",
+  "skills": "./skills/"
 }

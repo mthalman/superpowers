@@ -59,7 +59,7 @@ Require the resolved path to exist, then import it:
 
 ```powershell
 if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
-    throw "Address PR comments support module was not found at '$modulePath'. Reinstall or update the superpowers plugin."
+    throw "Address PR comments support module was not found at '$modulePath'. Reinstall or update the agents plugin."
 }
 Import-Module $modulePath -Force
 ```

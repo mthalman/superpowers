@@ -66,8 +66,8 @@ Before designing, map the competitive landscape:
 | Budget Focus | Font Licensing | Color Complexity | Implementation |
 |--------------|----------------|------------------|----------------|
 | < $500 | System fonts only ($0) | Single-color preferred (printing: $50/1k stickers vs $200/1k full-color) | User implements themselves |
-| $500-$2k | Basic commercial fonts ($50-$200, see superpowers:designing-ui-typography) | Multi-color acceptable | User implements with potential contractor help |
-| $2k-$10k | Premium custom typography ($200-$2k, see superpowers:designing-ui-typography) | Any color complexity | Professional implementation possible |
+| $500-$2k | Basic commercial fonts ($50-$200, see agents:designing-ui-typography) | Multi-color acceptable | User implements with potential contractor help |
+| $2k-$10k | Premium custom typography ($200-$2k, see agents:designing-ui-typography) | Any color complexity | Professional implementation possible |
 | $10k+ | High-end custom fonts ($2k-$10k+) | Any complexity | Full professional rollout |
 
 **What budget does NOT constrain:**

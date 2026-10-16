@@ -130,7 +130,7 @@ Document these (even if you can't ask them) to show your thinking:
 **Issue:** Color selection doesn't align with described appearance
 
 **Solution:**
-1. Use superpowers:designing-ui-color skill to select appropriate colors based on mood, context, and description
+1. Use agents:designing-ui-color skill to select appropriate colors based on mood, context, and description
 2. Choose colors that better match the description
 3. Consider using gradients for more accurate representation
 

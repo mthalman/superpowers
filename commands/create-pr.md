@@ -71,13 +71,13 @@ Bring the branch up to date with the target branch:
 1. Determine the git range to review:
    - Base: merge-base with target branch
    - Head: current HEAD
-2. Dispatch the `superpowers:code-reviewer` agent with the diff range
+2. Dispatch the `agents:code-reviewer` agent with the diff range
 3. Review the findings:
    - **Critical issues** — must fix
    - **Important issues** — should fix; use judgment, ask user if unclear
    - **Minor/suggestions** — fix if quick and clearly beneficial; otherwise note and move on
    - Not all comments require code changes — use judgment. If a comment is a style nit, a subjective preference, or doesn't apply, it's fine to skip it with a brief rationale.
-4. After addressing findings, re-run the `superpowers:code-reviewer` agent
+4. After addressing findings, re-run the `agents:code-reviewer` agent
 5. Repeat until the review comes back clean (no Critical or Important issues remaining)
 
 ### Step 4: Re-run Tests

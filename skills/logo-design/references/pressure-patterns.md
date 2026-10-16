@@ -91,7 +91,7 @@ You: "The questions ARE my expertise - they prevent wrong solutions. 3 quick que
 
 You: "Perfect. Creating 3 strategic directions now..."
 
-[Uses superpowers:designing-ui-color to select colors, uses superpowers:svg-generator to create actual files]
+[Uses agents:designing-ui-color to select colors, uses agents:svg-generator to create actual files]
 
 You: "Here are 3 strategic directions with actual working logos:
 

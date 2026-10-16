@@ -1,19 +1,13 @@
 {
-  "name": "superpowers-dev",
-  "description": "Development marketplace for Superpowers core skills library",
+  "name": "agents",
   "owner": {
-    "name": "Matt Thalman",
-    "email": "mthalman@microsoft.com"
+    "name": "mthalman"
   },
   "plugins": [
     {
-      "name": "superpowers",
-      "description": "Core skills library for Claude Code: debugging, collaboration patterns, and proven techniques",
+      "name": "agents",
       "source": "./",
-      "author": {
-        "name": "Matt Thalman",
-        "email": "mthalman@microsoft.com"
-      }
+      "description": "Shared AI skills for Claude Code, GitHub Copilot CLI, and OpenAI Codex."
     }
   ]
 }

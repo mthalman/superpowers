@@ -17,8 +17,8 @@ proportions, mentally sketch the composition, and select the technical approach.
 
 Load supporting skills when the work needs them:
 
-- **superpowers:designing-ui-color** for palette, harmony, luminance, and contrast decisions.
-- **superpowers:designing-ui-typography** for text, labels, font choice, and readability.
+- **agents:designing-ui-color** for palette, harmony, luminance, and contrast decisions.
+- **agents:designing-ui-typography** for text, labels, font choice, and readability.
 
 ## When to use this skill
 
