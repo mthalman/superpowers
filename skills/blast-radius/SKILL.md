@@ -19,7 +19,7 @@ This skill complements code review:
 
 - Use blast radius before a change to discover constraints.
 - Use it after a change when one compatibility assumption needs focused proof.
-- Use `code-review` when deciding whether an entire change is safe to merge.
+- Use `code-reviewer` when deciding whether an entire change is safe to merge.
 
 ## Evidence scale
 

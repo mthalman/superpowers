@@ -33,11 +33,11 @@ stimuli:
       env:
         PYTHONDONTWRITEBYTECODE: "1"
       files:
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/diff.patch
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/diff.patch
           dest: change.patch
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/context/src/pagination.py
           dest: src/pagination.py
-        - src: ../code-review/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
+        - src: ../code-reviewer/fixtures/detection/dev/off-by-one-pagination/context/tests/test_pagination.py
           dest: tests/test_pagination.py
     rubric:
       - Explains that Python slicing excludes the end index and the expression returns one fewer item than page_size.
@@ -104,11 +104,11 @@ stimuli:
       maintainable. Do not edit anything unless I approve a proposal.
     agent_environment:
       files:
-        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/pr.md
+        - src: ../code-reviewer/fixtures/detection/dev/add-refund-event-handler/pr.md
           dest: pr.md
-        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/diff.patch
+        - src: ../code-reviewer/fixtures/detection/dev/add-refund-event-handler/diff.patch
           dest: change.patch
-        - src: ../code-review/fixtures/detection/dev/add-refund-event-handler/context/src
+        - src: ../code-reviewer/fixtures/detection/dev/add-refund-event-handler/context/src
           dest: src
     rubric:
       - Identifies missing acknowledgement, rejection, or dead-letter behavior required by the handler contract.

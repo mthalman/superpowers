@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: code-reviewer
 description: "Review code changes in [owner/repo] for problems — either a GitHub pull request or local changes in your branch before a PR exists. Use when asked to review a PR, review local or uncommitted changes, do a code review, check a PR or branch for issues, or review pull request changes. Focuses only on identifying problems — not style nits or praise."
 ---
 

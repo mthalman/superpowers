@@ -47,7 +47,7 @@ Post structured code review findings as pending review comments on a GitHub pull
 
 ## Extracting Comments from Code Review Output
 
-When converting code review findings (like output from the `code-review` skill) into review comments:
+When converting code review findings (like output from the `code-reviewer` skill) into review comments:
 
 - Map each finding to the file and line(s) it references
 - For findings that reference a range of lines, use `start_line` and `line`

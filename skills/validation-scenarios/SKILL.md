@@ -13,7 +13,7 @@ for it.
 Use this skill to plan validation before implementation, after implementation,
 before merge or release, when existing automation only partly covers a change, or
 when a manual/environment-dependent workflow needs repeatable checks. Use
-`code-review` for a merge verdict and `blast-radius` only when explicitly asked
+`code-reviewer` for a merge verdict and `blast-radius` only when explicitly asked
 to prove what could break.
 
 Open `references/scenario-techniques.md` when selecting boundary, state,

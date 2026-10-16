@@ -44,7 +44,7 @@ State the user's goal, not the behavior being measured.
 
 Weak:
 
-> Demonstrate that you follow the code-review skill and list every principle
+> Demonstrate that you follow the code-reviewer skill and list every principle
 > you applied.
 
 Strong:

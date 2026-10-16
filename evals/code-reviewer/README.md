@@ -1,4 +1,4 @@
-# Code-review evaluation
+# Code-reviewer evaluation
 
 `eval.yaml` runs the worked detection fixtures through Vally. Fixture context
 and patches are staged into project-shaped workspaces. Hidden expected findings
@@ -63,7 +63,7 @@ npm ci --prefix evals/_vally
 npm run build --prefix evals/_vally
 $env:VALLY_TELEMETRY_OPTOUT = '1'
 node evals/_vally/node_modules/@microsoft/vally-cli/dist/index.js eval `
-  --eval-spec evals/code-review/eval.yaml `
+  --eval-spec evals/code-reviewer/eval.yaml `
   --grader-plugin evals/_vally/dist/graders/finding-match.js `
   --reporter-plugin evals/_vally/dist/reporters/detection.js
 ```

@@ -34,7 +34,7 @@ Use this skill when the user wants to bootstrap a code-review skill for a reposi
 - "Build a reviewer agent that knows this codebase's standards."
 - "Mine the review patterns from `<repo>` and turn them into a skill."
 
-Do **not** use this skill to *perform* a code review on a specific PR — for that, the user wants a `code-review` skill (the output of *this* skill), not the creator.
+Do **not** use this skill to *perform* a code review on a specific PR — for that, the user wants a `code-reviewer` skill (the output of *this* skill), not the creator.
 
 ## Inputs to collect
 
@@ -42,7 +42,7 @@ Before starting, gather these from the user (ask if not provided):
 
 1. **Target repository path** — Absolute local path to a checkout of the repo (the discovery sub-agent runs `gh` and inspects files there). Example: `C:\repos\runtime`.
 2. **Target repository identifier** — The `owner/repo` form used by `gh` (e.g., `dotnet/runtime`). Usually inferable from the checkout's `origin` remote; confirm only if ambiguous.
-3. **Output directory** — Where the final `code-review-skill.md` (and intermediate evidence report) should land. Default to `<target-repo>\.github\skills\code-review\` if the user has no preference; confirm before writing into the target repo.
+3. **Output directory** — Where the final `code-review-skill.md` (and intermediate evidence report) should land. Default to `<target-repo>\.github\skills\code-reviewer\` if the user has no preference; confirm before writing into the target repo.
 
 If the user only gives a repo name or URL, ask for the local checkout path before proceeding — the discovery sub-agent needs a working tree to inspect.
 

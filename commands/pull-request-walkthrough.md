@@ -328,7 +328,7 @@ List 3–5 things the reader should remember — the most important concepts, pa
 Suggest questions about areas where the intent wasn't clear from the code alone — design decisions that could go either way, trade-offs that aren't documented, or behavior that depends on context you couldn't determine.
 
 **Offer a Code Review:**
-After the walkthrough wrap-up, ask the reader if they'd like you to perform a code review analysis on the changes. If they accept, apply the superpowers:code-review skill to analyze the PR diff for correctness, performance, safety, and quality issues. Present the review findings using the superpowers:code-review skill's severity classification and format.
+After the walkthrough wrap-up, ask the reader if they'd like you to perform a code review analysis on the changes. If they accept, apply the superpowers:code-reviewer skill to analyze the PR diff for correctness, performance, safety, and quality issues. Present the review findings using the superpowers:code-reviewer skill's severity classification and format.
 
 **Cleanup (cloned repos only):**
 

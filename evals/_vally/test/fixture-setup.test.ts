@@ -11,11 +11,11 @@ import {
 import { describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
-const baseDir = resolve(process.cwd(), "..", "code-review");
+const baseDir = resolve(process.cwd(), "..", "code-reviewer");
 const spec = await loadEvalSpec(join(baseDir, "eval.yaml"));
 const rootEnvironment = resolveEnvironment(spec.environment, {});
 
-describe("code-review fixture setup", () => {
+describe("code-reviewer fixture setup", () => {
   it.each(spec.stimuli)("materializes $name without a model", async (raw) => {
     const stimulus = resolveStimulus(raw, rootEnvironment, {}, spec.tags, baseDir);
     const workspace = await materializeWorkspace(stimulus.environment, baseDir);
@@ -98,7 +98,7 @@ async function concurrentDiskReads(source: string): Promise<number> {
 }
 
 describe("read-only pagination workspaces", () => {
-  it.each(["code-review", "defend-the-diff", "validation-scenarios"])(
+  it.each(["code-reviewer", "defend-the-diff", "validation-scenarios"])(
     "%s runs Python without changes, but source edits still fail",
     async (skill) => {
       const directory = resolve(process.cwd(), "..", skill);

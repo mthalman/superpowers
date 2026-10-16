@@ -22,7 +22,7 @@ const expected = {
 describe("finding-match", () => {
   it("accepts an incrementally fixable refund review without demanding rejection", async () => {
     const truth = JSON.parse(await readFile(resolve(
-      process.cwd(), "..", "code-review", "fixtures", "detection", "dev",
+      process.cwd(), "..", "code-reviewer", "fixtures", "detection", "dev",
       "add-refund-event-handler", "expected.json",
     ), "utf8"));
     const review = [

@@ -16,7 +16,7 @@ implementation.
 
 ## Boundaries
 
-- Use `code-review` for broad correctness, security, performance, and merge
+- Use `code-reviewer` for broad correctness, security, performance, and merge
   readiness. Mention a correctness defect only when it is direct evidence of
   the complexity cost being assessed.
 - Use `code-refactorer` after the user decides to change the implementation.
